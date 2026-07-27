@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brenden Buskirk — AI Deployment &amp; Solutions Engineering</title>
+<meta name="description" content="Ten years deploying machine vision, AutoID, and precision measurement systems into live production at OptumRx, Johnson Controls, Keysight Technologies and Samtec. Three years building Python software through AI-assisted engineering workflows.">
+<meta name="author" content="Brenden Buskirk">
+<link rel="canonical" href="./">
+<meta property="og:type" content="profile">
+<meta property="og:title" content="Brenden Buskirk — AI Deployment &amp; Solutions Engineering">
+<meta property="og:description" content="Technical deployment specialist. Discovery, proof of concept, implementation — and the evidence it worked.">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%2319314a'/><text x='50' y='69' font-size='54' font-family='Georgia,serif' font-weight='700' fill='%23fff' text-anchor='middle'>B</text></svg>">
+<style>
+  :root{
+    --navy:#19314a; --navy-2:#24425f; --ink:#161d25; --body:#3a4552;
+    --muted:#66727f; --line:#dbe2e9; --panel:#f4f7f9; --white:#fff;
+    --maxw:1080px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth; -webkit-text-size-adjust:100%}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{
+    margin:0; background:var(--white); color:var(--body); line-height:1.6;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    font-size:17px;
+  }
+  .wrap{width:min(var(--maxw),calc(100% - 44px)); margin-inline:auto}
+  a{color:var(--navy)}
+  a:focus-visible,.button:focus-visible{outline:3px solid #7ba7cc; outline-offset:3px; border-radius:4px}
+  .skip{position:absolute; left:-9999px}
+  .skip:focus{left:12px; top:12px; z-index:99; background:#fff; padding:10px 14px; border:2px solid var(--navy)}
+
+  header{position:sticky; top:0; z-index:20; background:rgba(255,255,255,.94); backdrop-filter:blur(10px); border-bottom:1px solid var(--line)}
+  nav{min-height:66px; display:flex; align-items:center; justify-content:space-between; gap:20px}
+  .brand{font-weight:800; letter-spacing:.06em; color:var(--navy); font-size:.95rem}
+  .navlinks{display:flex; gap:20px; align-items:center; flex-wrap:wrap}
+  .navlinks a{text-decoration:none; font-size:.92rem; font-weight:600; color:var(--body)}
+  .navlinks a:hover{color:var(--navy)}
+
+  .hero{padding:76px 0 60px; background:linear-gradient(180deg,#f6f9fb,#fff)}
+  .eyebrow{color:var(--navy); text-transform:uppercase; letter-spacing:.15em; font-weight:800; font-size:.74rem}
+  h1{font-size:clamp(2.1rem,5.2vw,3.6rem); line-height:1.08; margin:.5rem 0 1rem; color:var(--navy); max-width:17ch; letter-spacing:-.015em}
+  .lead{font-size:clamp(1.04rem,1.7vw,1.22rem); max-width:60ch; color:var(--body)}
+  .lead strong{color:var(--ink); font-weight:650}
+  .meta{margin-top:18px; color:var(--muted); font-size:.93rem; font-weight:600}
+  .actions{display:flex; flex-wrap:wrap; gap:11px; margin-top:28px}
+  .button{display:inline-block; padding:11px 18px; border-radius:7px; text-decoration:none; font-weight:650; font-size:.94rem; border:1.5px solid var(--navy); transition:background .15s,color .15s}
+  .primary{background:var(--navy); color:#fff}
+  .primary:hover{background:var(--navy-2)}
+  .secondary{background:#fff; color:var(--navy)}
+  .secondary:hover{background:var(--panel)}
+
+  section{padding:62px 0; border-top:1px solid var(--line)}
+  section:first-of-type{border-top:none}
+  h2{color:var(--navy); font-size:clamp(1.5rem,3vw,1.95rem); margin:0 0 10px; letter-spacing:-.01em}
+  .section-intro{max-width:64ch; color:var(--body); margin:0 0 26px}
+
+  .note{background:var(--panel); border-left:4px solid var(--navy); padding:16px 20px; border-radius:3px 9px 9px 3px; font-size:.94rem; color:#44505d; max-width:78ch; margin:0 0 30px}
+  .note b{color:var(--navy)}
+
+  .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+  .card{border:1px solid var(--line); border-radius:12px; padding:24px; background:#fff; box-shadow:0 8px 26px rgba(25,49,74,.055); display:flex; flex-direction:column}
+  .num{font-weight:800; color:#93a1b1; font-size:.72rem; letter-spacing:.14em}
+  .card h3{color:var(--navy); font-size:1.14rem; line-height:1.3; margin:9px 0 10px; letter-spacing:-.01em}
+  .tech{color:var(--muted); font-size:.79rem; font-weight:600; margin-bottom:16px; line-height:1.5}
+  .label{color:var(--navy); font-weight:800; font-size:.68rem; text-transform:uppercase; letter-spacing:.11em; margin-top:14px}
+  .card p{margin:.28rem 0 0; font-size:.93rem; line-height:1.55}
+
+  .approach{background:var(--navy); color:#e9f0f6; border-top:none}
+  .approach h2{color:#fff}
+  .approach .section-intro{color:#b8c8d6}
+  .steps{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:24px; counter-reset:s}
+  .step{border:1px solid rgba(255,255,255,.24); border-radius:9px; padding:16px 15px; font-size:.93rem; line-height:1.45; background:rgba(255,255,255,.04)}
+  .step::before{counter-increment:s; content:counter(s,decimal-leading-zero); display:block; font-size:.7rem; letter-spacing:.12em; color:#8fb3d0; font-weight:800; margin-bottom:7px}
+
+  .record{display:grid; grid-template-columns:1.05fr .95fr; gap:38px; align-items:start}
+  .roles{list-style:none; margin:18px 0 0; padding:0}
+  .roles li{padding:13px 0; border-top:1px solid var(--line); display:grid; grid-template-columns:1fr auto; gap:6px 18px; align-items:start}
+  .roles b{color:var(--ink); font-weight:650; font-size:.96rem}
+  .roles span{color:var(--muted); font-size:.85rem; font-weight:600; white-space:nowrap}
+  .roles em{display:block; font-style:normal; color:var(--body); font-size:.89rem; margin-top:2px; max-width:52ch}
+  .stats{list-style:none; display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin:0 0 6px; padding:0}
+  .stats li{border-top:2px solid var(--navy); padding:12px 0 0}
+  .stats b{display:block; color:var(--navy); font-size:1.45rem; font-weight:800; letter-spacing:-.02em; line-height:1.1}
+  .stats span{display:block; color:var(--muted); font-size:.79rem; font-weight:600; margin-top:5px; line-height:1.35}
+  .proof{background:var(--panel); border-left:4px solid var(--navy); padding:22px 24px; border-radius:3px 11px 11px 3px}
+  .proof strong{color:var(--navy); display:block; margin-bottom:8px; font-size:.74rem; letter-spacing:.12em; text-transform:uppercase}
+  .proof p{margin:0; font-size:.98rem}
+
+  footer{padding:34px 0 44px; border-top:1px solid var(--line); background:var(--panel)}
+  .footer-row{display:flex; justify-content:space-between; gap:18px; flex-wrap:wrap; color:var(--muted); font-size:.9rem}
+  .footer-row a{font-weight:600}
+
+  @media (max-width:900px){
+    .grid{grid-template-columns:1fr}
+    .steps{grid-template-columns:repeat(2,1fr)}
+    .record{grid-template-columns:1fr; gap:26px}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    nav{flex-wrap:wrap; padding:10px 0; gap:10px}
+    .navlinks{width:100%; gap:15px; justify-content:flex-start}
+    .navlinks a{font-size:.85rem}
+    .hero{padding:52px 0 44px}
+    section{padding:48px 0}
+  }
+  @media (max-width:520px){ .steps{grid-template-columns:1fr} }
+  @media print{
+    header,.actions{display:none}
+    body{font-size:11pt} section{padding:14pt 0} .card{break-inside:avoid; box-shadow:none}
+    .approach{background:#fff; color:#000} .approach h2{color:#000} .step{border-color:#999}
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header>
+  <div class="wrap">
+    <nav aria-label="Primary">
+      <div class="brand">BRENDEN BUSKIRK</div>
+      <div class="navlinks">
+        <a href="#record">Deployment record</a>
+        <a href="#systems">Systems</a>
+        <a href="#approach">Approach</a>
+        <a class="button secondary" href="Brenden_Buskirk_Resume.pdf">Résumé (PDF)</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero">
+    <div class="wrap">
+      <p class="eyebrow">AI Deployment &amp; Solutions Engineering</p>
+      <h1>Deployment is the part after the demo.</h1>
+      <p class="lead">
+        Ten years deploying technical systems into other companies' operations — machine vision, AutoID,
+        precision measurement, and laser displacement installed at OptumRx, Johnson Controls, Keysight
+        Technologies, Samtec, and Graham Packaging — plus three years building Python software through
+        AI-assisted engineering workflows. <strong>The part I care most about is the part most people skip: instrumenting whether
+        the thing delivered the business outcome it promised.</strong>
+      </p>
+      <p class="meta">Omaha, Nebraska · Available now · Open to remote roles across the U.S.</p>
+      <div class="actions">
+        <a class="button primary" href="Brenden_Buskirk_Project_Portfolio.pdf">Project portfolio (PDF)</a>
+        <a class="button secondary" href="Brenden_Buskirk_Resume.pdf">Résumé (PDF)</a>
+        <a class="button secondary" href="mailto:bmoney30253025@gmail.com">Get in touch</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="record">
+    <div class="wrap">
+      <h2>Deployment record</h2>
+      <p class="section-intro">
+        Ten years putting technical systems into live operations — running discovery on the floor, proving
+        performance against the customer's actual conditions, and owning the result through installation.
+        The software practice below has run alongside this since 2023.
+      </p>
+      <ul class="stats">
+        <li><b>10 yrs</b><span>deploying technical systems into live production environments</span></li>
+        <li><b>140%</b><span>of annual sales goal, Victaulic 2023</span></li>
+        <li><b>$500K</b><span>largest single fabrication package closed</span></li>
+        <li><b>120%</b><span>of cumulative goal over a measured period, KEYENCE</span></li>
+      </ul>
+      <div class="record">
+        <div>
+          <ul class="roles">
+            <li>
+              <div><b>Hughes Machinery (FCX Performance)</b> — Outside Sales Engineer
+                <em>Engineered boiler, valve, control, heat-transfer, and process systems on industrial capital projects.</em></div>
+              <span>2024 – Apr 2026</span>
+            </li>
+            <li>
+              <div><b>Victaulic</b> — Territory Sales Representative
+                <em>Specification-level selling: presented to consulting engineers, challenged incumbent design approaches, and sold on total installed cost, risk reduction, and schedule compression rather than unit price. Apprentice and field training for contractor crews.</em></div>
+              <span>2022 – 2024</span>
+            </li>
+            <li>
+              <div><b>Markem-Imaje</b> — Account Manager
+                <em>Turnkey coding, marking, and traceability systems for food, beverage, and pharmaceutical manufacturers.</em></div>
+              <span>2021 – 2022</span>
+            </li>
+            <li>
+              <div><b>KEYENCE</b> — Sales Engineer → Senior Sales Engineer
+                <em>Numerous documented capital-equipment deployments for recognizable enterprise manufacturers including OptumRx, Johnson Controls, Keysight Technologies, Samtec, Graham Packaging, KMG Chemicals, and Streck — machine vision, AutoID, precision measurement, laser displacement, and static elimination, run from discovery through proof of concept, engineering collaboration, and implementation. Promoted twice.</em></div>
+              <span>2016 – 2021</span>
+            </li>
+          </ul>
+        </div>
+        <aside class="proof">
+          <strong>The operating principle</strong>
+          <p>
+            A vision system never fails in the lab. It fails on the customer's lighting, their part variation, their
+            line speed. An AI agent never fails in the demo — it fails on real conversations. Technology succeeds when it changes the real outcome, exposes its own limits, and leaves behind
+            something the customer can trust without taking my word for it.
+          </p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section id="systems">
+    <div class="wrap">
+      <h2>Selected systems</h2>
+      <p class="section-intro">
+        Three systems I designed, built, and validated — included for what each one shows about how I would run a
+        customer AI deployment: find the decision that actually changes, build the smallest thing that changes it,
+        and prove whether it worked.
+      </p>
+
+      <p class="note">
+        <b>Scope note —</b> these are independently built systems, not commercial deployments. They are evidence of
+        engineering judgment and validation discipline. My commercial deployment record is separate and documented:
+        numerous capital-equipment deployments for recognizable enterprise manufacturers, listed above.
+      </p>
+
+      <div class="grid">
+        <article class="card">
+          <p class="num">SYSTEM 01</p>
+          <h3>Signal Validation &amp; Real-Time Market Data Platform</h3>
+          <p class="tech">Python · Polygon &amp; Tastytrade APIs · OAuth · Statistical simulation</p>
+          <p class="label">Challenge</p>
+          <p>The scanner was finding real directional signal — a measurable lift over a random baseline, enough to feel like an edge. Nothing in the pipeline tested whether that lift survived what it actually costs to trade it.</p>
+          <p class="label">System</p>
+          <p>Multi-source ingestion and normalization across three market-data providers, real-time scanning and scoring, automated token refresh and session management, running on an unattended daily cycle with failure sentinels.</p>
+          <p class="label">Evidence</p>
+          <p>I built the layer that audited my own system: random-baseline comparison, bootstrap confidence intervals, Cohen&rsquo;s d, and execution-aware Black-Scholes modeling. The directional lift over random held up. The economics did not — approximately &minus;10.9% modeled option return, roughly a 10% win rate, Kelly fraction 0.00%.</p>
+          <p class="label">What it shows</p>
+          <p>A system can predict something real and still fail to produce an economically useful decision. I instrument the thing that tells the difference — and I report the result when it&rsquo;s the one I didn&rsquo;t want.</p>
+        </article>
+
+        <article class="card">
+          <p class="num">SYSTEM 02</p>
+          <h3>FR8 Boss — Freight Decision-Support Engine</h3>
+          <p class="tech">Python · CLI workflows · YAML scenarios · Business rules · Explainable output</p>
+          <p class="label">Challenge</p>
+          <p>Load decisions get made in minutes across deadhead, timing, capacity, insurance, backhaul, and margin. Judgment varies by dispatcher and by hour, and the losses stay invisible because nobody logs the reasoning.</p>
+          <p class="label">System</p>
+          <p>A decision-support workspace evaluating load economics against repositioning cost, revenue per mile, capacity, insurance constraints, backhaul alternatives, time decay, and decision deadlines.</p>
+          <p class="label">Evidence</p>
+          <p>Converts unstructured operating inputs into PASS / WARN / INTERVENE recommendations with the reasoning written out and a reusable audit record. The operator keeps the final call.</p>
+          <p class="label">What it shows</p>
+          <p>Map the real workflow before automating it. Make the machine's reasoning inspectable, and leave behind an audit trail the customer can argue with.</p>
+        </article>
+
+        <article class="card">
+          <p class="num">SYSTEM 03</p>
+          <h3>Mulligan Made — Computer-Vision Swing Analysis</h3>
+          <p class="tech">MediaPipe · OpenCV · Signal processing · FFmpeg · Media &amp; PDF generation</p>
+          <p class="label">Challenge</p>
+          <p>Raw video is not feedback and pose data is not coaching. The distance between a working model and something a customer can act on is most of the work.</p>
+          <p class="label">System</p>
+          <p>End-to-end pipeline: swing-phase detection, pose-data smoothing, tempo and biomechanics measurement, then translation of motion data into plain-language guidance.</p>
+          <p class="label">Evidence</p>
+          <p>Produces annotated replay video, motion overlays, heatmaps, PDF summaries, and QR-linked deliverables — upload to finished artifact with no manual steps in between.</p>
+          <p class="label">What it shows</p>
+          <p>Model output is not the deliverable. The last mile is where deployments succeed or fail.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="approach" class="approach">
+    <div class="wrap">
+      <h2>How I approach an AI deployment</h2>
+      <p class="section-intro">The same sequence whether the technology is a vision sensor or an LLM agent.</p>
+      <div class="steps">
+        <div class="step">Find the decision that actually changes — not the workflow that's easiest to automate.</div>
+        <div class="step">Define success before building, in the customer's numbers, signed off by the person who owns them.</div>
+        <div class="step">Write down what result would mean this failed — while nobody is attached to it yet.</div>
+        <div class="step">Build the smallest useful implementation against real data and real edge cases.</div>
+        <div class="step">Instrument the business outcome, not the model metric. Measure the tail, not the mean.</div>
+        <div class="step">Turn what worked into a playbook someone else can run without me.</div>
+      </div>
+    </div>
+  </section>
+
+
+</main>
+
+<footer>
+  <div class="wrap footer-row">
+    <div>© 2026 Brenden Buskirk · Omaha, Nebraska</div>
+    <div><a href="mailto:bmoney30253025@gmail.com">bmoney30253025@gmail.com</a> · <a href="tel:+14026308433">402-630-8433</a></div>
+  </div>
+</footer>
+</body>
+</html>
