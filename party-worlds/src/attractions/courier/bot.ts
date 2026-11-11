@@ -84,20 +84,20 @@ export class BuddyBot {
         landTicks = fc.landTicks;
         if (this.biasLaunch !== s.launchIndex) {
           this.biasLaunch = s.launchIndex;
-          this.flightBias = this.rng.gauss() * (0.25 + (1 - this.skill) * 1.1);
+          this.flightBias = this.rng.gauss() * (0.24 + (1 - this.skill) * 0.9);
         }
         if (!Number.isNaN(fc.landX)) {
           // The further away the landing is in time, the worse the read; some of the
           // misjudgement survives right to the end, like a real outfielder's.
           const far = Math.min(1, fc.landTicks / 90);
-          const blur = (1 - this.skill) * 1.6 * far;
+          const blur = (1 - this.skill) * 0.9 * far;
           this.targetX = fc.landX + this.rng.gauss() * blur + this.flightBias * (0.45 + 0.55 * far);
         }
         this.lastLandTicks = fc.landTicks;
       } else if (s.aim.pulling && s.aim.powerQ >= TIMING.minPowerQ) {
         // Reading the bend of the spoon: a rough guess, refreshed now and then.
         const fc = forecastLaunch(s, s.aim.aimQ, s.aim.powerQ, 360);
-        if (s.tick % (period * 6) < period) this.readError = this.rng.gauss() * (1.5 + (1 - this.skill) * 3.5);
+        if (s.tick % (period * 6) < period) this.readError = this.rng.gauss() * (0.8 + (1 - this.skill) * 2);
         if (!Number.isNaN(fc.landX)) this.targetX = fc.landX + this.readError;
       } else {
         this.targetX = (arena.laneMin + arena.laneMax) / 2;
@@ -108,12 +108,12 @@ export class BuddyBot {
     if (Number.isNaN(this.targetX)) return;
     const tx = clamp(this.targetX, arena.laneMin, arena.laneMax);
     const d = tx - c.x;
-    o.move = Math.round(clamp(d / 0.7, -1, 1) * 127);
+    o.move = Math.round(clamp(d / 0.4, -1, 1) * 127);
 
     if (s.phase === 'flight' && c.mode === 'run' && landTicks > 2 && landTicks < 20) {
       const runReach = (TUNE.catcher.maxSpeed * landTicks) / TICK_HZ;
       const need = Math.abs(d);
-      if (need > runReach + 0.35 && need < runReach + 4.2 && this.rng.next() < 0.25 + this.skill * 0.6) {
+      if (need > runReach + 0.25 && need < runReach + 2.4 && this.rng.next() < 0.25 + this.skill * 0.6) {
         o.move = d > 0 ? 127 : -127;
         o.dive = true;
       }
@@ -162,8 +162,8 @@ export class BuddyBot {
         const eClosed = Number.isNaN(closed.landX) ? 99 : Math.abs(closed.landX - cx);
         const eOpen = Number.isNaN(opened.landX) ? 99 : Math.abs(opened.landX - cx);
         // Only bother when it clearly helps, and never on the way up.
-        const margin = this.holdUmbrella ? -0.2 : 0.6;
-        this.holdUmbrella = f.vy < 2 && eOpen + margin < eClosed;
+        const margin = this.holdUmbrella ? -0.1 : 0.35;
+        this.holdUmbrella = f.vy < 1.1 && eOpen + margin < eClosed;
       }
       o.umbrella = this.holdUmbrella;
     }
@@ -174,14 +174,14 @@ export class BuddyBot {
     const arena = arenaOf(s);
     if (!this.scan || this.scan.launch !== s.launchIndex) {
       // Each launch Buddy fancies a slightly different spot, so the catcher has to move.
-      const mood = clamp(s.catcher.x + this.rng.gauss() * 4.5, arena.laneMin + 2, arena.laneMax - 2);
+      const mood = clamp(s.catcher.x + this.rng.gauss() * 2.5, arena.laneMin + 1.2, arena.laneMax - 1.2);
       this.scan = { launch: s.launchIndex, aimQ: 60, powerQ: 48, mood, picks: [] };
     }
     const sc = this.scan;
     while (budget-- > 0 && sc.aimQ <= 960) {
       const f = forecastLaunch(s, sc.aimQ, sc.powerQ, 300);
-      if (!f.dead && !Number.isNaN(f.landX) && f.landX >= arena.laneMin + 1.2 && f.landX <= arena.laneMax - 1.2) {
-        let score = 100 - Math.abs(f.landX - sc.mood) * 2.2;
+      if (!f.dead && !Number.isNaN(f.landX) && f.landX >= arena.laneMin + 0.8 && f.landX <= arena.laneMax - 0.8) {
+        let score = 100 - Math.abs(f.landX - sc.mood) * 4;
         score += f.rings * 45;
         if (f.jelly) score += 12;
         if (f.landTicks < 95) score -= (95 - f.landTicks) * 0.8; // give the catcher time

@@ -275,7 +275,7 @@ export class Hud {
     // umbrella paper left, shown beside the flyer
     const f = s.flyer;
     if (f.mode === 'air' && (f.open > 0.02 || f.budget < TUNE.umbrellaTicks)) {
-      const at = view.project(f.x, f.y + 2.3, size.width, size.height);
+      const at = view.project(f.x, f.y + 1.9, size.width, size.height);
       this.meter.style.display = 'block';
       this.meter.style.left = `${at.x}px`;
       this.meter.style.top = `${at.y}px`;
@@ -290,7 +290,7 @@ export class Hud {
       const tag = this.tags[seat];
       if (tagsOn) {
         view.headPosition(seat, this.pos);
-        const at = view.project(this.pos.x, this.pos.y + (seat === C ? 1.3 : 0.2), size.width, size.height);
+        const at = view.project(this.pos.x, this.pos.y + (seat === C ? 1.1 : 0.15), size.width, size.height);
         tag.style.left = `${at.x}px`;
         tag.style.top = `${at.y}px`;
         const want = `${esc(this.seats[seat].name)}<small class="${seat === L ? '' : 'catch'}">${seat === L ? 'launch' : 'catch'}</small>`;

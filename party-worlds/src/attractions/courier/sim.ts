@@ -67,6 +67,11 @@ export interface FlyerState {
   rimHits: number;
   ringsHit: number;
   jelly: boolean;
+  /** jelly bounces this flight: the trampoline tires, so nobody bounces forever */
+  jellyHits: number;
+  /** where the flyer was at the last stall check (a wedged flyer is called a miss) */
+  stallX: number;
+  stallY: number;
 }
 
 export interface CatcherState {
@@ -162,7 +167,8 @@ export function catcherSeat(s: CourierState): 0 | 1 {
 function freshFlyer(): FlyerState {
   return {
     x: TUNE.launchX, y: TUNE.launchY, vx: 0, vy: 0, mode: 'seated',
-    open: 0, budget: TUNE.umbrellaTicks, spent: false, airTicks: 0, rimHits: 0, ringsHit: 0, jelly: false,
+    open: 0, budget: TUNE.umbrellaTicks, spent: false, airTicks: 0, rimHits: 0, ringsHit: 0, jelly: false, jellyHits: 0,
+    stallX: TUNE.launchX, stallY: TUNE.launchY,
   };
 }
 
@@ -215,7 +221,7 @@ export function hashCourier(s: CourierState): number {
   const c = s.catcher;
   return hashNumbers([
     s.tick, s.phaseTick, s.launchIndex, s.launcherSeat, s.total, s.results.length,
-    f.x, f.y, f.vx, f.vy, f.open, f.budget, f.airTicks, f.rimHits, f.ringsHit,
+    f.x, f.y, f.vx, f.vy, f.open, f.budget, f.airTicks, f.rimHits, f.ringsHit, f.jellyHits, f.stallX, f.stallY,
     c.x, c.vx, c.facing, c.modeTick, c.bx, c.by,
     s.aim.aimQ, s.aim.powerQ, s.aim.pulling ? 1 : 0,
     s.balloonsPopped.reduce((n, p, i) => n + (p ? 1 << i : 0), 0),
@@ -356,11 +362,11 @@ function stepCatcher(s: CourierState, inp: PlayerInput): void {
       const target = axis * T.maxSpeed;
       const reversing = (target > 0 && c.vx < -0.5) || (target < 0 && c.vx > 0.5);
       const rate = Math.abs(target) > Math.abs(c.vx) && !reversing ? T.accel : T.decel;
-      if (reversing && Math.abs(c.vx) > 5.5 && s.tick % 6 === 0) s.events.push({ type: 'skid' });
+      if (reversing && Math.abs(c.vx) > 3 && s.tick % 6 === 0) s.events.push({ type: 'skid' });
       c.vx = approach(c.vx, target, rate * DT);
       if (axis > 0.05) c.facing = 1;
       else if (axis < -0.05) c.facing = -1;
-      if (Math.abs(c.vx) > 3 && s.tick % 11 === 0) s.events.push({ type: 'step' });
+      if (Math.abs(c.vx) > 1.7 && s.tick % 11 === 0) s.events.push({ type: 'step' });
       break;
     }
     case 'dive':
@@ -459,6 +465,17 @@ function stepFlight(s: CourierState, inp: PlayerInput): void {
     collide(s, f, px);
   }
 
+  // Anti-stall: a flyer that has barely moved in three quarters of a second is wedged somewhere.
+  if (f.mode === 'air' && f.airTicks % 45 === 0) {
+    const mx = f.x - f.stallX;
+    const my = f.y - f.stallY;
+    if (mx * mx + my * my < 0.09) {
+      endMiss(s, 'stranded');
+      return;
+    }
+    f.stallX = f.x;
+    f.stallY = f.y;
+  }
   if (f.mode === 'air' && f.airTicks >= TUNE.flightLimitTicks) endMiss(s, 'timeout');
 }
 
@@ -523,8 +540,11 @@ function collide(s: CourierState, f: FlyerState, prevX: number): void {
       if (vn < 0) {
         f.x = jc.cx + nx * reach;
         f.y = jc.cy + ny * reach;
-        let out = -vn * TUNE.jelly.restitution;
-        if (out < TUNE.jelly.kick) out = TUNE.jelly.kick;
+        // full spring for the first two bounces, then it tires and finally just holds you
+        const tired = f.jellyHits >= 2;
+        let out = -vn * (tired ? 0.45 : TUNE.jelly.restitution);
+        if (!tired && out < TUNE.jelly.kick) out = TUNE.jelly.kick;
+        f.jellyHits++;
         f.vx += (out - vn) * nx;
         f.vy += (out - vn) * ny;
         const sp = Math.sqrt(f.vx * f.vx + f.vy * f.vy);
@@ -533,7 +553,11 @@ function collide(s: CourierState, f: FlyerState, prevX: number): void {
           f.vy *= TUNE.jelly.maxSpeed / sp;
         }
         f.jelly = true;
-        s.events.push({ type: 'jelly', index: i, strength: clamp(-vn / 18, 0.15, 1), dirX: nx });
+        s.events.push({ type: 'jelly', index: i, strength: clamp(-vn / 10, 0.15, 1), dirX: nx });
+        if (tired && out < 1.2) {
+          endMiss(s, 'stranded');
+          return;
+        }
       }
     }
   }
@@ -573,7 +597,7 @@ function collide(s: CourierState, f: FlyerState, prevX: number): void {
         const out = -vn * TUNE.cupcake.restitution;
         f.vx = out * nx + vt * tx;
         f.vy = out * ny + vt * ty;
-        s.events.push({ type: 'cupcake', index: i, strength: clamp(-vn / 16, 0.1, 1) });
+        s.events.push({ type: 'cupcake', index: i, strength: clamp(-vn / 9, 0.1, 1) });
         const sp = Math.sqrt(f.vx * f.vx + f.vy * f.vy);
         if (ny > 0.7 && sp < TUNE.cupcake.restSpeed) {
           endMiss(s, 'stranded');
@@ -644,9 +668,12 @@ function collideBasket(s: CourierState, f: FlyerState): boolean {
   const r = TUNE.seatR;
   const top = c.by + B.depth;
   const bvx = c.vx;
+  // After a handful of rattles the paper gives way: no more bouncing off it, only in or out.
+  const soft = f.rimHits >= 8;
 
   // rims: two small circles; hitting one is the drama of a near miss
   for (const side of RIM_SIDES) {
+    if (soft) break;
     const rx = c.bx + side * B.halfOpen;
     const dx = f.x - rx;
     const dy = f.y - top;
@@ -665,16 +692,16 @@ function collideBasket(s: CourierState, f: FlyerState): boolean {
         f.vx = rvx + (out - vn) * nx + bvx;
         f.vy = f.vy + (out - vn) * ny;
         // Nobody balances on a paper rim: a dead-centre rim hit tips off, inward on a tie.
-        if (Math.abs(nx) < 0.25) f.vx += ((f.x - rx) * side <= 0 ? -side : side) * 1.8;
+        if (Math.abs(nx) < 0.25) f.vx += ((f.x - rx) * side <= 0 ? -side : side) * 1.0;
         f.rimHits++;
-        s.events.push({ type: 'rim', side, strength: clamp(-vn / 14, 0.1, 1) });
+        s.events.push({ type: 'rim', side, strength: clamp(-vn / 8, 0.1, 1) });
       }
     }
   }
 
   const dx = f.x - c.bx;
   // dropped in through the opening
-  if (f.y <= top && f.y >= c.by && Math.abs(dx) <= B.halfOpen - 0.05 && f.vy <= 2) {
+  if (f.y <= top && f.y >= c.by && Math.abs(dx) <= B.halfOpen - 0.05 && f.vy <= 1.1) {
     endCaught(s, dx);
     return true;
   }
@@ -685,7 +712,7 @@ function collideBasket(s: CourierState, f: FlyerState): boolean {
   const oy = f.y - cy;
   const d2 = ox * ox + oy * oy;
   const overOpening = oy > 0 && ox === 0;
-  if (!overOpening && d2 > 0 && d2 < r * r) {
+  if (!soft && !overOpening && d2 > 0 && d2 < r * r) {
     const d = Math.sqrt(d2);
     const nx = ox / d;
     const ny = oy / d;
@@ -698,7 +725,7 @@ function collideBasket(s: CourierState, f: FlyerState): boolean {
       f.vx = rvx + (out - vn) * nx + bvx;
       f.vy = f.vy + (out - vn) * ny;
       f.rimHits++;
-      s.events.push({ type: 'rim', side: nx >= 0 ? 1 : -1, strength: clamp(-vn / 14, 0.1, 1) });
+      s.events.push({ type: 'rim', side: nx >= 0 ? 1 : -1, strength: clamp(-vn / 8, 0.1, 1) });
     }
   }
   return false;
@@ -814,7 +841,7 @@ export function forecastFlight(
     }
     if (samples && t % sampleEvery === 0) samples.push({ x: f.x, y: f.y });
     if (f.mode !== 'air') {
-      out.dead = f.y > rimY + 0.01 || f.x < arenaOf(sim).laneMin - 1.5;
+      out.dead = f.y > rimY + 0.01 || f.x < arenaOf(sim).laneMin - 0.8;
       if (Number.isNaN(out.landX)) {
         out.landX = f.x;
         out.landTicks = t + 1;
@@ -826,7 +853,7 @@ export function forecastFlight(
       out.landX = f.x - f.vx * DT * (1 - k);
       out.landTicks = t + 1;
       const a = arenaOf(sim);
-      if (out.landX >= a.laneMin - 1 && out.landX <= a.laneMax + 1) break;
+      if (out.landX >= a.laneMin - 0.6 && out.landX <= a.laneMax + 0.6) break;
     }
   }
   out.rings = f.ringsHit;

@@ -22,11 +22,11 @@ import type { Frame } from '../../render/camera';
 import { Fx } from '../../render/fx';
 import type { Stage } from '../../render/stage';
 import type { Settings } from '../../core/profile';
-import { ARENAS, DEFAULT_ARENA, DT, POINTS, TIMING, TUNE } from './rules';
+import { ARENAS, DEFAULT_ARENA, DT, POINTS, TIMING, TUNE, jellyCircle } from './rules';
 import type { Arena } from './rules';
 import { aimRadians, arenaOf, forecastLaunch, setupOf } from './sim';
 import type { CourierEvent, CourierState, FlightSample, LaunchResult } from './sim';
-import { AimArc, buildCakeCliff, buildDropShadow, buildLandingMarker } from './setpieces';
+import { AimArc, buildCakeCliff, buildDepthHaze, buildDropShadow, buildLandingMarker } from './setpieces';
 
 export interface Popup {
   text: string;
@@ -37,6 +37,8 @@ export interface Popup {
 
 const BALLOON_COLORS = [PALETTE.teal, PALETTE.grape, PALETTE.sunflower, PALETTE.berry];
 const MAX_RINGS = 2;
+/** rings are built once at this hole radius and scaled per launch */
+const RING_BUILD_R = 1;
 
 /** Body tilt for a ballistic flyer, radians about z. The 'fly' pose is head-first along +x at tilt 0. */
 function flightTilt(vx: number, vy: number): number {
@@ -118,6 +120,7 @@ export class CourierView {
     this.table = buildTableScene({ xMin: a.xMin, xMax: a.xMax });
     this.world.add(this.table.root);
     this.world.add(buildCakeCliff(a.xMax));
+    this.world.add(buildDepthHaze(a.xMin, a.xMax));
 
     this.runway = buildRunway(a.laneMax - a.laneMin + 2);
     this.runway.root.position.set(a.laneMin - 1, 0, 0);
@@ -128,9 +131,9 @@ export class CourierView {
     this.world.add(this.spoon.root);
 
     for (const j of a.jellies) {
-      const jelly = buildJellyDome(j.halfW);
+      // the kit builds the exact shallow cap the simulation collides with
+      const jelly = buildJellyDome(jellyCircle(j).r, j.h, PALETTE.berry);
       jelly.root.position.set(j.x, 0, 0);
-      jelly.root.scale.set(1, j.h / j.halfW, 1);
       this.jellies.push(jelly);
       this.world.add(jelly.root);
     }
@@ -147,19 +150,18 @@ export class CourierView {
       this.world.add(balloon.root);
     });
     for (let i = 0; i < MAX_RINGS; i++) {
-      const ring = buildRingGate(1.6);
-      ring.root.visible = false;
-      ring.root.rotation.y = 0.5; // show the hole to a side-on camera
+      const ring = buildRingGate(RING_BUILD_R);
+      ring.root.visible = false; // (the kit already turns the hole toward a side-on camera)
       this.rings.push(ring);
       this.world.add(ring.root);
     }
 
     this.fan = buildTableFan();
-    this.fan.root.position.set((a.windZone.x0 + a.windZone.x1) / 2 - 1, 0, -4.4);
+    this.fan.root.position.set((a.windZone.x0 + a.windZone.x1) / 2 - 1, 0, -4.2);
     this.world.add(this.fan.root);
     const zw = a.windZone.x1 - a.windZone.x0 - 2;
-    this.streamers = buildWindStreamers(zw, 10);
-    this.streamers.root.position.set((a.windZone.x0 + a.windZone.x1) / 2, 8.2, -1.4);
+    this.streamers = buildWindStreamers(zw, 6.5);
+    this.streamers.root.position.set((a.windZone.x0 + a.windZone.x1) / 2, 5.2, -1.4);
     this.world.add(this.streamers.root);
 
     this.basket = buildCatchBasket();
@@ -220,12 +222,12 @@ export class CourierView {
     this.umbrella.root.visible = false;
     for (const ring of this.rings) ring.root.visible = false;
     this.spoon.setPull(0, 0.9);
-    this.basket.root.position.set(8.4, 0, 1.2);
+    this.basket.root.position.set(5.0, 0, 2.4);
     this.basket.root.rotation.set(0, 0, 0);
     for (const seat of [0, 1] as const) {
       const h = this.holders[seat];
       this.world.add(h);
-      h.position.set(seat === 0 ? 3.4 : 5.6, 0, 1.6);
+      h.position.set(seat === 0 ? 1.7 : 3.5, 0, 2.0);
       h.rotation.set(0, 0, 0);
       const rig = this.rigs[seat];
       rig.setTilt(0);
@@ -246,7 +248,7 @@ export class CourierView {
 
   private lobbyFrame(): Frame {
     // characters sit right of centre so the menu on the left never covers them
-    return { x0: -2.6, x1: 8.2, y0: -0.7, y1: 4.4 };
+    return { x0: -3.4, x1: 5.0, y0: -1.55, y1: 3.0 };
   }
 
   /** Call when a round starts (or restarts). */
@@ -282,7 +284,7 @@ export class CourierView {
   }
 
   private wideFrame(): Frame {
-    return { x0: this.arena.xMin + 1.5, x1: this.arena.xMax + 1.5, y0: -1.4, y1: 14 };
+    return { x0: this.arena.xMin + 0.6, x1: this.arena.xMax + 0.9, y0: -0.9, y1: 8.6 };
   }
 
   private setupLaunch(s: CourierState): void {
@@ -292,7 +294,7 @@ export class CourierView {
       ring.root.visible = !!def;
       if (def) {
         ring.root.position.set(def.x, def.y, 0);
-        const k = def.r / 1.6;
+        const k = def.r / RING_BUILD_R;
         ring.root.scale.setScalar(k);
         ring.setCollected(false);
       }
@@ -406,7 +408,7 @@ export class CourierView {
         break;
       case 'umbrella_spent':
         audio.play('umbrella_spent', { pan: this.pan(f.x) });
-        this.popup('Umbrella spent!', f.x, f.y + 1.6, 'info');
+        this.popup('Umbrella spent!', f.x, f.y + 1.3, 'info');
         break;
       case 'jelly': {
         this.jellies[e.index]?.boing(e.strength, e.dirX);
@@ -511,12 +513,12 @@ export class CourierView {
     this.cam.punchIn(r.perfect ? 1 : 0.6);
     this.cam.shake(0.18);
     this.onBuzz?.(r.perfect ? [20, 40, 30] : 24);
-    const y = c.by + 2.6;
+    const y = c.by + 2.1;
     this.popup(r.perfect ? `PERFECT CATCH  +${POINTS.caught + POINTS.perfect}` : `CAUGHT  +${POINTS.caught}`, c.bx, y, r.perfect ? 'great' : 'good');
     let line = 1;
-    if (r.diveCatch) this.popup(`Diving catch  +${POINTS.dive}`, c.bx, y + 0.9 * line++, 'great');
-    if (r.rings > 0) this.popup(`Donut${r.rings > 1 ? ` ×${r.rings}` : ''}  +${POINTS.ring * r.rings}`, c.bx, y + 0.9 * line++, 'good');
-    if (r.jelly) this.popup(`Jelly bounce  +${POINTS.jelly}`, c.bx, y + 0.9 * line++, 'good');
+    if (r.diveCatch) this.popup(`Diving catch  +${POINTS.dive}`, c.bx, y + 0.55 * line++, 'great');
+    if (r.rings > 0) this.popup(`Donut${r.rings > 1 ? ` ×${r.rings}` : ''}  +${POINTS.ring * r.rings}`, c.bx, y + 0.55 * line++, 'good');
+    if (r.jelly) this.popup(`Jelly bounce  +${POINTS.jelly}`, c.bx, y + 0.55 * line++, 'good');
   }
 
   private onMiss(s: CourierState, r: LaunchResult): void {
@@ -544,14 +546,14 @@ export class CourierView {
       splat.root.position.set(f.x, 0, 0.35);
       this.splats.push(splat);
       this.world.add(splat.root);
-      const near = r.missBy < 2.2;
+      const near = r.missBy < 1.4;
       this.popup(near ? `So close!  ${r.missBy.toFixed(1)} away` : 'Splat!', f.x, 2.4, 'miss');
     } else if (r.missKind === 'stranded') {
       h.position.set(f.x, f.y - RIG.CENTER_Y, 0);
       rig.setAction('sad');
       rig.setExpression('oops');
       this.audio.play('whoops', { pan: this.pan(f.x) });
-      this.popup('Stuck on the cupcake!', f.x, f.y + 1.8, 'miss');
+      this.popup(f.y > 2.2 ? 'Stuck up there!' : 'Stuck!', f.x, f.y + 1.5, 'miss');
     } else {
       h.position.set(f.x, -40, 0);
       this.audio.play('whoops');
@@ -588,7 +590,7 @@ export class CourierView {
     this.streamers.update(dt);
     this.fx.update(dt);
     this.cam.update(dt);
-    this.stage.focusShadows(this.cam.centerX, 2, Math.min(34, this.cam.visibleHalfHeight * (this.stage.camera.aspect || 1.7) + 4));
+    this.stage.focusShadows(this.cam.centerX, 2, Math.min(22, this.cam.visibleHalfHeight * (this.stage.camera.aspect || 1.7) + 3));
     this.stage.render();
   }
 
@@ -666,18 +668,18 @@ export class CourierView {
 
     // ── wind dressing ──
     this.windVis += (setup.wind - this.windVis) * Math.min(1, dt * 3);
-    this.streamers.setWind(this.windVis, 0);
-    this.fan.setStrength(Math.min(1, Math.abs(this.windVis) / 7));
+    this.streamers.setWind(this.windVis * 1.8, 0);
+    this.fan.setStrength(Math.min(1, Math.abs(this.windVis) / 3.6));
     const wantYaw = this.windVis < -0.2 ? Math.PI : 0;
     this.fanYaw += (wantYaw - this.fanYaw) * Math.min(1, dt * 4);
     this.fan.root.rotation.y = this.fanYaw;
-    if (Math.abs(this.windVis) > 0.5) {
-      this.gustClock -= dt * Math.abs(this.windVis);
+    if (Math.abs(this.windVis) > 0.3) {
+      this.gustClock -= dt * Math.abs(this.windVis) * 1.8;
       if (this.gustClock <= 0) {
         this.gustClock = 0.5;
         const z = this.arena.windZone;
-        const gx = this.cam.centerX + (Math.sin(this.time * 12.9898) * 0.5) * 30;
-        const gy = 3.5 + Math.abs(Math.sin(this.time * 78.233)) * 9;
+        const gx = this.cam.centerX + (Math.sin(this.time * 12.9898) * 0.5) * 18;
+        const gy = 2.2 + Math.abs(Math.sin(this.time * 78.233)) * 5.5;
         if (gx > z.x0 && gx < z.x1) this.fx.gust(gx, gy, this.windVis > 0 ? 1 : -1);
       }
     }
@@ -712,9 +714,9 @@ export class CourierView {
         rigL.setAction('tumble');
         rigL.setExpression('dizzy');
       } else if (f.open > 0.5) {
-        this.tiltVis += (-f.vx * 0.012 - this.tiltVis) * Math.min(1, dt * 9);
+        this.tiltVis += (-f.vx * 0.022 - this.tiltVis) * Math.min(1, dt * 9);
         rigL.setAction('float');
-        rigL.setExpression(f.vy < -3 ? 'determined' : 'happy');
+        rigL.setExpression(f.vy < -1.7 ? 'determined' : 'happy');
       } else {
         const want = flightTilt(f.vx, f.vy);
         // shortest way round after a tumble
@@ -737,20 +739,20 @@ export class CourierView {
       this.umbrella.setWear(1 - f.budget / TUNE.umbrellaTicks);
 
       // air sounds + trail
-      this.audio.setWind(Math.min(1, speed / 24) * (1 - f.open * 0.6));
+      this.audio.setWind(Math.min(1, speed / 13.5) * (1 - f.open * 0.6));
       this.audio.setFlutter(f.open > 0.05 ? f.open : null);
       this.trailClock -= dt;
-      if (speed > 9 && f.open < 0.5 && this.trailClock <= 0) {
+      if (speed > 5 && f.open < 0.5 && this.trailClock <= 0) {
         this.trailClock = 0.035;
-        this.fx.trail(fx, fy, '#ffffff', 0.16 + Math.min(0.2, speed * 0.008));
+        this.fx.trail(fx, fy, '#ffffff', 0.14 + Math.min(0.16, speed * 0.012));
       }
 
       // landing shadow: straight down, tighter and darker as the flyer comes in
       const h = Math.max(0, fy);
-      const k = 1 / (1 + h * 0.12);
+      const k = 1 / (1 + h * 0.2);
       this.dropShadow.visible = true;
       this.dropShadow.position.set(fx, 0.06, 0);
-      this.dropShadow.scale.set(1.5 + h * 0.16, 1.1 + h * 0.1, 1);
+      this.dropShadow.scale.set(1.2 + h * 0.14, 0.9 + h * 0.09, 1);
       (this.dropShadow.material as THREE.MeshBasicMaterial).opacity = 0.35 + 0.65 * k;
       this.arc.hide();
       this.landing.visible = false;
@@ -779,14 +781,16 @@ export class CourierView {
     const sp = Math.abs(c.vx);
     if (c.mode === 'dive') rigC.setAction('dive');
     else if (c.mode === 'slide' || c.mode === 'recover') rigC.setAction('slide');
-    else rigC.setAction(sp > 0.7 ? 'run' : 'idle');
+    else rigC.setAction(sp > 0.4 ? 'run' : 'idle');
     this.ctxC.vx = c.vx;
     this.ctxC.vy = 0;
     this.ctxC.speed01 = Math.min(1, sp / TUNE.catcher.maxSpeed);
     this.ctxC.carrying = true;
+    this.ctxC.carryX = (bx - cx) * c.facing;
+    this.ctxC.carryY = by;
     if (s.phase === 'flight') {
       const dist = Math.abs(f.x - c.bx);
-      rigC.setExpression(dist < 5 && f.vy < 0 ? 'nervous' : 'determined');
+      rigC.setExpression(dist < 3 && f.vy < 0 ? 'nervous' : 'determined');
     } else if (s.phase === 'aim' || s.phase === 'intro') {
       rigC.setExpression('determined');
     }
@@ -851,14 +855,14 @@ export class CourierView {
         this.cam.rate = 3.4;
         if (this.pullVis < 0.06) {
           // lean in on the passenger while they think
-          frame = { x0: -7.5, x1: 15.5, y0: -1.2, y1: 9 };
+          frame = { x0: -4.6, x1: 8.4, y0: -0.8, y1: 5.4 };
         } else {
           // the harder you pull, the more of the table you see
           const land = Number.isNaN(this.forecastLand) ? cx : this.forecastLand;
-          let x1 = Math.max(18, land + 5, cx + 4);
-          for (const r of setupOf(s).rings) x1 = Math.max(x1, r.x + 4);
-          x1 = Math.min(x1, A.xMax + 1.5);
-          frame = { x0: -6.5, x1, y0: -1.3, y1: Math.max(10, this.forecastApex + 3) };
+          let x1 = Math.max(11, land + 3, cx + 2.4);
+          for (const r of setupOf(s).rings) x1 = Math.max(x1, r.x + 2.4);
+          x1 = Math.min(x1, A.xMax + 0.9);
+          frame = { x0: -4, x1, y0: -0.9, y1: Math.max(6, this.forecastApex + 1.9) };
         }
         break;
       }
@@ -866,15 +870,15 @@ export class CourierView {
         this.cam.rate = 5.5;
         const lo = Math.min(fx, bx);
         const hi = Math.max(fx, bx);
-        let x0 = lo - 5.5;
-        let x1 = hi + 5.5;
-        if (x1 - x0 < 19) {
+        let x0 = lo - 3.2;
+        let x1 = hi + 3.2;
+        if (x1 - x0 < 11) {
           const mid = (x0 + x1) / 2;
-          x0 = mid - 9.5;
-          x1 = mid + 9.5;
+          x0 = mid - 5.5;
+          x1 = mid + 5.5;
         }
-        x1 = Math.min(x1, A.xMax + 2);
-        frame = { x0, x1, y0: -1.3, y1: Math.max(fy + 3.6, 8.5) };
+        x1 = Math.min(x1, A.xMax + 1.2);
+        frame = { x0, x1, y0: -0.9, y1: Math.max(fy + 2.2, 5.2) };
         if (rm) frame = this.wideFrame();
         break;
       }
@@ -886,13 +890,13 @@ export class CourierView {
         if (rm) {
           frame = this.wideFrame();
         } else if (r && r.caught) {
-          frame = { x0: bx - 6.5, x1: bx + 6.5, y0: -1, y1: 6.6 };
-        } else if (r && r.missKind === 'table' && Math.abs(r.downX - bx) < 9) {
+          frame = { x0: bx - 4, x1: bx + 4, y0: -0.8, y1: 4.2 };
+        } else if (r && r.missKind === 'table' && Math.abs(r.downX - bx) < 5.5) {
           const lo = Math.min(r.downX, bx);
           const hi = Math.max(r.downX, bx);
-          frame = { x0: lo - 4.5, x1: hi + 4.5, y0: -1, y1: 6.5 };
+          frame = { x0: lo - 3, x1: hi + 3, y0: -0.8, y1: 4.2 };
         } else if (r && (r.missKind === 'table' || r.missKind === 'stranded')) {
-          frame = { x0: r.downX - 7, x1: r.downX + 7, y0: -1, y1: Math.max(7, fy + 3) };
+          frame = { x0: r.downX - 4.2, x1: r.downX + 4.2, y0: -0.8, y1: Math.max(4.4, fy + 2) };
         } else {
           frame = this.wideFrame();
         }
@@ -911,7 +915,7 @@ export class CourierView {
   headPosition(seat: 0 | 1, out: { x: number; y: number }): void {
     this.holders[seat].getWorldPosition(this.v3);
     out.x = this.v3.x;
-    out.y = this.v3.y + 1.55;
+    out.y = this.v3.y + 1.35;
   }
 
   dispose(): void {

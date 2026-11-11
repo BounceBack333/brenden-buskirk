@@ -499,7 +499,7 @@ export class Screens {
       }
       const why = r.missKind === 'table'
         ? `landed ${r.missBy.toFixed(1)} from the basket`
-        : r.missKind === 'stranded' ? 'stuck on a cupcake' : r.missKind === 'off_edge' ? 'flew off the table' : 'never came down';
+        : r.missKind === 'stranded' ? 'got stuck' : r.missKind === 'off_edge' ? 'flew off the table' : 'never came down';
       const lost = r.rings || r.jelly ? ' · bonuses only count when caught' : '';
       return { what: `${who} flew, ${why}`, sub: `no catch${lost}` };
     };

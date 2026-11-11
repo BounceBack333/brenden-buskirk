@@ -94,6 +94,12 @@ export interface MotionContext {
   tension01?: number;
   /** true while the character is holding the catch basket (carry pose overlays idle/run) */
   carrying?: boolean;
+  /**
+   * Where the basket's bottom-centre is in root space while carrying, when gameplay has moved
+   * it off the default (a dive pushes it forward and down). Defaults to (0, RIG.CARRY_Y).
+   */
+  carryX?: number;
+  carryY?: number;
 }
 
 /** Canonical, species-independent numbers every rig must honour. */

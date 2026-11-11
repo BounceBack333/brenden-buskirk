@@ -10,6 +10,8 @@ import '@fontsource/fredoka/latin-700.css';
 import './ui/styles.css';
 
 import { createAudioKit } from './audio';
+import { createSilentAudio } from './kit/silent-audio';
+import type { AudioKit } from './kit/contracts';
 import { PRESET_CHARACTERS, sanitizeSpec } from './characters';
 import { CourierControls } from './attractions/courier/controls';
 import { NetCourierSession } from './attractions/courier/netsession';
@@ -52,7 +54,13 @@ function boot(): void {
   const canvas = $('gl') as HTMLCanvasElement;
   const viewport = new Viewport(stageEl);
   const profile = loadProfile();
-  const audio = createAudioKit();
+  // sound is optional: if Web Audio cannot start, the game plays silently
+  let audio: AudioKit;
+  try {
+    audio = createAudioKit();
+  } catch {
+    audio = createSilentAudio();
+  }
   const stage = createStage(canvas, { maxPixelRatio: 2 });
   const pointers = new Pointers(canvas, viewport);
   const controls = new CourierControls(pointers, profile.settings);
@@ -75,6 +83,9 @@ function boot(): void {
   let mode: PlayMode = 'buddy';
   let roundSeed = (Date.now() & 0xffff) + 1;
   let roundNames: [string, string] = [cast[0].name, cast[1].name];
+  // ?launches=N shortens a round (1–6) for quick checks and automated play-throughs
+  const launchesParam = Number(new URLSearchParams(window.location.search).get('launches'));
+  const roundLaunches = Number.isFinite(launchesParam) && launchesParam >= 1 ? Math.min(6, Math.floor(launchesParam)) : 6;
 
   const applySettings = (): void => {
     const s = profile.settings;
@@ -233,7 +244,7 @@ function boot(): void {
     ]);
     hud.show(true);
     const local = new CourierSession(view, controls, hud, {
-      seats, names: roundNames, arenaId: DEFAULT_ARENA, launches: 6, botSkill: 0.62, seed: roundSeed++, firstLauncher: 0,
+      seats, names: roundNames, arenaId: DEFAULT_ARENA, launches: roundLaunches, botSkill: 0.62, seed: roundSeed++, firstLauncher: 0,
     });
     local.onDone = (s) => window.setTimeout(() => finishRound(s), 500);
     round = local;

@@ -131,3 +131,32 @@ export function buildLandingMarker(): THREE.Mesh {
   m.visible = false;
   return m;
 }
+
+/**
+ * Depth haze: a soft warm veil just behind the play plane. Everything behind it (the party
+ * dressing) loses a little contrast, so the things you actually play with read first.
+ * It fades out toward the cloth so there is no visible seam on the table.
+ */
+export function buildDepthHaze(xMin: number, xMax: number, z = -2.3): THREE.Mesh {
+  const c = document.createElement('canvas');
+  c.width = 4;
+  c.height = 128;
+  const ctx = c.getContext('2d')!;
+  const g = ctx.createLinearGradient(0, 128, 0, 0);
+  g.addColorStop(0, 'rgba(255,236,208,0)');
+  g.addColorStop(0.1, 'rgba(255,236,208,0.34)');
+  g.addColorStop(1, 'rgba(255,236,208,0.46)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 4, 128);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const w = xMax - xMin + 120;
+  const h = 70;
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(w, h),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, toneMapped: false, fog: false }),
+  );
+  m.position.set((xMin + xMax) / 2, h / 2 - 0.02, z);
+  m.renderOrder = 1;
+  return m;
+}

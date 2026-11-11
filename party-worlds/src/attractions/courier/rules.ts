@@ -6,32 +6,38 @@
 export const TICK_HZ = 60;
 export const DT = 1 / TICK_HZ;
 
-/** Physical tuning. Identical for every character: looks never change these. */
+/**
+ * Physical tuning. Identical for every character: looks never change these.
+ *
+ * Scale note: 1 unit = one character height. The whole arena is about 24 units long, so at the
+ * widest camera framing a character is still ~1/12 of the screen height on a phone. (The first
+ * layout was 1.8× longer and characters became specks; see DECISIONS D-013.)
+ */
 export const TUNE = {
-  gravity: 16,
+  gravity: 9,
   launchX: 0,
   launchY: 2.4,
-  speedMin: 11,
-  speedMax: 28,
+  speedMin: 6.2,
+  speedMax: 15.5,
   aimMinDeg: 18,
   aimMaxDeg: 80,
   /** collider used against the table, jelly, cupcakes, balloons */
   bodyR: 0.42,
   /** smaller collider used against the basket so a clean drop feels generous */
   seatR: 0.3,
-  dragClosed: 0.0035,
-  dragOpenX: 0.085,
-  dragOpenUp: 0.12,
-  dragOpenDown: 1.0, // terminal fall speed under the umbrella = sqrt(gravity / this) = 4 u/s
+  dragClosed: 0.0063,
+  dragOpenX: 0.153,
+  dragOpenUp: 0.216,
+  dragOpenDown: 1.8, // terminal fall speed under the umbrella = sqrt(gravity / this) ≈ 2.2 u/s
   umbrellaTicks: 96, // 1.6 s of open time per flight
   umbrellaRate: 1 / 7, // open/close blend per tick
   windClosedFactor: 0.3, // how much wind a tucked flyer feels (umbrella open feels all of it)
-  flightLimitTicks: 14 * TICK_HZ,
+  flightLimitTicks: 9 * TICK_HZ,
   catcher: {
-    maxSpeed: 8.5,
-    accel: 70,
-    decel: 95,
-    diveSpeed: 15,
+    maxSpeed: 4.4,
+    accel: 39,
+    decel: 53,
+    diveSpeed: 8.3,
     diveTicks: 13,
     slideTicks: 21,
     recoverTicks: 14,
@@ -43,11 +49,11 @@ export const TUNE = {
     depth: 0.9,
     rimR: 0.13,
     carryY: 1.05,
-    perfectDx: 0.2,
+    perfectDx: 0.15,
   },
-  jelly: { restitution: 0.9, kick: 9.5, maxSpeed: 22 },
-  cupcake: { restitution: 0.4, friction: 0.8, restSpeed: 2.6 },
-  balloon: { restitution: 0.85, kick: 2, popSpeed: 15, popKeep: 0.6 },
+  jelly: { restitution: 0.9, kick: 5.3, maxSpeed: 12.2 },
+  cupcake: { restitution: 0.4, friction: 0.8, restSpeed: 1.45 },
+  balloon: { restitution: 0.85, kick: 1.1, popSpeed: 8.3, popKeep: 0.6 },
   cakeWall: { restitution: 0.25 },
 } as const;
 
@@ -140,34 +146,34 @@ export interface Arena {
   script: LaunchSetup[];
 }
 
-const RING_A: RingDef = { x: 9.5, y: 9.4, r: 1.7 };
-const RING_B: RingDef = { x: 17.5, y: 12.2, r: 1.6 };
-const RING_C: RingDef = { x: 26.5, y: 8.6, r: 1.6 };
-const RING_D: RingDef = { x: 19.2, y: 8.2, r: 1.5 };
+const RING_A: RingDef = { x: 5.3, y: 5.3, r: 1.0 };
+const RING_B: RingDef = { x: 9.7, y: 6.9, r: 0.95 };
+const RING_C: RingDef = { x: 14.7, y: 4.9, r: 0.95 };
+const RING_D: RingDef = { x: 10.7, y: 4.7, r: 0.9 };
 
 export const ARENAS: Record<string, Arena> = {
   jelly_junction: {
     id: 'jelly_junction',
     name: 'Jelly Junction',
-    xMin: -7,
-    xMax: 43,
-    laneMin: 14.5,
-    laneMax: 41,
-    catcherStart: 28,
-    jellies: [{ x: 10.5, halfW: 3.2, h: 1.6 }],
+    xMin: -4.2,
+    xMax: 24,
+    laneMin: 8.6,
+    laneMax: 22.1,
+    catcherStart: 15.5,
+    jellies: [{ x: 5.8, halfW: 1.8, h: 0.9 }],
     cupcakes: [],
     balloons: [
-      { x: 36.5, y: 9.6, r: 1.25 },
-      { x: 39.0, y: 12.4, r: 1.25 },
+      { x: 20.3, y: 5.4, r: 0.8 },
+      { x: 21.8, y: 7.0, r: 0.8 },
     ],
-    windZone: { x0: 6, x1: 43, y0: 2.6, y1: 40 },
+    windZone: { x0: 3.3, x1: 24, y0: 1.5, y1: 22 },
     script: [
       { rings: [RING_A], wind: 0 },
       { rings: [RING_B], wind: 0 },
-      { rings: [RING_A], wind: -6 },
+      { rings: [RING_A], wind: -3.3 },
       { rings: [RING_D], wind: 0 },
-      { rings: [RING_C], wind: 5 },
-      { rings: [RING_A, RING_C], wind: -4 },
+      { rings: [RING_C], wind: 2.8 },
+      { rings: [RING_A, RING_C], wind: -2.2 },
     ],
   },
 };

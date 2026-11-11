@@ -114,7 +114,7 @@ describe('flight', () => {
     const s = createCourier();
     const a = forecastLaunch(s, 420, 120, 900);
     const b = forecastLaunch(s, 420, 200, 900);
-    expect(b.landX).toBeGreaterThan(a.landX + 3);
+    expect(b.landX).toBeGreaterThan(a.landX + 1.5);
     const arena = ARENAS.jelly_junction!;
     let inLane = 0;
     let total = 0;
@@ -146,8 +146,8 @@ describe('flight', () => {
     }
     run(closed, 40);
     const ev = run(open, 40, hold);
-    expect(open.flyer.vy).toBeGreaterThan(closed.flyer.vy + 3);
-    expect(open.flyer.vy).toBeGreaterThan(-5);
+    expect(open.flyer.vy).toBeGreaterThan(closed.flyer.vy + 1.5);
+    expect(open.flyer.vy).toBeGreaterThan(-3);
     expect(ev.some((e) => e.type === 'umbrella' && e.open)).toBe(true);
     const ev2 = run(open, TUNE.umbrellaTicks, hold);
     if (open.flyer.mode === 'air') {
@@ -161,7 +161,7 @@ describe('flight', () => {
     const calm = forecastLaunch(s, 450, 200, 900).landX;
     s.launchIndex = 2; // scripted headwind
     const windy = forecastLaunch(s, 450, 200, 900).landX;
-    expect(windy).toBeLessThan(calm - 0.5);
+    expect(windy).toBeLessThan(calm - 0.25);
   });
 
   it('threads a ring when aimed through it and records a jelly bounce', () => {
@@ -187,9 +187,9 @@ describe('catching', () => {
     fire(s, 500, 200);
     const f = s.flyer;
     f.x = s.catcher.bx + offset;
-    f.y = 6;
+    f.y = 5;
     f.vx = 0;
-    f.vy = -6;
+    f.vy = -4;
     extra?.(s);
     run(s, 200);
     return s;
@@ -225,9 +225,9 @@ describe('catching', () => {
       const s = createCourier();
       toAim(s);
       fire(s, 500, 200);
-      s.flyer.x = s.catcher.bx - 6 + k * 0.011;
+      s.flyer.x = s.catcher.bx - 4 + k * 0.011;
       s.flyer.y = 1.5;
-      s.flyer.vx = 24;
+      s.flyer.vx = 14;
       s.flyer.vy = 0;
       run(s, 60);
       // It must either have bounced off the liner or been stopped; it can never end up caught
@@ -247,7 +247,7 @@ describe('catching', () => {
     };
     const ev = run(s, TUNE.catcher.diveTicks + 1, diveRight);
     expect(ev.some((e) => e.type === 'dive')).toBe(true);
-    expect(s.catcher.x - x0).toBeGreaterThan(2.8);
+    expect(s.catcher.x - x0).toBeGreaterThan(1.6);
     expect(s.catcher.by).toBeLessThan(TUNE.basket.carryY - 0.3);
     expect(s.catcher.mode).toBe('slide');
     run(s, TUNE.catcher.slideTicks + TUNE.catcher.recoverTicks + 1, idle);
@@ -279,7 +279,7 @@ describe('catching', () => {
     s.flyer.x = s.catcher.bx + 0.6;
     s.flyer.y = s.catcher.by + TUNE.basket.depth + 0.35;
     s.flyer.vx = s.catcher.vx;
-    s.flyer.vy = -8;
+    s.flyer.vy = -5;
     run(s, 12);
     expect(s.results[0]?.caught).toBe(true);
     expect(s.results[0]?.diveCatch).toBe(true);
@@ -305,9 +305,9 @@ describe('the table remembers', () => {
     toAim(s);
     fire(s, 500, 200);
     const b = ARENAS.jelly_junction!.balloons[0]!;
-    s.flyer.x = b.x - 3;
+    s.flyer.x = b.x - 2;
     s.flyer.y = b.y;
-    s.flyer.vx = 22;
+    s.flyer.vx = 13;
     s.flyer.vy = 0;
     const ev = run(s, 20);
     expect(ev.some((e) => e.type === 'balloon_pop')).toBe(true);
@@ -322,10 +322,10 @@ describe('the table remembers', () => {
     toAim(s);
     fire(s, 500, 200);
     const b = ARENAS.jelly_junction!.balloons[0]!;
-    s.flyer.x = b.x - 2.5;
+    s.flyer.x = b.x - 1.8;
     s.flyer.y = b.y;
-    s.flyer.vx = 8;
-    s.flyer.vy = 3;
+    s.flyer.vx = 4.5;
+    s.flyer.vy = 1.5;
     const ev = run(s, 30);
     expect(ev.some((e) => e.type === 'balloon_bump')).toBe(true);
     expect(s.balloonsPopped[0]).toBe(false);
