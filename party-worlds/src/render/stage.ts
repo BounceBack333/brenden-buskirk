@@ -14,6 +14,12 @@ export interface Stage {
   resize(width: number, height: number): void;
   /** Re-centre the shadow frustum on the area that matters right now. */
   focusShadows(cx: number, cy: number, halfWidth: number): void;
+  /**
+   * Trade sharpness for speed. 0 = full quality … 3 = lowest (pixel ratio 1, no shadows).
+   * Purely visual; used by the automatic frame-rate guard.
+   */
+  setQuality(level: number): void;
+  readonly quality: number;
   render(): void;
   dispose(): void;
 }
@@ -32,7 +38,11 @@ export function createStage(canvas: HTMLCanvasElement, opts: StageOptions = {}):
     alpha: false,
     powerPreference: 'high-performance',
   });
-  const maxPR = opts.maxPixelRatio ?? 2;
+  const basePR = opts.maxPixelRatio ?? 2;
+  let maxPR = basePR;
+  let quality = 0;
+  let lastW = 1;
+  let lastH = 1;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxPR));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping; // keeps saturated party colours honest
@@ -82,6 +92,8 @@ export function createStage(canvas: HTMLCanvasElement, opts: StageOptions = {}):
   scene.add(rim);
 
   function resize(width: number, height: number): void {
+    lastW = width;
+    lastH = height;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxPR));
     renderer.setSize(width, height, false);
     camera.aspect = width / Math.max(1, height);
@@ -99,6 +111,22 @@ export function createStage(canvas: HTMLCanvasElement, opts: StageOptions = {}):
     sc.updateProjectionMatrix();
   }
 
+  function setQuality(level: number): void {
+    quality = Math.max(0, Math.min(3, Math.floor(level)));
+    maxPR = [basePR, Math.min(basePR, 1.5), Math.min(basePR, 1.25), 1][quality]!;
+    const shadowsOn = (opts.shadows ?? true) && quality < 3;
+    if (renderer.shadowMap.enabled !== shadowsOn) {
+      renderer.shadowMap.enabled = shadowsOn;
+      key.castShadow = shadowsOn;
+      scene.traverse((o) => {
+        const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+        if (Array.isArray(m)) m.forEach((x) => (x.needsUpdate = true));
+        else if (m) m.needsUpdate = true;
+      });
+    }
+    resize(lastW, lastH);
+  }
+
   return {
     renderer,
     scene,
@@ -106,6 +134,10 @@ export function createStage(canvas: HTMLCanvasElement, opts: StageOptions = {}):
     key,
     resize,
     focusShadows,
+    setQuality,
+    get quality() {
+      return quality;
+    },
     render: () => renderer.render(scene, camera),
     dispose: () => {
       envTex.dispose();

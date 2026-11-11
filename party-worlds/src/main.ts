@@ -305,6 +305,24 @@ function boot(): void {
     controls.setStageSize(size);
   });
 
+  // Frame-rate guard: if the device cannot hold ~50 fps, step the picture quality down (lower
+  // pixel ratio first, shadows last). It never steps back up, so it cannot oscillate.
+  // (?hq on the URL keeps full quality regardless, for screenshots on slow machines.)
+  const lockQuality = new URLSearchParams(window.location.search).has('hq');
+  let slowSince = 0;
+  window.setInterval(() => {
+    if (lockQuality || document.hidden || stage.quality >= 3) return;
+    if (loop.frameMs > 21) {
+      slowSince++;
+      if (slowSince >= 2) {
+        stage.setQuality(stage.quality + 1);
+        slowSince = 0;
+      }
+    } else {
+      slowSince = 0;
+    }
+  }, 1500);
+
   // iOS only starts audio from a gesture
   const unlock = (): void => {
     void audio.unlock().then(() => {

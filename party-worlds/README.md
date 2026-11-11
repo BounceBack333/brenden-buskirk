@@ -37,7 +37,7 @@ Open it on a phone on the same network with `npm run dev -- --host 0.0.0.0`, the
 | Run (catcher) | Drag left / right | A / D or ← / → |
 | Dive | DIVE button, quick tap, or a second finger | Shift, S or ↓ |
 
-`?launches=2` on the URL shortens a local round for quick checks.
+`?launches=2` on the URL shortens a local round for quick checks. The game lowers its own picture quality if the device cannot hold about 50 frames per second; `?hq` turns that off (useful for screenshots on slow machines).
 
 ## How it is put together
 
