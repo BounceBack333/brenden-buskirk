@@ -1,0 +1,53 @@
+#!/usr/bin/env node
+// Screenshots of the menu screens: characters (pick + make), worlds, settings.
+//   node dev/ui-shots.mjs [url] [outDir]
+import { createRequire } from 'node:module';
+import { mkdirSync } from 'node:fs';
+const require = createRequire(import.meta.url);
+const { chromium } = require('playwright');
+const url = process.argv[2] ?? 'http://127.0.0.1:5173/';
+const out = process.argv[3] ?? 'dev/shots/ui';
+mkdirSync(out, { recursive: true });
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 });
+const errors = [];
+page.on('pageerror', (e) => errors.push(String(e.stack || e)));
+page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+await page.goto(url, { waitUntil: 'load' });
+await page.waitForFunction(() => window.__ready === true, null, { timeout: 30000 });
+await page.waitForTimeout(500);
+await page.click('[data-act="chars"]');
+await page.waitForTimeout(2500);
+await page.screenshot({ path: out + '/1-chars-pick.png' });
+// pick a cat for player 2, then open the builder
+await page.click('[data-seat="1"]');
+await page.waitForTimeout(600);
+const picks = await page.$$('.pick');
+await picks[Math.min(picks.length - 1, 13)].click();
+await page.waitForTimeout(1200);
+await page.click('[data-demo="fly"]');
+await page.waitForTimeout(700);
+await page.screenshot({ path: out + '/2-chars-picked-fly.png' });
+await page.click('[data-tab="make"]');
+await page.waitForTimeout(800);
+await page.screenshot({ path: out + '/3-chars-make.png' });
+await page.click('[data-act="surprise"]');
+await page.waitForTimeout(1200);
+await page.click('[data-demo="cheer"]');
+await page.waitForTimeout(600);
+await page.screenshot({ path: out + '/4-chars-surprise.png' });
+await page.click('[data-species="human"]');
+await page.waitForTimeout(1200);
+await page.screenshot({ path: out + '/5-chars-human.png' });
+await page.click('[data-act="done"]');
+await page.waitForTimeout(500);
+await page.click('[data-act="worlds"]');
+await page.waitForTimeout(400);
+await page.screenshot({ path: out + '/6-worlds.png' });
+await page.click('[data-act="close"]');
+await page.click('[data-act="settings"]');
+await page.waitForTimeout(400);
+await page.screenshot({ path: out + '/7-settings.png' });
+await browser.close();
+console.log(JSON.stringify({ errors }));
+if (errors.length) process.exit(1);

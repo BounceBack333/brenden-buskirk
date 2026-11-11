@@ -49,6 +49,7 @@ export class NetCourierSession {
     this.you = you;
     this.state = createCourier({ arenaId: start.arenaId, launches: start.launches, firstLauncher: start.firstLauncher });
     controls.humans = [you === 0, you === 1];
+    view.localSeats = [you === 0, you === 1];
     controls.reset();
     controls.enabled = true;
     view.beginRound(this.state);

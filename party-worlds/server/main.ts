@@ -90,7 +90,10 @@ const isMain = process.argv[1] !== undefined && import.meta.url === new URL(`fil
 if (isMain) {
   const port = Number(process.env.PORT ?? 8787);
   const origins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map((s) => s.trim()) : null;
-  void startServer(port, {}, origins).then((s) => {
+  // LAUNCHES=2 shortens rounds for automated tests; the default is the real six
+  const launches = Number(process.env.LAUNCHES);
+  const opts = Number.isFinite(launches) && launches >= 1 ? { launches: Math.min(6, Math.floor(launches)) } : {};
+  void startServer(port, opts, origins).then((s) => {
     console.log(`room server listening on :${s.port} (protocol v${PROTOCOL_VERSION})`);
   });
 }

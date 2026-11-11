@@ -50,6 +50,8 @@ export class CourierView {
   readonly fx = new Fx();
   onPopup: ((p: Popup) => void) | null = null;
   onBuzz: ((ms: number | number[]) => void) | null = null;
+  /** which seats are played on this device; a local catcher must always be able to see themselves */
+  localSeats: [boolean, boolean] = [true, false];
 
   private readonly world = new THREE.Group();
   private readonly arena: Arena;
@@ -853,7 +855,8 @@ export class CourierView {
           break;
         }
         this.cam.rate = 3.4;
-        if (this.pullVis < 0.06) {
+        const viewerCatches = this.localSeats[s.launcherSeat === 0 ? 1 : 0];
+        if (this.pullVis < 0.06 && !viewerCatches) {
           // lean in on the passenger while they think
           frame = { x0: -4.6, x1: 8.4, y0: -0.8, y1: 5.4 };
         } else {

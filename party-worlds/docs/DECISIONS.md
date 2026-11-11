@@ -2,6 +2,20 @@
 
 Newest first. Each entry: what was decided, why, what it costs, and what would change it.
 
+## D-015 · The art, character and audio kits were finished by one author (2026-11-11)
+The first parallel build (one agent per kit, each followed by an independent review) was cut off by a usage limit after roughly two thirds of the character and prop work and before any audio or review. The remainder — the whole animation layer, the audio kit, integration — was written directly instead of relaunching.
+**Why:** relaunching risked the same limit with nothing playable at the end.
+**Cost:** no independent review of those kits yet. Recorded as owed in `DEPENDENCIES.md`.
+
+## D-014 · No flight may stall (2026-11-11)
+Bot rounds found flights that bounced on the jelly indefinitely or wedged between the basket and the cake. Rules added: the jelly gives its full spring twice and then tires; the paper liner stops deflecting after eight rattles; a flyer that has moved less than 0.3 units in 0.75 s is called a miss; hard cap 9 s.
+**Why:** a ten-second stall with nothing to do is worse than an unlucky miss.
+
+## D-013 · The arena is 24 character-heights long, not 43 (2026-11-11)
+Screenshots of the first assembled build showed characters about 28 px tall on a 720p screen at the widest framing, and half that on a phone. Every distance and speed was divided by 1.8 (times unchanged), so the widest shot keeps a character near 1/12 of the screen height.
+**Cost:** tiny-ness is slightly less extreme, and catches became more forgiving; the bot partner and "perfect" window were re-tuned to compensate.
+**Also:** a soft haze plane sits just behind the play plane so the set dressing stops competing with the things you play with.
+
 ## D-012 · Outcomes are never predicted online (2026-11-11)
 Clients predict motion; a catch, a miss and every point come only from the server.
 **Why:** a "CAUGHT +100" that is taken back destroys trust faster than three frames of delay.

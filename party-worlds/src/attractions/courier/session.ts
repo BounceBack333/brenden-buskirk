@@ -47,6 +47,7 @@ export class CourierSession {
       config.seats[1] === 'bot' ? new BuddyBot({ seed: config.seed * 5 + 2, skill: config.botSkill }) : null,
     ];
     controls.humans = [config.seats[0] === 'human', config.seats[1] === 'human'];
+    view.localSeats = [config.seats[0] === 'human', config.seats[1] === 'human'];
     controls.reset();
     controls.enabled = true;
     view.beginRound(this.state);

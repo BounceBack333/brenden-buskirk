@@ -134,24 +134,27 @@ input[type='range'] { width: calc(var(--u) * 44); height: calc(var(--u) * 8); ac
 .sheet-actions { display: flex; gap: calc(var(--u) * 2.4); justify-content: flex-end; margin-top: calc(var(--u) * 3); flex-wrap: wrap; }
 
 /* ───────── characters ───────── */
-.chars { position: absolute; left: 0; top: 0; bottom: 0; width: min(54%, calc(var(--u) * 100)); padding: var(--pad-y) calc(var(--u) * 3) var(--pad-y) var(--pad-x); display: flex; flex-direction: column; gap: calc(var(--u) * 2); }
-.chars .panel { flex: 1; min-height: 0; padding: calc(var(--u) * 3); display: flex; flex-direction: column; gap: calc(var(--u) * 2); }
+.chars { position: absolute; left: 0; top: 0; bottom: 0; width: min(52%, calc(var(--u) * 100)); padding: var(--pad-y) calc(var(--u) * 3) var(--pad-y) var(--pad-x); display: flex; flex-direction: column; gap: calc(var(--u) * 2); }
+.chars .panel { flex: 1; min-height: 0; padding: calc(var(--u) * 2.4); display: flex; flex-direction: column; gap: calc(var(--u) * 1.5); }
+.chars .seg button { min-height: calc(var(--u) * 7.6); }
 .chars-head { display: flex; align-items: center; gap: calc(var(--u) * 2); }
 .chars-head h2 { margin: 0; font-size: calc(var(--u) * 5.4); flex: 1; }
 .seg { display: flex; background: rgba(34, 48, 79, 0.08); border-radius: calc(var(--u) * 5); padding: calc(var(--u) * 0.7); gap: calc(var(--u) * 0.7); }
 .seg button { flex: 1; min-height: calc(var(--u) * 9); border-radius: calc(var(--u) * 4.4); font-weight: 600; font-size: calc(var(--u) * 3.3); padding: 0 calc(var(--u) * 2.4); color: var(--muted); }
 .seg button[aria-pressed='true'] { background: #fff; color: var(--navy); box-shadow: 0 calc(var(--u) * 0.4) calc(var(--u) * 1) rgba(34, 48, 79, 0.14); }
 .scroll { flex: 1; min-height: 0; overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; padding-right: calc(var(--u) * 1); }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--u) * 21), 1fr)); gap: calc(var(--u) * 1.6); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--u) * 16.5), 1fr)); gap: calc(var(--u) * 1.4); }
 .pick { display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 0.8); padding: calc(var(--u) * 1.6) calc(var(--u) * 1); border-radius: calc(var(--u) * 3); background: #fff; border: calc(var(--u) * 0.5) solid transparent; font-size: calc(var(--u) * 2.9); font-weight: 600; }
 .pick[aria-pressed='true'] { border-color: var(--coral); background: #fff6f3; }
-.pick .swatch { width: calc(var(--u) * 11); height: calc(var(--u) * 11); border-radius: 50%; position: relative; border: calc(var(--u) * 0.6) solid #fff; box-shadow: 0 0 0 calc(var(--u) * 0.3) var(--line); overflow: hidden; }
+.pick .swatch { width: calc(var(--u) * 9.5); height: calc(var(--u) * 9.5); border-radius: 50%; position: relative; border: calc(var(--u) * 0.6) solid #fff; box-shadow: 0 0 0 calc(var(--u) * 0.3) var(--line); overflow: hidden; }
 .pick .swatch i { position: absolute; left: 0; right: 0; bottom: 0; height: 38%; }
 .pick .swatch b { position: absolute; left: 0; right: 0; top: 0; height: 30%; }
 .pick small { font-size: calc(var(--u) * 2.2); font-weight: 500; color: var(--muted); }
 .field { display: flex; flex-direction: column; gap: calc(var(--u) * 1); margin-bottom: calc(var(--u) * 2.4); }
 .field > label, .field > .flabel { font-size: calc(var(--u) * 2.7); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
-.chips { display: flex; flex-wrap: wrap; gap: calc(var(--u) * 1.2); }
+.chips { display: flex; flex-wrap: wrap; align-items: center; gap: calc(var(--u) * 1.2); }
+.chip { display: inline-flex; align-items: center; gap: calc(var(--u) * 1); }
+.chip svg { width: calc(var(--u) * 4.2); height: calc(var(--u) * 4.2); flex: none; }
 .chip { min-height: calc(var(--u) * 8.4); padding: 0 calc(var(--u) * 2.6); border-radius: calc(var(--u) * 4.2); background: #fff; border: calc(var(--u) * 0.45) solid var(--line); font-size: calc(var(--u) * 3); font-weight: 500; text-transform: capitalize; }
 .chip[aria-pressed='true'] { border-color: var(--coral); background: #fff0ec; font-weight: 600; }
 .swatches { display: flex; flex-wrap: wrap; gap: calc(var(--u) * 1.2); }

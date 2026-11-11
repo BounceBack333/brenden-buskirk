@@ -340,6 +340,8 @@ export class Hud {
       if (text) {
         const cx = shared ? (seat === 0 ? size.width * 0.25 : size.width * 0.75) : size.width * 0.5;
         h.style.left = `${cx}px`;
+        // sit above the DIVE button when this seat has one
+        h.style.bottom = seat !== L ? 'calc(var(--pad-y) + var(--u) * 27)' : '';
       }
     }
   }
