@@ -31,6 +31,8 @@ We do **not** assume engine physics is deterministic in general. An attraction t
 3. Stop predicting at a catch or a miss; wait for the server.
 4. Play my own actions (launch, umbrella, dive) immediately; play everything else when the server reports it.
 
+**Latest automated run** (`dev/online-test.mjs`, 2026-11-11, two headless browser pages and the real server on one machine, no added latency): room created, joined by typing the code, both ready, a two-launch round completed, both pages ended with identical results, rematch started in the same room, zero page errors. 140 and 146 of 1,556 snapshots needed a visible correction on the two pages. Both pages were starved for CPU (software rendering at a few frames per second, sending inputs in bursts), so that correction rate says little about a real device; it has not been measured on one. The scripted players missed both catches, which is a limit of the script, not a finding about the game.
+
 Known limits of v1: the other player's stick/umbrella changes are seen one snapshot late and can cause a small visible correction; contact sounds for shared objects arrive one snapshot after the picture; there is no interpolation buffer for the remote player.
 
 ## Rooms and failure recovery

@@ -39,7 +39,7 @@ Nothing in this project has been played by a person other than through scripts, 
 | Audio: 26 sound effects, 3 continuous voices, adaptive music-box score | Implemented, **measured but never heard** | `dev/measure-audio.mjs` renders every sound offline: no NaN, nothing silent, no clipping (ten sounds stacked peak at 0.72), every one-shot ends. Mix balance and musicality are unverified by ear |
 | Accessibility options | Implemented, automation only | Reduced motion, open aim assist (labelled on results), tap-umbrella, left-handed dive, non-colour cues |
 | Private online rooms (server) | Implemented and tested | `tests/rooms.test.ts` — 19 tests incl. two real WebSocket clients finishing a round and agreeing on every result; rejoin, bot takeover, rematch, flood and garbage handling |
-| Online play in the browser | Implemented, automation only | `dev/online-test.mjs`: two browser pages make and join a room by code, ready up and play. See NETWORKING.md for the result of the latest run |
+| Online play in the browser | Implemented, automation only | `dev/online-test.mjs`: two browser pages made and joined a room by code, readied up, finished a round with identical results on both, and started a rematch; zero page errors. Same machine, no added latency, never on two real devices |
 | Production build | Implemented and tested | `npm run build`: 845 KB JS + 217 KB CSS (237 KB + 151 KB gzipped), one HTML file |
 | Private hosted preview | Published, **not verified on a phone** | Single-file build published as a private page for the founder |
 
