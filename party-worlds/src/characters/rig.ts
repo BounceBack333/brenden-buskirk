@@ -323,6 +323,20 @@ export function createRig(spec: CharacterSpec, body: BodyDesc): CharacterRig {
         p[C.headRoll] = 0.12;
         p[C.roll] = 0.05;
         break;
+      case 'drive': {
+        // seated low in the kart, both hands on the wheel, leaning into the corner
+        const st = Math.max(-1, Math.min(1, ctx.steer ?? 0));
+        p[C.bodyY] = -(D.hipY - 0.1);
+        p[C.sw2] = p[C.sw3] = 1.4;
+        p[C.sp2] = p[C.sp3] = 0.1;
+        p[C.pitch] = -0.07 + 0.015 * Math.sin(clock * 11);
+        p[C.roll] = st * 0.17;
+        p[C.headYaw] = -st * 0.4 - (ctx.lookYaw ?? 0);
+        p[C.headRoll] = st * 0.12;
+        p[C.headPitch] = 0.04;
+        p[C.reach] = 1;
+        break;
+      }
     }
     if (ctx.carrying && action !== 'celebrate') {
       p[C.reach] = 1;
@@ -484,6 +498,22 @@ export function createRig(spec: CharacterSpec, body: BodyDesc): CharacterRig {
         p[C.headRoll] = 0.14;
         p[C.wag] = 1.1;
         break;
+      case 'drive': {
+        // sitting up on the haunches, front paws on the wheel
+        const st = Math.max(-1, Math.min(1, ctx.steer ?? 0));
+        p[C.pitch] = 0.62;
+        p[C.bodyY] = -D.belly * 0.55;
+        p[C.sw0] = 0.5 - st * 0.25;
+        p[C.sw1] = 0.5 + st * 0.25;
+        p[C.sw2] = p[C.sw3] = 1.05;
+        p[C.ln2] = p[C.ln3] = 0.75;
+        p[C.headPitch] = -0.52;
+        p[C.headYaw] = -st * 0.35 - (ctx.lookYaw ?? 0);
+        p[C.headRoll] = st * 0.15;
+        p[C.roll] = st * 0.12;
+        p[C.wag] = 0.8;
+        break;
+      }
     }
     if (ctx.carrying) p[C.reach] = 1;
   }
@@ -651,7 +681,13 @@ export function createRig(spec: CharacterSpec, body: BodyDesc): CharacterRig {
     const cy = ctx.carryY ?? RIG.CARRY_Y;
     carryAnchor.position.set(cx, cy, 0);
     if (human) {
-      if (reach > 0.01) {
+      const driving = action === 'drive';
+      if (reach > 0.01 && driving) {
+        // hands at ten-to-two on the wheel, turning with it
+        const st = Math.max(-1, Math.min(1, ctx.steer ?? 0));
+        reachLimb(0, 0.37, 0.5 - st * 0.07, 0.12, p[C.pitch]!, reach);
+        reachLimb(1, 0.37, 0.5 + st * 0.07, -0.12, p[C.pitch]!, reach);
+      } else if (reach > 0.01) {
         // hands under the basket; the target is given in root space, undo the body squash
         const ty = (cy - 0.03 - p[C.lift]!) / sy;
         const tx = cx / sxz;
@@ -660,11 +696,11 @@ export function createRig(spec: CharacterSpec, body: BodyDesc): CharacterRig {
       }
       if (body.hair >= 0) {
         // hair and hats give way under the basket
-        const press = reach * (cy < 0.9 ? 0 : 1);
+        const press = driving ? 0 : reach * (cy < 0.9 ? 0 : 1);
         bones[body.hair]!.scale.set(1 + 0.06 * press, 1 - 0.2 * press, 1 + 0.06 * press);
       }
       if (body.hat >= 0) {
-        q1.setFromAxisAngle(Z, 0.7 * reach);
+        q1.setFromAxisAngle(Z, driving ? 0 : 0.7 * reach);
         bones[body.hat]!.quaternion.copy(restQ[body.hat]!).multiply(q1);
       }
     }

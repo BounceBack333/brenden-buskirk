@@ -7,7 +7,7 @@ import type { MusicMode, SfxName } from '../src/kit/contracts';
 
 const SFX: SfxName[] = ['ui_tap', 'ui_back', 'ui_confirm', 'ui_toggle', 'countdown', 'go', 'swap', 'launch', 'umbrella_open', 'umbrella_close',
   'umbrella_spent', 'boing', 'balloon_bump', 'balloon_pop', 'ring', 'rim', 'catch', 'catch_perfect', 'miss_splat', 'dive', 'skid', 'footstep',
-  'score_tick', 'star', 'fanfare', 'whoops'];
+  'score_tick', 'star', 'fanfare', 'whoops', 'boost', 'boost_big', 'charge', 'bump', 'kart_bump', 'land', 'lap', 'final_lap', 'plank'];
 
 interface Row { name: string; ms: number; peak: number; rms: number; centroid: number; nan: boolean; tailDb: number }
 
@@ -52,7 +52,9 @@ async function measure(): Promise<{ rows: Row[]; problems: string[] }> {
   rows.push(analyse('tension 0→1', await render(2.5, (k) => { k.setTension(0.1); window.setTimeout(() => undefined, 0); k.setTension(1); })));
   rows.push(analyse('wind 1', await render(2.5, (k) => k.setWind(1))));
   rows.push(analyse('flutter 1', await render(2.5, (k) => k.setFlutter(1))));
-  for (const mode of ['menu', 'play', 'tense', 'win'] as MusicMode[]) rows.push(analyse(`music:${mode}`, await render(8, (k) => k.music(mode))));
+  rows.push(analyse('engine 1', await render(2.5, (k) => k.setEngine(1, 1))));
+  rows.push(analyse('skid 1', await render(2.5, (k) => k.setSkid(1))));
+  for (const mode of ['menu', 'play', 'tense', 'win', 'race'] as MusicMode[]) rows.push(analyse(`music:${mode}`, await render(8, (k) => k.music(mode))));
   rows.push(analyse('pile-up x10', await render(2.5, (k) => { for (const n of ['launch', 'catch_perfect', 'boing', 'ring', 'balloon_pop', 'fanfare', 'miss_splat', 'rim', 'umbrella_open', 'star'] as SfxName[]) k.play(n); })));
   rows.push(analyse('spam footstep x200', await render(2.5, (k) => { for (let i = 0; i < 200; i++) k.play('footstep'); })));
   const problems: string[] = [];
@@ -60,7 +62,7 @@ async function measure(): Promise<{ rows: Row[]; problems: string[] }> {
     if (r.nan) problems.push(`${r.name}: NaN in output`);
     if (r.rms < 0.003) problems.push(`${r.name}: silent (rms ${r.rms})`);
     if (r.peak > 0.98) problems.push(`${r.name}: clipping risk (peak ${r.peak})`);
-    const oneShot = !r.name.startsWith('music') && !/tension|wind|flutter/.test(r.name);
+    const oneShot = !r.name.startsWith('music') && !/tension|wind|flutter|engine|skid/.test(r.name);
     if (oneShot && r.tailDb > -50) problems.push(`${r.name}: does not end (tail ${r.tailDb} dB)`);
   }
   return { rows, problems };

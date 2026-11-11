@@ -4,9 +4,58 @@ One entry per attraction. Nothing is built until its entry is complete.
 
 | # | Attraction | World | Family | Status |
 |---|---|---|---|---|
-| 1 | Catapult Courier | Birthday Continental | Aim & launch + on-foot | **Implemented, simulation tested; human play untested** |
+| 0 | **Backyard Dash** (the core since D-016) | Backyard After Dark | Kart racing | **Implemented, simulation tested, driven end to end by script; human play untested** |
+| 1 | Catapult Courier (parked) | Birthday Continental | Aim & launch + on-foot | Implemented, simulation tested; human play untested; no longer being developed |
 | 2 | Sprinkle Sprint | Birthday Continental | On-foot momentum | Proposed |
 | 3 | Candle Keeper | Birthday Continental | Giant vs tiny (1v1 swap / 3v1 block) | Proposed |
+
+---
+
+## 0. Backyard Dash
+
+**The enjoyable action:** throw a tin-toy kart sideways through a corner, hold the slide while the sparks change colour, and let go.
+**The decision:** every corner, how long to hold the drift (release at pink for a boost, hang on for blue and a bigger one, or straighten early and get nothing). Every lap, the road (60 units, dependable) or the plank (34 units, narrow, slow soil either side). Once per race, whether to be the one who slows down to knock the peg out and open the plank for everybody.
+**Beginner success:** the kart drives itself; steering alone finishes a race. Against Gentle rivals a stand-in driver that never drifts averaged second place (simulated, see `PROGRESS.md`).
+**Expert learning:** start boost timing, two-level drift boosts, towing behind a rival, the plank line and the jump off its end, where the tennis ball and bricks punish a cut.
+**What the other player changes:** they are on the track with you: they shove, they tow, they block the plank, and whoever opens the shortcut changes the race for both of you.
+**Why outcomes are understandable:** your place and your driver's face are always on screen; drift charge is a meter and a spark colour; the minimap shows everyone and the open plank; results give each driver's race time, gap and best lap, and name who opened the shortcut.
+**Memorable moment:** the plank dropping mid-race because your friend hit the peg, and you being the one who uses it.
+**Why replay:** "I had you until the hairpin." Rematch is one tap from the results; a win against bots offers the next rival level.
+
+| Field | Definition |
+|---|---|
+| Players | 1–2 people on one device, always four karts. Solo: you and three labelled bot rivals (your second character drives one). Split screen: two people side by side and two bot rivals. |
+| Teams | None. Everyone for themselves. |
+| Controls — touch | Drag left/right anywhere in your half to steer (floating stick). Hold **DRIFT** (or a second finger) while turning to slide; release to boost. **BRAKE** slows and then reverses. Split screen, or the Auto-drift setting: steering hard starts the drift and easing off releases it, so one thumb is enough. |
+| Controls — keyboard | Solo: A/D or ←/→ steer, Space/Shift/J drift, S/↓ brake. Split: player 1 A/D + Left Shift/Space/W, S; player 2 ←/→ + Right Shift/Enter/↑, ↓. |
+| Timing | Countdown 3 s (camera meets your driver, swings behind). Three laps, about 55–70 s. The race is called 25 s after the first finisher; anyone still out is placed by distance. |
+| Start | Pressing DRIFT in the last 0.37 s before GO gives a start boost; holding it earlier stalls you briefly. |
+| Scoring | Finishing order. Shown: race time (winner), gap (others) or lap reached (unfinished), best lap. Personal best race time is kept per mode and rival level, three-lap races only. |
+| Ties | Two karts crossing on the same tick are ordered by seat. (Cosmetic at this stage; revisit before any ranked play.) |
+| Rivals | Bots, labelled "bot" on tags and results. Three levels, each two stated dials: skill and throttle (Gentle 85–93 %, Keen 90–96 %, Fierce 97–100 %). No rubber band (D-019). |
+| Fairness | One kart for everyone: one collider radius, one top speed, one handling table (`KART`). Characters and colours change nothing. People always have full throttle. |
+| Accessibility | Auto-accelerate; one-thumb play with Auto-drift; left-handed button swap; reduced motion (no camera shake or roll); hints that retire once the action has been done; place, lap and wrong-way are text, not colour alone. No rapid tapping. Not done: text scaling, colour-blind review of spark colours (the meter repeats them as position). |
+| The world remembers | The plank starts propped up and blocked. Bumping the peg costs the bumper 28 % of their speed once, drops the plank, and it stays down for everyone for the rest of the race. Results name who did it. |
+| Recovery | Walls nose you along them; a hard hit spins you once (0.37 s); stuck or facing the wrong way for a while puts you back on the road, ghosted for a moment. |
+| Network authority | Not online. The simulation is the same pure deterministic module as Courier's (`src/attractions/dash/sim.ts`, inputs are steer/drift/brake per tick), so a server can run it unchanged; prediction for four moving karts is the unsolved part. *(Proposed.)* |
+| Disconnect | Not applicable locally. Online plan: a dropped seat is driven by a labelled bot at the level's middle skill until they return. *(Proposed.)* |
+| Animation needs | `drive` pose for people and pets (hands or paws on the wheel, lean into turns, glance at a kart alongside), expressions by state (determined in a drift, thrilled on boost, dizzy when spun, cheer or oops at the flag), wave for the winner. |
+
+**Acceptance criteria**
+- [x] Deterministic: identical inputs give identical state hashes (test).
+- [x] No NaN and always ends under random input abuse (test).
+- [x] Nobody moves before GO; a well-timed press boosts and an early one stalls (tests).
+- [x] A drift keeps its speed, charges, and pays out only if held long enough (tests).
+- [x] Karts cannot overlap, and nothing drives through the pot or the tennis ball (tests).
+- [x] The plank starts blocked, opens when the peg is bumped, and stays open for everyone; falling off it lands in slow soil (tests).
+- [x] Cutting across the lawn does not count as a lap (test).
+- [x] Rival levels are ordered and Gentle rivals are clearly slower than Fierce (tests).
+- [x] The faster route is faster only when driven well: stand-in drivers gain about 5 s with the plank at a 150 ms reaction delay and lose about 4–5 s at 250 ms (simulated).
+- [x] A whole race can be started, driven, finished and rematched in a real browser by scripted keys and by scripted touch, solo and split screen (automated play-through).
+- [ ] Two friends can each name something they did better than the other after one race. *(needs people)*
+- [ ] They choose another race without being asked. *(needs people)*
+- [ ] A first-time player finishes a Gentle race on the patio more often than off it. *(needs people)*
+- [ ] 60 fps on a mid-range phone in split screen. *(needs a device)*
 
 ---
 

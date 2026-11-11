@@ -3,6 +3,7 @@ import { SURFACE, cloneRace, createRace, forwardSpeed, hashRace, headingOf, noDr
 import type { DriveInput, RaceEvent, RaceState } from '../src/attractions/dash/sim';
 import { Rival } from '../src/attractions/dash/bot';
 import { KART, RACE } from '../src/attractions/dash/track';
+import { RIVAL_LEVELS, rivalLevel } from '../src/attractions/dash/rivals';
 import { Rng } from '../src/core/dmath';
 
 const idle = (n: number): DriveInput[] => Array.from({ length: n }, noDrive);
@@ -160,6 +161,68 @@ describe('contact', () => {
       run(s, 60);
       expect(Math.hypot(k.x - pot.x, k.z - pot.z)).toBeGreaterThanOrEqual(pot.r + KART.radius - 0.02);
     }
+  });
+  it('the lost tennis ball in the hairpin infield is solid too', () => {
+    const ball = trackOf(createRace()).dressing.ball;
+    for (let i = 0; i < 9; i++) {
+      const s = createRace({ karts: 1 });
+      go(s);
+      const k = s.karts[0]!;
+      k.x = ball.x - ball.r - 5; k.z = ball.z + (i - 4) * 0.5; k.heading = 0; k.vx = KART.vMax; k.vz = 0;
+      run(s, 50);
+      expect(Math.hypot(k.x - ball.x, k.z - ball.z)).toBeGreaterThanOrEqual(ball.r + KART.radius - 0.02);
+    }
+  });
+});
+
+describe('rivals', () => {
+  it('pace is a throttle: an eased-off kart tops out lower, and the default is full throttle', () => {
+    const s = createRace({ karts: 3, pace: [1, 0.9, 0.1] });
+    expect(createRace({ karts: 1 }).karts[0]!.pace).toBe(1);
+    expect(s.karts[2]!.pace).toBe(0.5); // clamped: a rival is never made absurdly slow
+    go(s);
+    for (const k of s.karts) k.z = 28.5 + s.karts.indexOf(k) * 3; // side by side, out of each other's tow
+    run(s, 200);
+    expect(forwardSpeed(s.karts[0]!)).toBeGreaterThan(KART.vMax * 0.97);
+    expect(forwardSpeed(s.karts[1]!)).toBeGreaterThan(KART.vMax * 0.9 * 0.97);
+    expect(forwardSpeed(s.karts[1]!)).toBeLessThanOrEqual(KART.vMax * 0.9 + 1e-6);
+  });
+  it('the difficulty ladder is ordered: each level is sharper and quicker than the one below', () => {
+    expect(RIVAL_LEVELS.map((l) => l.id)).toEqual(['gentle', 'keen', 'fierce']);
+    for (let i = 0; i < RIVAL_LEVELS.length; i++) {
+      const l = RIVAL_LEVELS[i]!;
+      for (let j = 0; j < 3; j++) {
+        expect(l.pace[j]).toBeGreaterThanOrEqual(0.5);
+        expect(l.pace[j]).toBeLessThanOrEqual(1);
+        if (j > 0) {
+          expect(l.skills[j]).toBeLessThan(l.skills[j - 1]!);
+          expect(l.pace[j]).toBeLessThanOrEqual(l.pace[j - 1]!);
+        }
+        if (i > 0) {
+          expect(l.skills[j]).toBeGreaterThan(RIVAL_LEVELS[i - 1]!.skills[j]!);
+          expect(l.pace[j]).toBeGreaterThan(RIVAL_LEVELS[i - 1]!.pace[j]!);
+        }
+      }
+    }
+    expect(rivalLevel(-3).id).toBe('gentle');
+    expect(rivalLevel(99).id).toBe('fierce');
+    expect(rivalLevel(Number.NaN).id).toBe('gentle');
+  });
+  it('gentle rivals take clearly longer over a race than fierce ones', () => {
+    const winner = (level: number): number => {
+      const l = rivalLevel(level);
+      const s = createRace({ karts: 3, laps: 2, pace: [...l.pace] });
+      const bots = l.skills.map((skill, i) => new Rival({ seed: 40 + i, skill }));
+      for (let t = 0; t < 60 * 120 && s.phase !== 'over'; t++) stepRace(s, bots.map((b, i) => ({ ...b.think(s, i) })));
+      expect(s.firstFinishTick).toBeGreaterThan(0);
+      return s.firstFinishTick;
+    };
+    const gentle = winner(0);
+    const keen = winner(1);
+    const fierce = winner(2);
+    expect(gentle).toBeGreaterThan(keen);
+    expect(keen).toBeGreaterThan(fierce);
+    expect(gentle - fierce).toBeGreaterThan(2 * 60); // at least two seconds over two laps
   });
 });
 

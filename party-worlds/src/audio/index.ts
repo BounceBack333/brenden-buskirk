@@ -24,6 +24,10 @@ const R = -1; // rest
 const MELODY = [72, R, 76, 79, R, 76, 74, R, 72, R, 69, 72, 74, R, 76, R, 79, R, 81, 79, R, 76, 74, 76, 72, R, 67, 69, 72, R, R, R];
 const BASS = [48, R, R, R, 55, R, R, R, 45, R, R, R, 55, R, R, R, 48, R, R, R, 52, R, R, R, 53, R, R, R, 55, R, 43, R];
 const WIN = [67, 72, 76, 79, 84, R, 88, R];
+// the race score: A minor pentatonic at 138 bpm, a driving bass under a restless arpeggio
+const STEP_RACE = 60 / 138 / 2;
+const RACE_ARP = [69, 72, 76, 81, 79, 76, 72, 76, 69, 72, 74, 79, 76, 74, 72, 67];
+const RACE_BASS = [45, 45, 57, 45, 45, 57, 45, 48, 43, 43, 55, 43, 41, 41, 53, 55];
 
 export function createAudioKit(opts: AudioKitOptions = {}): AudioKit {
   const eng = new Engine(opts.context ?? null);
@@ -34,6 +38,8 @@ export function createAudioKit(opts: AudioKitOptions = {}): AudioKit {
   let tension: Loop | null = null;
   let wind: Loop | null = null;
   let flutter: Loop | null = null;
+  let engine: (Loop & { osc2: OscillatorNode }) | null = null;
+  let skid: Loop | null = null;
 
   function noiseLoop(type: BiquadFilterType, freq: number, q: number): Loop | null {
     const ctx = eng.ctx;
@@ -105,6 +111,11 @@ export function createAudioKit(opts: AudioKitOptions = {}): AudioKit {
       // lighter: every other melody note, softer bass — leaves room for the game
       if (m !== R && k % 2 === 0) eng.pluck(midi(m), at, 0.6, 0.1, 0.6, 0, bus);
       if (b !== R && k % 8 === 0) eng.tone({ f0: midi(b), dur: 0.8, gain: 0.07, at, attack: 0.02, bus });
+    } else if (mode === 'race') {
+      const j = i % 16;
+      eng.tone({ type: 'triangle', f0: midi(RACE_BASS[j]!), dur: 0.16, gain: 0.13, at, attack: 0.004, lowpass: 900, bus });
+      if (j % 2 === 0 || (i >> 4) % 2 === 1) eng.pluck(midi(RACE_ARP[j]! + ((i >> 5) % 2 ? 12 : 0)), at, 0.22, 0.07, 0.9, (j % 4) * 0.2 - 0.3, bus);
+      if (j % 4 === 2) eng.burst({ dur: 0.04, gain: 0.05, filter: 'highpass', f0: 5000, at, bus });
     } else if (mode === 'tense') {
       // a ticking ostinato
       eng.pluck(midi(k % 2 === 0 ? 79 : 76), at, 0.18, 0.06, 0.9, 0, bus);
@@ -120,7 +131,7 @@ export function createAudioKit(opts: AudioKitOptions = {}): AudioKit {
     while (nextTime < horizon && guard++ < 400) {
       scheduleStep(step, nextTime);
       step++;
-      nextTime += STEP;
+      nextTime += mode === 'race' ? STEP_RACE : STEP;
     }
   }
 
@@ -257,6 +268,45 @@ export function createAudioKit(opts: AudioKitOptions = {}): AudioKit {
         eng.pluck(1046.5 * p, 0, 0.7, 0.16, 1);
         eng.tone({ f0: 2093 * p, dur: 0.5, gain: 0.04, at: 0.02 });
         break;
+      case 'boost':
+      case 'boost_big': {
+        const big = name === 'boost_big';
+        eng.burst({ dur: big ? 0.6 : 0.4, gain: big ? 0.6 : 0.45, f0: 400, f1: big ? 4200 : 3000, q: 0.7, attack: 0.02 });
+        eng.tone({ type: 'sawtooth', f0: 110, f1: big ? 440 : 300, dur: big ? 0.5 : 0.32, gain: 0.16, lowpass: 1600 });
+        if (big) eng.pluck(midi(88), 0.05, 0.5, 0.1, 1);
+        break;
+      }
+      case 'charge':
+        eng.pluck(midi(81) * p, 0, 0.18, 0.14, 1);
+        eng.tone({ f0: 1760 * p, dur: 0.08, gain: 0.05 });
+        break;
+      case 'bump':
+        eng.tone({ f0: 130, f1: 60, dur: 0.14, gain: 0.3 + 0.25 * i, pan });
+        eng.burst({ dur: 0.06, gain: 0.25 + 0.3 * i, f0: 1800, q: 2, pan, attack: 0.001 });
+        break;
+      case 'kart_bump':
+        eng.burst({ dur: 0.04, gain: 0.3 + 0.3 * i, f0: 2600, q: 3, pan, attack: 0.001 });
+        eng.tone({ type: 'triangle', f0: 420, f1: 260, dur: 0.07, gain: 0.18, pan });
+        break;
+      case 'land':
+        eng.tone({ f0: 110, f1: 55, dur: 0.16, gain: 0.4 });
+        eng.burst({ dur: 0.1, gain: 0.3, filter: 'lowpass', f0: 700, f1: 250, attack: 0.002 });
+        break;
+      case 'lap':
+        eng.pluck(midi(76), 0, 0.3, 0.15, 0.8);
+        eng.pluck(midi(81), 0.09, 0.45, 0.15, 0.8);
+        break;
+      case 'final_lap':
+        eng.pluck(midi(81), 0, 0.2, 0.16, 1);
+        eng.pluck(midi(81), 0.12, 0.2, 0.16, 1);
+        eng.pluck(midi(88), 0.24, 0.6, 0.18, 1);
+        break;
+      case 'plank':
+        eng.tone({ f0: 180, f1: 90, dur: 0.12, gain: 0.4 });
+        eng.burst({ dur: 0.08, gain: 0.4, f0: 900, q: 1.5, attack: 0.001 });
+        eng.tone({ f0: 150, f1: 80, dur: 0.14, gain: 0.3, at: 0.13 });
+        eng.burst({ dur: 0.06, gain: 0.25, f0: 700, q: 1.5, attack: 0.001, at: 0.13 });
+        break;
       case 'fanfare': {
         const notes = [72, 76, 79, 84, 88];
         notes.forEach((n, k) => eng.pluck(midi(n), k * 0.11, 0.7, 0.15, 0.9, (k - 2) * 0.15));
@@ -375,6 +425,66 @@ export function createAudioKit(opts: AudioKitOptions = {}): AudioKit {
         const k = Math.max(0, Math.min(1, o));
         flutter.gain.gain.setTargetAtTime(0.045 * k, eng.now, 0.05);
         flutter.depth!.gain.setTargetAtTime(0.03 * k, eng.now, 0.05);
+      } catch {
+        /* optional */
+      }
+    },
+    setEngine(revs, load = 0.3) {
+      try {
+        if (!eng.ready || !eng.running) return;
+        if (revs === null) {
+          if (engine) {
+            try { engine.osc2.stop(eng.now + 0.25); } catch { /* stopped */ }
+            stopLoop(engine);
+          }
+          engine = null;
+          return;
+        }
+        const ctx = eng.ctx!;
+        if (!engine) {
+          // a toy motor: two slightly detuned buzzers through a low-pass that opens with revs
+          const a = ctx.createOscillator();
+          const b = ctx.createOscillator();
+          a.type = 'sawtooth';
+          b.type = 'square';
+          const filter = ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.Q.value = 2;
+          const gain = ctx.createGain();
+          gain.gain.value = 0;
+          a.connect(filter);
+          b.connect(filter);
+          filter.connect(gain);
+          gain.connect(eng.sfx!);
+          a.start();
+          b.start();
+          engine = { gain, filter, src: a, osc2: b };
+        }
+        const k = Math.max(0, Math.min(1.2, revs));
+        const l = Math.max(0, Math.min(1, load));
+        const now = ctx.currentTime;
+        const f = 52 + 150 * k;
+        (engine.src as OscillatorNode).frequency.setTargetAtTime(f, now, 0.05);
+        engine.osc2.frequency.setTargetAtTime(f * 1.505, now, 0.05);
+        engine.filter.frequency.setTargetAtTime(380 + 1500 * k + 900 * l, now, 0.06);
+        engine.gain.gain.setTargetAtTime(0.035 + 0.03 * k + 0.035 * l, now, 0.06);
+      } catch {
+        /* optional */
+      }
+    },
+    setSkid(amount) {
+      try {
+        if (!eng.ready || !eng.running) return;
+        if (amount === null) {
+          stopLoop(skid);
+          skid = null;
+          return;
+        }
+        if (!skid) skid = noiseLoop('bandpass', 1700, 2.2);
+        if (!skid) return;
+        const k = Math.max(0, Math.min(1, amount));
+        skid.filter.frequency.setTargetAtTime(1300 + 1300 * k, eng.now, 0.05);
+        skid.gain.gain.setTargetAtTime(0.1 * k, eng.now, 0.04);
       } catch {
         /* optional */
       }

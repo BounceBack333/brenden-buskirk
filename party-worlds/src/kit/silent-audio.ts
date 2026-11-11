@@ -13,6 +13,8 @@ export function createSilentAudio(): AudioKit {
     setTension: () => undefined,
     setWind: () => undefined,
     setFlutter: () => undefined,
+    setEngine: () => undefined,
+    setSkid: () => undefined,
     music: () => undefined,
     suspend: () => undefined,
     resume: () => undefined,

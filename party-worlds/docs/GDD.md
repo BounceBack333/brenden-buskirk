@@ -1,107 +1,109 @@
 # Game Design Document (living)
 
-Working title: **BounceBack Party Worlds**. Status words used throughout are defined in `PROGRESS.md`.
+Working title: **BounceBack Party Worlds**. Status words used throughout are defined in `PROGRESS.md`. This document was rewritten when racing became the core (D-016); the earlier design is kept in §11.
 
 ## 1. Identity
 
-**Our people and pets, shrunk onto an ordinary table, playing with everything on it — and the table remembers.**
+**You and your friends, and your dogs and cats, as tin-toy racers on a track hidden in an ordinary place — and the place remembers what you did to it.**
 
-Described without other games: you and someone you love become tiny, expressive versions of yourselves (or your dog, or your cat) on a birthday table. You fling each other off spoons, catch each other in cupcake liners, bounce off jelly. Whatever you knock over, pop or splat stays that way for the rest of the session, tagged with the face of whoever did it.
+Described without other games: you pick a small, expressive version of yourself or your pet, sit it in a toy kart, and race three laps of a patio at night against your friends. The garden hose is a banked wall, a scaffold plank is a shortcut, a lost tennis ball is a boulder. Someone knocks the peg out from under the plank and it stays down for everybody.
+
+**Audience:** adult friend groups first. People who would play one more race to settle it. (Changed from "families and pairs" by D-016.)
 
 Three promises, in priority order when they conflict:
-1. **It's us.** Characters are recognisable and affectionate. Looks never change how anyone plays.
-2. **Both of us matter.** Every attraction gives each player a real job; roles swap or are equally interesting.
-3. **I can see why.** Every outcome can be explained by pointing at something on screen.
+1. **It's us.** Drivers are recognisable and affectionate, and the game brings their faces to the screen. Looks never change how anyone drives.
+2. **I beat you fairly.** One kart, one handling model, one set of rules for everyone on the track. Nothing bought, nothing hidden, no rubber band.
+3. **I can see why.** Every result can be explained by pointing at something that happened: a boost held too long, a plank missed, a peg someone else paid for.
 
-## 2. Central loop — candidates and decision
+## 2. Central loop
 
-| | A. Tour + abstract board | **B. One table, one evening** | C. Always-a-giant | D. Launch toy only | E. Borrowed size |
-|---|---|---|---|---|---|
-| What it is | Attractions joined by a separate board game | 3–4 attractions on the *same physical table*; between them each player makes one visible change to it; physical consequences persist | Every round one player is the giant running the world | Every activity is a launch/catch variant | Partners share one conserved "size"; as one grows the other shrinks |
-| Distinct identity | Low (familiar) | **High** | High | Medium | High |
-| Readable in 10 s | Medium (board rules) | **High** (it's a table) | High | High | Medium |
-| Physical satisfaction | From attractions only | **From attractions + causing lasting change** | High | High | Unknown |
-| Social interaction | Medium | **High** (my change, your problem) | High but 2-player awkward | Medium | High |
-| Strategy | High but abstract | **Embodied: you can point at it** | Medium | Low | Medium |
-| Variety w/o relearning | High | High | Medium | Low | Medium |
-| Production cost | Board is a second game | **One arena per world, reused** | Asymmetric balance ×N | Low | New tech risk |
-| Clip-ability | Low | **High** | High | Medium | High |
+`Pick drivers → countdown (meet your driver) → three laps (≈ 60 s) → results (who, by how much, who opened the shortcut) → Rematch`
 
-**Decision: B.** The board is not a separate layer; it is the table. Giant roles (C) become specific attractions inside it. Borrowed size (E) is parked as the most promising untested mechanic for a later lab.
+The test this build exists to pass, in the advisor's words: *can you and a friend identify something you did better, get competitive about the result, and choose another race without being prompted?*
 
-### The loop
-`Pick characters → attraction (≈90 s) → Set the Table (≤10 s each) → attraction → Set the Table → attraction → standings → rematch`
-
-### "The table remembers" — the fourth signature idea
-- **Persistent consequences.** Popped balloons stay popped. A missed landing leaves a frosting splat in the misser's colour. A knocked candle stays down. *(Implemented in Catapult Courier: balloons + splats persist for the round.)*
-- **Carry-over.** Those leftovers become ingredients of the next attraction: a splat is a sticky patch in a foot race; a popped balloon is a missing bounce. *(Proposed — needs a second attraction.)*
-- **Set the Table.** Between attractions each player makes exactly one physical change to the shared arena. *(Proposed; rules in §5.)*
-
-Test we hold ourselves to: **can a player point at something in the arena and say which earlier choice caused it?**
+What a race gives you to be better at:
+- **The start.** A press in the last third of a second before GO.
+- **Every corner.** Hold the drift longer for a bigger boost, at the cost of a wider line.
+- **Every lap.** Road or plank.
+- **Once.** Pay to open the plank, or wait for someone else to.
+- **Each other.** Tow behind a kart, shove one wide, sit in the plank's mouth.
 
 ## 3. Memorable moments → requirements
 
-| Moment | Player action | Skill / decision | Partner contributes | Why it's understandable | Feedback | Net requirement | Smallest test |
-|---|---|---|---|---|---|---|---|
-| "You launched yourself and I actually caught you" | Pull spoon, release; feather umbrella | Aim near the catcher; spend umbrella paper wisely | Reads the bend, sprints, dives | Short dotted arc + drop shadow + rim physics | Creak → twang → rush → thump + confetti | Shared sim; outcome authoritative | **Catapult Courier (built)** |
-| "That looks exactly like my dog" | Build or pick a character | — | Recognises them | Silhouette + colour blocking | Portraits are real renders | Spec is ~15 fields of data | Character builder (built, template-based) |
-| "I knew you were going for that shortcut" | Aim through the donut | Risk a harder arc for +40 | Repositions before release | Donut is visible; bonus only if caught | Chime, "+40 if caught" | — | Courier rings (built) |
-| "Our decision changed the next round" | One table move | Safe vs greedy | Negotiates | Flag with chooser's face on the changed object | Camera visits each change | Ordered, agreed choices | Set the Table (proposed) |
-| "I understand why I lost, I want another go" | — | — | — | "So close! 0.4 away", per-launch breakdown | Soft "whoops", instant Again | — | Results screen (built) |
+| Moment | Player action | Skill / decision | The other player | Why it's understandable | Feedback | Smallest test |
+|---|---|---|---|---|---|---|
+| "I had you until the hairpin" | Drift the hairpin, release on blue | How long to hold | Is beside you doing the same | Charge meter, spark colour, place number | Skid, chime per level, boost roar, FOV kick | **Built** |
+| "You opened it and I used it" | Bump the peg, or don't | Pay 28 % of your speed now for everyone's shortcut | Benefits, or blocks the plank | Banner names who; plank visibly drops; minimap shows it | Clatter, banner, results line | **Built** |
+| "I went for the plank and binned it" | Leave the road for 34 units of narrow board | Risk a lap for 1.6 s | Takes the place you gave up | Soil is visibly slow; place number drops | Dust, face goes "oops" | **Built** |
+| "That is so obviously you" | Pick or build a driver | — | Recognises them at the countdown and on the results | Face-to-face countdown, HUD portrait, results portraits | — | **Built** (template characters) |
+| "One more" | Tap Rematch | — | Taps it first | — | Countdown starts within about a second | **Built** |
 
-## 4. First world — The Birthday Continental
+## 4. First world — Backyard After Dark
 
-Physical personality: **soft things spring, sticky things hold, light things float.** Jelly is a trampoline, frosting is a landing you slide down, balloons are bumpers that pop, a spoon is a catapult, a hand fan is weather, the cake is a cliff.
+Physical personality: **hard things bounce you, soft ground drags, narrow wood is fast.** Paving slabs grip. Grass costs 45 % of your speed, flowerbed soil 60 % (a boost shrugs most of it off). The hose, the bricks, the chair legs, the pot and the tennis ball are solid; a hard hit spins you once.
 
-What players can do *because of* that behaviour: bounce a short launch into range (jelly), be saved or ruined by a backstop that may no longer exist (balloons), glide under a paper umbrella (air), and leave marks that matter later (frosting).
+What players can do *because of* that behaviour: cut a corner over grass on a boost, lean on the hose through the hairpin, thread the brick chicane, and cross the bed on the plank.
 
-## 5. Set the Table (board rules — proposed)
+Layout: start straight under a garden chair → east hairpin inside the coiled hose, lit by a work lamp → brick chicane → the fork (road north round the flowerbed, or plank straight across it with a jump at the far end) → long sweeper round the big pot → back under the chair. 305 units; 18–20 s a lap.
 
-- **Who:** every player, one move each. Order = reverse current standings (last place moves first).
-- **What:** three face-up cards drawn from the next attraction's move list (e.g. *slide the jelly*, *tie on a balloon*, *turn the fan*, *hang a second donut*, *shorten the runway*). Each card states its tradeoff in one line.
-- **Cost:** free, but a taken card is gone. One "spare move" token can be earned per tour (three stars in any attraction) and spent once.
-- **Visible:** instantly. The camera visits the object; a small flag with the chooser's face is planted beside it and stays through the next attraction.
-- **Conflicts:** none possible — moves are sequential. Undoing someone's move with your own is legal and costs you your move.
-- **Time:** 8 s each, then auto-pass. Four players ≤ 35 s.
-- **Reset:** table moves and leftovers reset between tours. Nothing persists into public competitive play.
-- Winning creates options (a spare move), never better physics.
+## 5. Rivals
+
+Bots fill the grid and are labelled wherever they appear. Three levels (D-019): **Gentle** (default), **Keen**, **Fierce**. Each is two stated dials: how sharply they drive and how much throttle they use. A solo win offers the next level.
+
+Against stand-in drivers (`dev/humanish.ts`; simulated, not people):
+
+| Stand-in | Gentle | Keen | Fierce |
+|---|---|---|---|
+| Sharp (150 ms), drifts | wins 11/12 | wins 5/12 | wins 0/12 |
+| Sharp, drifts, takes the plank | wins 12/12 | wins 12/12 | wins 10/12 |
+| Slower (250 ms), drifts | 2nd–3rd | 3rd | last |
+| Slower, never drifts | 2nd, wins 3/12 | 3rd, wins 2/12 | last |
+
+Read as intent, not proof: Gentle is for learning to drive, Keen asks for drift boosts, Fierce asks for the plank.
 
 ## 6. Session formats
 
 | Format | Status | Notes |
 |---|---|---|
-| Quick Play — one attraction | **Implemented** (Courier) | Same-screen 2P, or solo with a labelled bot |
-| Duet Adventure — complete 2-player session | Partly: one attraction with full role swap | Needs two more attractions + Set the Table |
-| Party Tour — 3–4 players, individual standings | Proposed | Rules + worked example in `SCORING.md` |
-| Crew Cup — fixed 2v2 | Proposed | Only attractions with symmetric team roles |
-| Solo Challenges | Proposed | Courier is deterministic-by-input, so verified ghosts are feasible |
+| Race — solo against three bot rivals | **Implemented, automation only** | Your second character drives the quickest rival |
+| Split screen — two people, one device, two bot rivals | **Implemented, automation only** | The format for the first social test. Wants a tablet or a laptop; cramped on a phone |
+| Online race | Proposed | The room server exists (built for Courier); racing needs its own prediction work |
+| Four people | Proposed | Needs online, or four-way split on a big screen |
+| Catapult Courier | Parked | Still playable from the play sheet |
 
 ## 7. Difficulty, accessibility, mixed skill
 
-Built: touch-only play (no motion input); landscape that works even when the OS cannot rotate; hold *or* tap umbrella; left-handed dive button; reduced motion (steady wide camera, no shake/zoom); open **aim assist** (full arc + landing ring) that is labelled on the results; cues never colour-only (pips use ✓/× and shape); 56 px+ targets; hints that disappear once the action is performed.
+Built: auto-accelerate (steering alone finishes a race); one-thumb play (Auto-drift setting, and always in split-screen touch); left-handed button swap; reduced motion (no shake, no camera roll); hints that disappear once the action has been performed; place, lap and "wrong way" in words; rival levels; a 25 s grace after the winner so nobody is left circulating.
 
-Mixed-skill design in Courier: the launcher can make the catcher's job easy (aim at them) or hard (go for the donut); a strong catcher rescues a wild launch with a dive. A novice contributes on launch one.
+Mixed-skill play between two people is carried by the track, not by handicaps: the tow lets the one behind close up, and the plank is a gamble the one behind can take. Whether that is enough is a question for people.
 
-Not yet done: text scaling option, colour-blind review of the palette, screen-reader pass, haptics on iOS (Safari exposes none).
+Not done: text scaling, a colour-blind review of spark colours, screen-reader pass, steering help (tried and dropped, D-020).
 
 ## 8. Characters and personalisation
 
-- **Built:** a parametric template system — people, dogs and cats from ~15 data fields, with an authored cast, a builder, and live portraits rendered by the game.
-- **Not built:** photo → character. See `research/avatar-pipeline.md`. Working hypothesis: *templates driven by a photo-interpretation step* is the cheapest first experiment; generated geometry is a later comparison. No real photos are used anywhere in development.
-- **Fairness rule (enforced in code):** every character uses the same collider and the same carry height (`RIG` constants). Pets stay quadrupeds and wear a harness to carry the basket.
+- **Built:** a parametric template system — people, dogs and cats from about fifteen data fields — with an authored cast, a builder, a driving pose for every species, and portraits rendered by the game.
+- **Direction from the review:** drivers should read less baby-like over time. Not started; the current cast is used provisionally.
+- **Not built:** photo → character. See `research/avatar-pipeline.md`. No real photos are used anywhere in development, and no character is named after a real pet.
+- **Fairness (enforced in code):** every kart has the same collider and the same numbers whatever is sitting in it.
 
 ## 9. Multiplayer model (summary; details in `NETWORKING.md`)
 
-The simulation is a pure, fixed-step, deterministic function of inputs (`core/dmath.ts`). That gives: server authority by simply running the same code; validation of any claimed result by replaying its inputs; replays/ghosts stored as inputs.
+The race simulation is a pure, fixed-step, deterministic function of per-tick inputs, like Courier's. Local split screen uses it directly. Online racing is not built.
 
 ## 10. Business stance (unchanged from the brief; nothing implemented)
 
-Free complete core; paid personal avatars, exact cosmetics, whole worlds a host can share with guests. No paid randomness, no paid retries, no shop on the loss → rematch path. Costs must be measured before any forecast is written.
+Free complete core; paid personal avatars, exact cosmetics, whole worlds a host can share with guests. No paid randomness, no paid retries, nothing that buys speed, grip or a smaller collider, no shop on the loss → rematch path.
 
-## 11. What we do not know yet
+## 11. Parked: the table design
 
-1. Whether launch-and-catch is fun for *both* people over ten rounds — needs real pairs (see `PLAYTEST.md`).
-2. Whether one-thumb dive (tap) is discoverable on a shared phone.
-3. Whether template characters are recognisable enough to produce "that's my dog!".
-4. Real-device frame time, heat and battery.
-5. How the game feels at 80–150 ms round-trip latency.
+Before D-016 the central loop was "one table, one evening": three or four short co-operative attractions on a birthday table, with a one-move "Set the Table" choice between them and physical leftovers carried from one attraction to the next. Catapult Courier (spoon launch, basket catch) is the built piece of that; its registry entry, scoring rules (`SCORING.md`) and online rooms are intact. Two ideas from it are still alive in the racer: the world keeping what you did to it, and a choice that changes things for the other player.
+
+## 12. What we do not know yet
+
+1. Whether two friends want a second race. Everything else is secondary.
+2. Whether drifting is discoverable from one hint, and satisfying once found.
+3. Whether a first-time adult can stay on the patio at this speed with a thumb.
+4. Whether the plank is a real argument between two people or just a shortcut one of them forgets.
+5. Whether split screen on the device they actually have is big enough.
+6. Real-device frame time, in split screen especially.
+7. Whether the drivers are recognisable enough from behind, with the portrait, to matter.

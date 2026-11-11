@@ -67,6 +67,11 @@ export interface Kart {
   driftHeldTicks: number;
   startPressTick: number;
   jumped: boolean;
+  /**
+   * Throttle, 0.5…1: how much of the kart's top speed this driver uses. People always have 1.
+   * Rival bots ease off by a stated amount per difficulty; it is never changed mid-race.
+   */
+  pace: number;
 }
 
 export type RaceEvent =
@@ -107,6 +112,8 @@ export interface RaceConfig {
   karts?: number;
   laps?: number;
   required?: number[];
+  /** per-seat throttle for rival bots (see Kart.pace); missing seats get 1 */
+  pace?: number[];
 }
 
 export function trackOf(_s: RaceState): Track {
@@ -126,6 +133,7 @@ export function createRace(config: RaceConfig = {}): RaceState {
       surface: SURFACE.road, idx: (N - Math.round(-5 - g.x)) % N, lap: 0, cpMask: 3,
       finished: false, finishTick: 0, place: i + 1, lapStartTick: 0, bestLapTicks: 0,
       stuckTicks: 0, wrongTicks: 0, blinkTicks: 0, prevDrift: false, driftHeldTicks: 0, startPressTick: -999, jumped: false,
+      pace: clamp(config.pace?.[i] ?? 1, 0.5, 1),
     });
   }
   return {
@@ -290,7 +298,7 @@ function drive(s: RaceState, track: Track, seat: number, inp: DriveInput): void 
   if (boosting) k.boostTicks--;
   let surf = k.surface === SURFACE.grass ? KART.grass : k.surface === SURFACE.soil ? KART.soil : 1;
   if (boosting) surf = 1 - (1 - surf) * (1 - KART.boostIgnoresSurface);
-  let target = (boosting ? KART.vBoost : KART.vMax) * surf * (1 - KART.steerScrub * Math.abs(k.steer));
+  let target = (boosting ? KART.vBoost : KART.vMax) * k.pace * surf * (1 - KART.steerScrub * Math.abs(k.steer));
   if (k.drifting) target *= 0.97;
   if (k.draftTicks >= KART.draftTicks && !boosting) target *= KART.draftBonus;
   if (coasting) target = 5;

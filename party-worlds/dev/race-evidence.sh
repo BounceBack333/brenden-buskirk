@@ -1,0 +1,22 @@
+#!/bin/sh
+# Runs the automated race play-throughs one after another and collects one summary line each.
+#   sh dev/race-evidence.sh [baseUrl] [outDir]
+# Needs the dev server (npm run dev) or a preview of the build at baseUrl.
+# Scripted input in a headless browser: evidence that the screens, controls and rules hold
+# together end to end. It is not a play-test.
+base="${1:-http://127.0.0.1:5173/}"
+out="${2:-dev/shots}"
+sum="$out/race-evidence.jsonl"
+mkdir -p "$out"
+: > "$sum"
+run() {
+  name="$1"; shift
+  echo "== $name" >&2
+  node dev/raceplay.mjs "$@" 2>>"$out/race-evidence.err" | tail -1 | sed "s/^{/{\"run\":\"$name\",/" >> "$sum"
+}
+run solo-keys-3laps      "${base}?hq"        solo  "$out/race-solo"        --slow=0.25 --plank --rematch
+run split-keys-1lap      "${base}?hq&laps=1" split "$out/race-split"       --slow=0.25 --rematch
+run solo-touch-landscape "${base}?laps=1"    solo  "$out/race-touch"       --touch --slow=0.2
+run solo-touch-portrait  "${base}?laps=1"    solo  "$out/race-portrait"    --touch --portrait --slow=0.2
+run split-touch-1lap     "${base}?laps=1"    split "$out/race-split-touch" --touch --slow=0.2 --size=1180x820
+cat "$sum"

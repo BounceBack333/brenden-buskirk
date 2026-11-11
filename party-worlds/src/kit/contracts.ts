@@ -79,7 +79,8 @@ export type CharacterAction =
   | 'slide'       // belly slide / recovery after a dive
   | 'celebrate'   // jump, arms/paws up, spin
   | 'sad'         // slump, short, never humiliating
-  | 'wave';       // greeting for menus
+  | 'wave'        // greeting for menus
+  | 'drive';      // seated in a kart: hands or paws on the wheel, leaning with MotionContext.steer
 
 export type Expression =
   | 'neutral' | 'happy' | 'nervous' | 'thrilled' | 'determined' | 'dizzy' | 'oops' | 'cheer';
@@ -100,6 +101,10 @@ export interface MotionContext {
    */
   carryX?: number;
   carryY?: number;
+  /** -1 … 1 steering while driving (leans the driver, turns the head and the wheel) */
+  steer?: number;
+  /** extra head turn in radians while driving (a glance at a rival alongside) */
+  lookYaw?: number;
 }
 
 /** Canonical, species-independent numbers every rig must honour. */
@@ -214,9 +219,10 @@ export type SfxName =
   | 'boing' | 'balloon_bump' | 'balloon_pop' | 'ring'
   | 'rim' | 'catch' | 'catch_perfect' | 'miss_splat'
   | 'dive' | 'skid' | 'footstep'
-  | 'score_tick' | 'star' | 'fanfare' | 'whoops';
+  | 'score_tick' | 'star' | 'fanfare' | 'whoops'
+  | 'boost' | 'boost_big' | 'charge' | 'bump' | 'kart_bump' | 'land' | 'lap' | 'final_lap' | 'plank';
 
-export type MusicMode = 'off' | 'menu' | 'play' | 'tense' | 'win';
+export type MusicMode = 'off' | 'menu' | 'play' | 'tense' | 'win' | 'race';
 
 export interface SfxOptions {
   /** 0..1 loudness/brightness scaling. Default 1. */
@@ -239,6 +245,10 @@ export interface AudioKit {
   setWind(speed01: number | null): void;
   /** Continuous flutter while the umbrella is open: 0..1, null to stop. */
   setFlutter(open01: number | null): void;
+  /** Continuous kart engine: revs 0..1 (pitch) and load 0..1 (boost growl); null to stop. */
+  setEngine(revs01: number | null, load01?: number): void;
+  /** Continuous tyre scrub while sliding: 0..1, null to stop. */
+  setSkid(amount01: number | null): void;
   music(mode: MusicMode): void;
   /** Pause everything when the page is hidden; resume after. */
   suspend(): void;

@@ -48,8 +48,8 @@ html, body {
 }
 
 #gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
-#hud, #ui, #popups { position: absolute; inset: 0; pointer-events: none; }
-#hud[hidden] { display: none; }
+#hud, #ui, #popups, .hud-layer { position: absolute; inset: 0; pointer-events: none; }
+.hud-layer[hidden] { display: none; }
 #ui > *, #hud button, #hud .touchable { pointer-events: auto; }
 
 /* safe areas (notch / home bar). In rotated mode the insets map to different edges; pad generously instead. */
@@ -258,3 +258,61 @@ input[type='range'] { width: calc(var(--u) * 44); height: calc(var(--u) * 8); ac
 .room-seat.ready small { color: var(--teal-deep); font-weight: 600; }
 .room-seat.empty { border-style: dashed; color: var(--muted); }
 .notice { background: #fff0ec; color: var(--coral-deep) !important; padding: calc(var(--u) * 1.8) calc(var(--u) * 2.6); border-radius: calc(var(--u) * 2.4); font-weight: 500; }
+
+/* ───────── play sheet (race first) ───────── */
+.choices.two { grid-template-columns: repeat(2, 1fr); }
+.parked { display: flex; align-items: center; flex-wrap: wrap; gap: calc(var(--u) * 1.6); margin-top: calc(var(--u) * 3); padding-top: calc(var(--u) * 2.4); border-top: calc(var(--u) * 0.3) solid var(--line); font-size: calc(var(--u) * 2.9); }
+.scrim.clear { background: rgba(20, 22, 44, 0.3); }
+
+/* ───────── race HUD ───────── */
+.race-clock { position: absolute; left: 50%; top: var(--pad-y); transform: translateX(-50%); font-weight: 700; font-size: calc(var(--u) * 6); color: #fff; text-shadow: 0 calc(var(--u) * 0.5) 0 #14162c, 0 0 calc(var(--u) * 2) rgba(20, 22, 44, 0.8); font-variant-numeric: tabular-nums; }
+.race-map { position: absolute; right: calc(var(--pad-x) + var(--u) * 13); top: var(--pad-y); width: calc(var(--u) * 30); height: calc(var(--u) * 20); opacity: 0.95; }
+.race-pane { position: absolute; pointer-events: none; overflow: hidden; }
+.race-pane.split + .race-pane.split { box-shadow: inset calc(var(--u) * 0.6) 0 0 #14162c; }
+.race-place { position: absolute; left: calc(var(--u) * 4); bottom: calc(var(--u) * 22); font-weight: 700; font-size: calc(var(--u) * 13); line-height: 1; color: #fff; text-shadow: 0 calc(var(--u) * 0.8) 0 #14162c, 0 0 calc(var(--u) * 2.4) rgba(20, 22, 44, 0.7); font-style: italic; }
+.race-place.bump { animation: bump 0.4s ease; }
+.race-lap { position: absolute; left: calc(var(--u) * 4); top: calc(var(--pad-y) + var(--u) * 1); font-weight: 700; font-size: calc(var(--u) * 4.2); color: #fff; background: rgba(20, 22, 44, 0.6); padding: calc(var(--u) * 0.8) calc(var(--u) * 2.4); border-radius: calc(var(--u) * 3); }
+.race-meter { position: absolute; left: 50%; bottom: calc(var(--u) * 5); transform: translateX(-50%); width: calc(var(--u) * 46); height: calc(var(--u) * 3.6); border-radius: calc(var(--u) * 2); background: rgba(20, 22, 44, 0.55); border: calc(var(--u) * 0.5) solid rgba(255, 255, 255, 0.85); overflow: hidden; opacity: 0.35; transition: opacity 0.15s; }
+.race-meter.on { opacity: 1; }
+.race-meter i { position: absolute; left: 0; top: 0; bottom: 0; background: #ffe9a8; }
+.race-meter.l1 i { background: #ff4f8b; }
+.race-meter.l2 i { background: #58e6ff; }
+.race-meter b { position: absolute; top: 0; bottom: 0; width: calc(var(--u) * 0.5); background: rgba(255, 255, 255, 0.9); left: 50%; }
+.race-meter b + b { left: calc(100% - var(--u) * 0.5); }
+.race-banner { position: absolute; left: 50%; top: 26%; transform: translate(-50%, -50%) scale(0.9); text-align: center; opacity: 0; transition: opacity 0.2s, transform 0.25s cubic-bezier(0.2, 1.4, 0.4, 1); width: 92%; }
+.race-banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.race-banner .l1 { font-weight: 700; font-style: italic; font-size: calc(var(--u) * 7.5); color: #fff; text-shadow: 0 calc(var(--u) * 0.7) 0 #14162c, 0 0 calc(var(--u) * 3) rgba(20, 22, 44, 0.8); }
+.race-banner .l2 { display: inline-block; margin-top: calc(var(--u) * 1); font-weight: 600; font-size: calc(var(--u) * 3.2); color: #14162c; background: rgba(255, 255, 255, 0.92); padding: calc(var(--u) * 0.8) calc(var(--u) * 2.6); border-radius: calc(var(--u) * 3); }
+.race-count { position: absolute; left: 50%; top: 24%; transform: translate(-50%, -50%); font-weight: 700; font-style: italic; font-size: calc(var(--u) * 20); color: #fff; text-shadow: 0 calc(var(--u) * 1.2) 0 #ff4f8b, 0 0 calc(var(--u) * 4) rgba(20, 22, 44, 0.7); display: none; }
+.race-wrong { position: absolute; left: 50%; top: 56%; transform: translateX(-50%); font-weight: 700; font-size: calc(var(--u) * 5); color: #fff; background: var(--coral-deep); padding: calc(var(--u) * 1) calc(var(--u) * 3); border-radius: calc(var(--u) * 3); display: none; }
+.race-btn { position: absolute; bottom: calc(var(--u) * 5); border-radius: 50%; font-weight: 700; color: #fff; display: grid; place-items: center; letter-spacing: 0.04em; }
+.race-btn.drift { width: calc(var(--u) * 26); height: calc(var(--u) * 26); font-size: calc(var(--u) * 5); background: #ff4f8b; box-shadow: 0 calc(var(--u) * 1.1) 0 #b82a5c, 0 0 0 calc(var(--u) * 0.8) rgba(255, 255, 255, 0.85); }
+.race-btn.brake { width: calc(var(--u) * 15); height: calc(var(--u) * 15); font-size: calc(var(--u) * 2.8); background: rgba(20, 22, 44, 0.7); box-shadow: 0 0 0 calc(var(--u) * 0.6) rgba(255, 255, 255, 0.7); }
+.race-btn.down { transform: translateY(calc(var(--u) * 0.8)); filter: brightness(1.2); }
+.race-pane.split .race-btn.drift { width: calc(var(--u) * 20); height: calc(var(--u) * 20); font-size: calc(var(--u) * 3.8); }
+.race-pane.split .race-place { font-size: calc(var(--u) * 10); }
+.race-hint { bottom: calc(var(--u) * 12); left: 50%; }
+.race-tag { position: absolute; transform: translate(-50%, -100%); white-space: nowrap; font-weight: 700; font-size: calc(var(--u) * 2.7); color: #fff; background: rgba(20, 22, 44, 0.7); padding: calc(var(--u) * 0.5) calc(var(--u) * 1.6); border-radius: calc(var(--u) * 2.4); display: none; }
+.race-tag i { display: inline-block; width: calc(var(--u) * 4.4); height: calc(var(--u) * 4.4); border-radius: 50%; margin: calc(var(--u) * -0.9) calc(var(--u) * 0.9) calc(var(--u) * -0.9) calc(var(--u) * -1); vertical-align: middle; border: calc(var(--u) * 0.3) solid #fff; }
+.race-tag b { color: var(--butter); margin-left: calc(var(--u) * 0.6); }
+.race-rows { margin: calc(var(--u) * 2.4) 0; display: flex; flex-direction: column; gap: calc(var(--u) * 0.8); }
+.race-row { display: grid; grid-template-columns: calc(var(--u) * 6) calc(var(--u) * 8.4) 1fr calc(var(--u) * 20) calc(var(--u) * 20); align-items: center; gap: calc(var(--u) * 1.6); padding: calc(var(--u) * 0.6) calc(var(--u) * 2); border-radius: calc(var(--u) * 2.4); font-size: calc(var(--u) * 3.5); background: #fff; }
+.race-row.head { background: none; font-size: calc(var(--u) * 2.5); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding-top: 0; padding-bottom: 0; }
+.race-row.you { background: #fff0ec; box-shadow: inset 0 0 0 calc(var(--u) * 0.5) var(--coral); }
+.race-row .pl { font-weight: 700; font-size: calc(var(--u) * 5); font-style: italic; }
+.race-row .dot { width: calc(var(--u) * 8.4); height: calc(var(--u) * 8.4); border-radius: 50%; border: calc(var(--u) * 0.5) solid #fff; box-shadow: 0 0 0 calc(var(--u) * 0.3) var(--line); }
+.race-row.head .dot { visibility: hidden; }
+.race-row .nm { font-weight: 700; }
+.race-row .tm, .race-row .bl { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+.race-face { position: absolute; left: calc(var(--u) * 4); bottom: calc(var(--u) * 36); width: calc(var(--u) * 13); height: calc(var(--u) * 13); border-radius: 50%; border: calc(var(--u) * 0.7) solid #fff; box-shadow: 0 calc(var(--u) * 0.6) 0 rgba(20, 22, 44, 0.55); }
+.race-pane.split .race-face { width: calc(var(--u) * 10); height: calc(var(--u) * 10); bottom: calc(var(--u) * 33); }
+
+.rivals-row { display: flex; align-items: center; gap: calc(var(--u) * 2.4); margin-top: calc(var(--u) * 2.4); }
+.rivals-row .lbl { font-weight: 700; font-size: calc(var(--u) * 3.4); }
+.rivals-row .seg { flex: 0 0 auto; }
+.rivals-row .seg button { min-height: calc(var(--u) * 7.6); min-width: calc(var(--u) * 17); }
+.rivals-row .blurb { flex: 1; font-size: calc(var(--u) * 2.9); line-height: 1.25; }
+
+.race-pane.split .race-hint { max-width: 86%; white-space: normal; text-align: center; bottom: calc(var(--u) * 28); font-size: calc(var(--u) * 2.9); }
+.race-pane.split .race-lap { top: calc(var(--pad-y) + var(--u) * 9); }

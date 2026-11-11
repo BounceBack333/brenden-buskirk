@@ -37,13 +37,22 @@ export class PortraitStudio {
 
   /** Returns a data URL (cached per spec). Synchronous; costs one small render. */
   render(spec: CharacterSpec): string {
-    const k = portraitKey(spec);
+    return this.shoot(spec, false);
+  }
+
+  /** A close-up of the face alone: who is driving, at a size a glance can read. */
+  face(spec: CharacterSpec): string {
+    return this.shoot(spec, true);
+  }
+
+  private shoot(spec: CharacterSpec, close: boolean): string {
+    const k = (close ? 'face:' : '') + portraitKey(spec);
     const hit = cache.get(k);
     if (hit) return hit;
     const rig = buildCharacter(spec);
     const holder = new THREE.Group();
     holder.add(rig.root);
-    holder.rotation.y = -0.85; // three-quarter view toward the camera
+    holder.rotation.y = close ? -1.12 : -0.85; // three-quarter view toward the camera
     this.scene.add(holder);
     rig.setAction('idle');
     rig.setExpression('happy');
@@ -58,6 +67,18 @@ export class PortraitStudio {
     const dist = (h * 0.62) / Math.tan((this.camera.fov * Math.PI) / 360);
     this.camera.position.set(cx + dist * 0.05, cy + dist * 0.12, dist);
     this.camera.lookAt(cx, cy, 0);
+    const head = close ? holder.getObjectByName('head') : undefined;
+    if (head) {
+      // the head bone sits at the neck: frame from just below it to the top of the hair or ears
+      holder.updateMatrixWorld(true);
+      const p = head.getWorldPosition(new THREE.Vector3());
+      const top = box.max.y;
+      const half = Math.max(0.16, (top - p.y) * 0.62);
+      const hy = p.y + (top - p.y) * 0.46;
+      const d = half / Math.tan((this.camera.fov * Math.PI) / 360);
+      this.camera.position.set(p.x + d * 0.04, hy + d * 0.06, p.z + d);
+      this.camera.lookAt(p.x, hy, p.z);
+    }
     this.camera.updateProjectionMatrix();
 
     const r = this.stage.renderer;

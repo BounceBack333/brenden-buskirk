@@ -10,8 +10,35 @@ import type { Profile, Settings } from '../core/profile';
 import type { AudioKit, CharacterAction, CharacterSpec, Species } from '../kit/contracts';
 import { esc } from './hud';
 import { ICON } from './icons';
+import { RIVAL_LEVELS, rivalLevel } from '../attractions/dash/rivals';
 
 export type PlayMode = 'shared' | 'buddy' | 'online';
+export type RaceMode = 'solo' | 'split';
+
+export interface RaceRow {
+  place: number;
+  name: string;
+  color: string;
+  /** a rendered head-and-shoulders of the driver (data URL) */
+  face: string;
+  bot: boolean;
+  /** '' for a rival, otherwise how to mark a person on this device: "you", "P1", "P2" */
+  you: string;
+  time: string;
+  best: string;
+}
+
+export interface RaceResultsInfo {
+  rows: RaceRow[];
+  headline: string;
+  note: string;
+  best: string;
+  newBest: boolean;
+  /** which rivals this was against, e.g. "Gentle rivals" */
+  rivals: string;
+  /** name of the next rival level when the player has earned the suggestion, else '' */
+  stepUp: string;
+}
 
 export interface AppApi {
   profile: Profile;
@@ -21,8 +48,11 @@ export interface AppApi {
   setSeatCharacter(seat: 0 | 1, spec: CharacterSpec): void;
   portrait(spec: CharacterSpec): string;
   startRound(mode: PlayMode): void;
+  startRace(mode: RaceMode): void;
   resume(): void;
   restart(): void;
+  /** rematch against the next rival level up */
+  stepUp(): void;
   quitToHome(): void;
   demo(seat: 0 | 1, kind: 'wave' | 'cheer' | 'run' | 'fly' | 'spin'): void;
   applySettings(): void;
@@ -128,32 +158,83 @@ export class Screens {
     sheet.innerHTML = `
       <div class="sheet card" role="dialog" aria-label="Play together">
         <div class="sheet-head">
-          <div><h2>Catapult Courier</h2>
-          <p>One of you is flung off a spoon. The other sprints to catch them. Swap every launch. Six launches, one score.</p></div>
+          <div><h2>Backyard Dash</h2>
+          <p>Three laps of the patio after dark. Drift for boosts, sit in a rival's wake, and decide who pays to open the shortcut.</p></div>
           <button class="icon-btn" data-act="close" aria-label="Close">${ICON.close}</button>
         </div>
-        <div class="choices">
-          <button class="choice primary" data-mode="shared">${ICON.couch}
-            <span class="t">Same screen</span>
-            <span class="d">Two players, one device. ${p0} takes the left side, ${p1} the right.</span></button>
-          <button class="choice" data-mode="buddy">${ICON.robot}
-            <span class="t">With Buddy <span class="tag bot">bot</span></span>
-            <span class="d">Just you. ${p1} is played by Buddy, a computer partner who is good but not perfect.</span></button>
-          <button class="choice" data-act="online" ${a.online.available ? '' : 'disabled'}>${ICON.wifi}
-            <span class="t">Online room</span>
-            <span class="d">${a.online.available
-              ? 'Two devices, one private room. Share a four-letter code.'
-              : 'Private rooms need the room server, which is not hosted for this build yet.'}</span></button>
+        <div class="choices two">
+          <button class="choice primary" data-race="solo">${ICON.play}
+            <span class="t">Race</span>
+            <span class="d">You as ${p0}, against ${p1} and two more. Rivals are bots and say so.</span></button>
+          <button class="choice" data-race="split">${ICON.couch}
+            <span class="t">Split screen</span>
+            <span class="d">Two players, one device: ${p0} left, ${p1} right, plus two bot rivals.</span></button>
+        </div>
+        <div class="rivals-row">
+          <span class="lbl">Rivals</span>
+          <div class="seg" role="group" aria-label="Rival difficulty">${RIVAL_LEVELS.map((l, i) => `<button data-rivals="${i}" aria-pressed="${i === a.profile.settings.rivals}">${l.name}</button>`).join('')}</div>
+          <span class="muted blurb">${esc(rivalLevel(a.profile.settings.rivals).blurb)}</span>
+        </div>
+        <div class="parked">
+          <span class="muted">Parked experiment · Catapult Courier:</span>
+          <button class="btn small" data-mode="buddy">Bot partner</button>
+          <button class="btn small" data-mode="shared">Same screen</button>
+          <button class="btn small" data-act="online" ${a.online.available ? '' : 'disabled'}>Online</button>
         </div>
       </div>`;
     this.root.append(sheet);
     this.on('[data-act="close"]', () => { a.audio.play('ui_back'); sheet.remove(); }, sheet);
     sheet.addEventListener('click', (e) => { if (e.target === sheet) sheet.remove(); });
+    this.on('[data-rivals]', (el) => {
+      this.tap();
+      a.profile.settings.rivals = Number(el.dataset.rivals);
+      a.save();
+      sheet.querySelectorAll('[data-rivals]').forEach((b) => b.setAttribute('aria-pressed', String(b === el)));
+      (sheet.querySelector('.blurb') as HTMLElement).textContent = rivalLevel(a.profile.settings.rivals).blurb;
+    }, sheet);
+    this.on('[data-race]', (el) => {
+      a.audio.play('ui_confirm');
+      a.startRace(el.dataset.race as RaceMode);
+    }, sheet);
     this.on('[data-mode]', (el) => {
       a.audio.play('ui_confirm');
       a.startRound(el.dataset.mode as PlayMode);
     }, sheet);
     this.on('[data-act="online"]', () => { this.tap(); this.onlineEntry(); }, sheet);
+  }
+
+  /** Race results: finishing order, times, and what happened to the shortcut. */
+  raceResults(info: RaceResultsInfo): void {
+    const a = this.api;
+    const rows = info.rows.map((r) => `
+      <div class="race-row ${r.you ? 'you' : ''}">
+        <span class="pl">${r.place}</span>
+        <span class="dot" style="background:${esc(r.color)} url('${r.face}') center/cover"></span>
+        <span class="nm">${esc(r.name)}${r.bot ? ' <span class="tag bot">bot</span>' : ''}${r.you ? ` <span class="tag soft">${esc(r.you)}</span>` : ''}</span>
+        <span class="tm">${esc(r.time)}</span>
+        <span class="bl">${esc(r.best)}</span>
+      </div>`).join('');
+    this.root.innerHTML = `
+      <div class="scrim clear">
+        <div class="results card" role="dialog" aria-label="Race results">
+          <div class="results-top">
+            <div><h2>${esc(info.headline)}</h2>
+              <div class="muted" style="font-size:calc(var(--u)*3.1)">${esc(info.rivals)} · ${esc(info.note)}</div></div>
+            <div style="text-align:right"><div class="total" style="font-size:calc(var(--u)*7)">${esc(info.best)}<small>${info.newBest ? 'new best race!' : 'your best race'}</small></div></div>
+          </div>
+          <div class="race-rows"><div class="race-row head"><span class="pl"></span><span class="dot"></span><span class="nm">Driver</span><span class="tm">Race</span><span class="bl">Best lap</span></div>${rows}</div>
+          <div class="sheet-actions">
+            <button class="btn" data-act="home">${ICON.home}Home</button>
+            <button class="btn" data-act="chars">${ICON.people}Characters</button>
+            ${info.stepUp ? `<button class="btn" data-act="stepup">Try ${esc(info.stepUp)} rivals</button>` : ''}
+            <button class="btn primary big" data-act="again">${ICON.retry}Rematch</button>
+          </div>
+        </div>
+      </div>`;
+    this.on('[data-act="again"]', () => { a.audio.play('ui_confirm'); this.clear(); a.restart(); });
+    this.on('[data-act="stepup"]', () => { a.audio.play('ui_confirm'); this.clear(); a.stepUp(); });
+    this.on('[data-act="home"]', () => { a.audio.play('ui_back'); a.quitToHome(); });
+    this.on('[data-act="chars"]', () => { this.tap(); a.quitToHome(); this.characters(0); });
   }
 
   // ───────────────────────────── online rooms ─────────────────────────────
@@ -265,8 +346,8 @@ export class Screens {
       <div class="try-row">
         <button class="btn small" data-demo="spin">Spin</button>
         <button class="btn small" data-demo="wave">Wave</button>
-        <button class="btn small" data-demo="run">Run</button>
-        <button class="btn small" data-demo="fly">Fly</button>
+        <button class="btn small" data-demo="run">Rev</button>
+        <button class="btn small" data-demo="fly">Boost</button>
         <button class="btn small" data-demo="cheer">Cheer</button>
         <button class="btn go" data-act="done">${ICON.check}Done</button>
       </div>`;
@@ -404,8 +485,10 @@ export class Screens {
         <div class="sheet-head"><div><h2>My Worlds</h2>
           <p>Each world is a real place at tiny scale, and it remembers what you do to it.</p></div>
           <button class="icon-btn" data-act="close" aria-label="Close">${ICON.close}</button></div>
-        <div class="row"><span class="lbl"><b>The Birthday Continental</b> <span class="tag">playable</span>
-          <small>A birthday table: jelly trampolines, donut rings, a spoon catapult, a cake cliff. Attraction: Catapult Courier.</small></span></div>
+        <div class="row"><span class="lbl"><b>Backyard After Dark</b> <span class="tag">playable</span>
+          <small>A patio at night: a garden-hose hairpin, a brick chicane, a plank across the flowerbed. Race: Backyard Dash.</small></span></div>
+        <div class="row"><span class="lbl"><b>The Birthday Continental</b> <span class="tag soft">parked</span>
+          <small>A birthday table with a spoon catapult. Catapult Courier still plays, but racing is the focus now.</small></span></div>
         <div class="row"><span class="lbl"><b>The Place Between the Cushions</b> <span class="tag soft">drawing board</span>
           <small>A lost-object city inside a sofa. Not built yet.</small></span></div>
         <div class="row"><span class="lbl"><b>The Lunchbox Frontier</b> <span class="tag soft">drawing board</span>
@@ -439,7 +522,8 @@ export class Screens {
         ${sw('reducedMotion', 'Reduced motion', 'Steady wide camera, no shake or zoom punches.')}
         ${sw('aimAssist', 'Aim assist', 'Shows the whole flight path and the landing spot. Marked on the results.')}
         ${sw('umbrellaToggle', 'Tap umbrella', 'Tap to open and tap to close, instead of holding.')}
-        ${sw('leftHanded', 'Left-handed', 'Puts the DIVE button on the left.')}
+        ${sw('autoDrift', 'Auto drift', 'Racing: steering hard starts the slide by itself. Always on when two share a screen.')}
+        ${sw('leftHanded', 'Left-handed', 'Swaps the DRIFT / DIVE button to the left.')}
         ${sw('haptics', 'Vibration', 'Light taps on supported devices.')}
       </div>`;
     this.root.append(sheet);

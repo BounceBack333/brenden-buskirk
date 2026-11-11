@@ -16,6 +16,10 @@ export interface Settings {
   /** put the dive button on the left */
   leftHanded: boolean;
   haptics: boolean;
+  /** racing: steering hard starts the drift by itself (one-thumb play) */
+  autoDrift: boolean;
+  /** racing: how hard the rival bots drive (index into RIVAL_LEVELS) */
+  rivals: number;
 }
 
 export interface Profile {
@@ -39,7 +43,7 @@ export function defaultSettings(): Settings {
     typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   return {
     master: 0.9, sfx: 1, music: 0.6,
-    reducedMotion: prefersReduced, aimAssist: false, umbrellaToggle: false, leftHanded: false, haptics: true,
+    reducedMotion: prefersReduced, aimAssist: false, umbrellaToggle: false, leftHanded: false, haptics: true, autoDrift: false, rivals: 0,
   };
 }
 

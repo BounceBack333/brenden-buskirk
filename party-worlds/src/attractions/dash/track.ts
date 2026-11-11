@@ -97,6 +97,7 @@ export interface Track {
   dressing: {
     hose: { cx: number; cz: number; r: number; a0: number; a1: number };
     pot: Circle;
+    ball: Circle;
     chairLegs: Circle[];
     bricks: Capsule[];
     workLight: { x: number; z: number };
@@ -221,7 +222,9 @@ function buildBackyard(): Track {
     { x: -24, z: 25.2, r: 0.55 }, { x: -24, z: 34.8, r: 0.55 },
   ];
   const pot: Circle = { x: -45, z: 15, r: 7 };
-  const circles: Circle[] = [pot, ...chairLegs];
+  // a lost tennis ball in the middle of the hairpin's infield: something to steer round if you cut across
+  const ball: Circle = { x: 45, z: 15, r: 2.4 };
+  const circles: Circle[] = [pot, ball, ...chairLegs];
 
   const grid = [
     { x: -9.5, z: 28.5, heading: 0 }, { x: -12.2, z: 31.5, heading: 0 },
@@ -239,7 +242,7 @@ function buildBackyard(): Track {
       prop: { x: 3.6, z: 2.3, r: 0.65 },
     },
     bed: { x: -14.5, z: -7, rx: 16.5, rz: 9.6 },
-    dressing: { hose, pot, chairLegs, bricks, workLight: { x: 70, z: 15 } },
+    dressing: { hose, pot, ball, chairLegs, bricks, workLight: { x: 70, z: 15 } },
   };
 }
 
