@@ -5,16 +5,17 @@
  * parked in their karts. Catapult Courier (the birthday-table attraction) is kept as a parked
  * experiment and loaded only when chosen.
  */
-import '@fontsource/fredoka/latin-400.css';
-import '@fontsource/fredoka/latin-500.css';
-import '@fontsource/fredoka/latin-600.css';
-import '@fontsource/fredoka/latin-700.css';
+import '@fontsource/barlow/latin-500.css';
+import '@fontsource/barlow/latin-600.css';
+import '@fontsource/barlow-condensed/latin-600.css';
+import '@fontsource/barlow-condensed/latin-700.css';
+import '@fontsource/barlow-condensed/latin-800-italic.css';
 import './ui/styles.css';
 
 import { createAudioKit } from './audio';
 import { createSilentAudio } from './kit/silent-audio';
 import type { AudioKit, CharacterSpec } from './kit/contracts';
-import { PRESET_CHARACTERS, sanitizeSpec } from './characters';
+import { PRESET_CHARACTERS, kartColorOf, sanitizeSpec } from './characters';
 import { CourierControls } from './attractions/courier/controls';
 import { NetCourierSession } from './attractions/courier/netsession';
 import { ARENAS, DEFAULT_ARENA, ringsInScript } from './attractions/courier/rules';
@@ -24,6 +25,7 @@ import type { CourierState } from './attractions/courier/sim';
 import { CourierView } from './attractions/courier/view';
 import { RaceControls, RaceHud, RaceSession } from './attractions/dash/play';
 import { RIVAL_LEVELS, rivalLevel } from './attractions/dash/rivals';
+import { medalFor, newSeries, nextMedal, scoreSeries, seriesLine, seriesWinner } from './attractions/dash/stakes';
 import type { RaceState } from './attractions/dash/sim';
 import { RACE, backyard } from './attractions/dash/track';
 import { RaceView } from './attractions/dash/view';
@@ -38,9 +40,9 @@ import { PortraitStudio } from './render/portrait';
 import { createStage } from './render/stage';
 import { Hud } from './ui/hud';
 import { Screens } from './ui/screens';
-import type { AppApi, PlayMode, RaceMode, RaceRow } from './ui/screens';
+import type { AppApi, PlayMode, RaceMode, RaceRow, RaceStakes } from './ui/screens';
 
-const BUILD_LABEL = 'Racing prototype · web build';
+const BUILD_LABEL = 'Prototype · web build';
 
 interface CourierRound {
   state: CourierState;
@@ -86,17 +88,18 @@ function boot(): void {
   const firstOf = (species: string): CharacterSpec =>
     PRESET_CHARACTERS.find((c: CharacterSpec) => c.species === species) ?? PRESET_CHARACTERS[0]!;
   const cast: [CharacterSpec, CharacterSpec] = [
-    find(profile.seats[0]) ?? firstOf('human'),
-    find(profile.seats[1]) ?? firstOf('dog'),
+    find(profile.seats[0]) ?? find('rex') ?? firstOf('human'),
+    find(profile.seats[1]) ?? find('zadie') ?? firstOf('human'),
   ];
   const rivals = (): [CharacterSpec, CharacterSpec] => {
     // not the same character, and not the same name either: an edited copy of a preset keeps
     // its name, and two "Pip"s on the results would be unreadable
     const taken = new Set([cast[0].id, cast[1].id, cast[0].name, cast[1].name]);
     const free = PRESET_CHARACTERS.filter((c: CharacterSpec) => !taken.has(c.id) && !taken.has(c.name));
-    const cat = free.find((c: CharacterSpec) => c.species === 'cat') ?? free[0]!;
-    const person = free.find((c: CharacterSpec) => c.species === 'human' && c.id !== cat.id) ?? free[1] ?? free[0]!;
-    return [cat, person];
+    // the grid is filled out with one driver who is not a person and one pet, for variety
+    const odd = free.find((c: CharacterSpec) => c.species === 'human' && !!c.creature && c.creature !== 'none') ?? free[0]!;
+    const pet = free.find((c: CharacterSpec) => c.species !== 'human' && c.id !== odd.id) ?? free.find((c: CharacterSpec) => c.id !== odd.id) ?? free[0]!;
+    return [odd, pet];
   };
   const grid = (): CharacterSpec[] => [cast[0], cast[1], ...rivals()];
 
@@ -115,6 +118,8 @@ function boot(): void {
   let race: RaceSession | null = null;
   let raceMode: RaceMode = 'solo';
   let raceLevel = 0;
+  /** the running head-to-head between the two people on this device */
+  let series = newSeries();
   let round: CourierRound | null = null;
   let mode: PlayMode = 'buddy';
   let last: 'race' | 'courier' = 'race';
@@ -150,6 +155,7 @@ function boot(): void {
     courierHud.show(false);
     raceHud.show(false);
     active = 'race';
+    series = newSeries();
     raceControls.reset();
     raceView.enterLobby();
     audio.music('menu');
@@ -165,6 +171,7 @@ function boot(): void {
     courierHud.show(false);
     active = 'race';
     const specs = grid();
+    if (m !== 'split' || seriesWinner(series) >= 0) series = newSeries(); // a settled series starts again
     const level = rivalLevel(profile.settings.rivals);
     raceLevel = profile.settings.rivals;
     const humans = m === 'split' ? [0, 1] : [0];
@@ -174,7 +181,7 @@ function boot(): void {
     race = new RaceSession(raceView, raceControls, raceHud, {
       humans,
       names: specs.map((c) => c.name),
-      colors: specs.map((c) => c.accent),
+      colors: specs.map((c) => kartColorOf(c)),
       faces: specs.map((c) => studio.face(c)),
       laps: raceLaps,
       seed: seed++,
@@ -216,16 +223,58 @@ function boot(): void {
     const best = newBest ? now : prev;
     const youWon = setup.humans.includes(winner.seat);
     const opener = s.plankOpener >= 0 ? setup.names[s.plankOpener]! : '';
+
+    // what this race was for
+    let stakes: RaceStakes | null = null;
+    let again = 'Rematch';
+    let headline = youWon ? `${setup.names[winner.seat]} wins!` : `${setup.names[winner.seat]} takes it`;
+    if (setup.humans.length === 2) {
+      // two people: whoever finished ahead of the other takes the race, whatever the bots did
+      const [a, b] = [setup.humans[0]!, setup.humans[1]!];
+      const ahead: 0 | 1 = s.karts[a]!.place < s.karts[b]!.place ? 0 : 1;
+      series = scoreSeries(series, ahead);
+      const names: [string, string] = [setup.names[a]!, setup.names[b]!];
+      const over = seriesWinner(series) >= 0;
+      stakes = {
+        kind: 'series', names, faces: [setup.faces[a] ?? '', setup.faces[b] ?? ''], colors: [setup.colors[a]!, setup.colors[b]!],
+        wins: [series.wins[0], series.wins[1]], target: series.target, line: seriesLine(series, names), over,
+      };
+      headline = `${names[ahead]} beats ${names[ahead === 0 ? 1 : 0]}`;
+      again = over ? 'New series' : series.wins[0] === series.wins[1] && series.wins[0] === series.target - 1 ? 'Decider' : 'Next race';
+    } else if (s.laps === RACE.laps) {
+      const medal = now > 0 ? medalFor(now) : null;
+      const up = nextMedal(now);
+      const bestMedal = profile.best['backyard:medal'] ?? 0; // 3 gold, 2 silver, 1 bronze
+      const rank = medal ? (medal.id === 'gold' ? 3 : medal.id === 'silver' ? 2 : 1) : 0;
+      if (rank > bestMedal) {
+        profile.best['backyard:medal'] = rank;
+        saveProfile(profile);
+      }
+      const bits: string[] = [];
+      if (now > 0 && up && up.gap > 0) bits.push(`${seconds(up.gap)} off ${up.medal.name}`);
+      else if (now <= 0 && up) bits.push(`${up.medal.name} is ${seconds(up.medal.ticks)}: finish the race to post a time`);
+      if (now > 0 && prev > 0 && !newBest) bits.push(`${seconds(now - prev)} off your best`);
+      else if (newBest && prev > 0) bits.push(`new best by ${seconds(prev - now)}`);
+      if (medal?.id === 'gold' && raceLevel < RIVAL_LEVELS.length - 1) bits.push('gold in the bag: try tougher rivals');
+      stakes = {
+        kind: 'medal', medal: medal ? medal.id : '',
+        title: medal ? `${medal.name} · ${seconds(now)}` : now > 0 ? `No medal · ${seconds(now)}` : 'No time',
+        line: bits.join(' · ') || (medal ? 'Nothing left to prove here' : ''),
+      };
+      again = medal?.id === 'gold' ? 'Race again' : up && now > 0 ? `Go for ${up.medal.name}` : 'Rematch';
+    }
     raceHud.show(false);
     audio.music('win');
     screens.raceResults({
       rows,
-      headline: youWon ? `${setup.names[winner.seat]} wins!` : `${setup.names[winner.seat]} takes it`,
+      headline,
       note: opener ? `${opener} knocked the peg out and opened the plank for everyone.` : 'Nobody opened the plank shortcut this time.',
       best: best ? seconds(best) : '—',
       newBest,
       rivals: `${rivalLevel(raceLevel).name} rivals`,
       stepUp: youWon && raceMode === 'solo' && raceLevel < RIVAL_LEVELS.length - 1 ? rivalLevel(raceLevel + 1).name : '',
+      stakes,
+      again,
     });
   }
 
@@ -361,7 +410,7 @@ function boot(): void {
     buildLabel: BUILD_LABEL,
     save: () => saveProfile(profile),
     cast: (seat) => cast[seat],
-    portrait: (spec) => studio.render(spec),
+    portrait: (spec) => studio.face(spec),
     applySettings,
     setSeatCharacter: (seat, spec) => {
       cast[seat] = spec;

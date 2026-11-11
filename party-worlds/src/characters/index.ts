@@ -11,7 +11,7 @@ import { createRig } from './rig';
 import { sanitizeSpec } from './spec';
 
 export { PRESET_CHARACTERS } from './presets';
-export { SPEC_OPTIONS, describeSpec, randomSpec, sanitizeSpec } from './spec';
+export { SPEC_OPTIONS, describeSpec, kartColorOf, randomSpec, sanitizeSpec } from './spec';
 export type { FieldOption, Swatch } from './spec';
 
 export function buildCharacter(input: CharacterSpec): CharacterRig {

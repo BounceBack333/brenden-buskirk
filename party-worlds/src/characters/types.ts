@@ -56,6 +56,8 @@ export interface BodyDesc {
   limbs: [LimbDesc, LimbDesc, LimbDesc, LimbDesc];
   face: FaceDesc;
   chains: ChainDesc[];
+  /** uniform scale of the head bone about the neck (grown-ups: a head built full size, worn smaller); 1 = none */
+  headScale: number;
   /** bone holding all hair (squashes under a carried basket); -1 when none */
   hair: number;
   /** party-hat bone (tips back under a carried basket); -1 when none */

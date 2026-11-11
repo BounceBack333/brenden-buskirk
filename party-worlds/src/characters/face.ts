@@ -25,6 +25,8 @@ export class HeadShape {
     readonly jowl = 0.08,
     /** narrowing toward the crown, 0..0.2 */
     readonly taper = 0.04,
+    /** narrowing toward the chin, 0..0.4: a jawline (grown-ups have one) */
+    readonly chin = 0,
   ) {}
 
   point(az: number, el: number, lift = 0, out = new THREE.Vector3()): THREE.Vector3 {
@@ -39,8 +41,9 @@ export class HeadShape {
     let z = dz * k;
     if (y < 0) {
       const b = Math.sin(Math.min(1, -y) * Math.PI);
-      z *= 1 + this.jowl * b;
-      x *= 1 + this.jowl * 0.45 * b;
+      const t = Math.min(1, -y);
+      z *= (1 + this.jowl * b) * (1 - this.chin * t * t);
+      x *= (1 + this.jowl * 0.45 * b) * (1 - this.chin * 0.3 * t * t);
     } else {
       z *= 1 - this.taper * y;
       x *= 1 - this.taper * 0.6 * y;

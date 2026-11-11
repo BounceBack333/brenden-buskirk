@@ -38,7 +38,15 @@ export interface RaceResultsInfo {
   rivals: string;
   /** name of the next rival level when the player has earned the suggestion, else '' */
   stepUp: string;
+  /** the thing being played for: a head-to-head score, or a medal */
+  stakes: RaceStakes | null;
+  /** label of the main button */
+  again: string;
 }
+
+export type RaceStakes =
+  | { kind: 'series'; names: [string, string]; faces: [string, string]; colors: [string, string]; wins: [number, number]; target: number; line: string; over: boolean }
+  | { kind: 'medal'; medal: 'gold' | 'silver' | 'bronze' | ''; title: string; line: string };
 
 export interface AppApi {
   profile: Profile;
@@ -90,6 +98,12 @@ export interface ResultsInfo {
 }
 
 const SPECIES_LABEL: Record<Species, string> = { human: 'Person', dog: 'Dog', cat: 'Cat' };
+/** What a driver is, in a word, for the picker. */
+function kindOf(c: CharacterSpec): string {
+  if (c.species !== 'human') return SPECIES_LABEL[c.species];
+  if (c.creature && c.creature !== 'none') return c.creature === 'luchador' ? 'Wrestler' : c.creature.charAt(0).toUpperCase() + c.creature.slice(1);
+  return c.age === 'kid' ? 'Kid' : 'Grown-up';
+}
 
 /** True where the browser lets a page go full screen (not iPhone Safari, not every embedded viewer). */
 function canFullscreen(): boolean {
@@ -147,12 +161,12 @@ export class Screens {
         <div class="wordmark">
           <div class="small">BounceBack</div>
           <div class="big">Party Worlds</div>
-          <div class="promise">Our people and pets, inside impossible little worlds.</div>
+          <div class="promise">Tiny karts. Real grudges. One more race.</div>
         </div>
         <div class="home-menu">
-          <button class="btn primary big" data-act="play">${ICON.play}Play Together</button>
-          <button class="btn" data-act="chars">${ICON.people}My Characters</button>
-          <button class="btn" data-act="worlds">${ICON.globe}My Worlds</button>
+          <button class="btn primary big" data-act="play">${ICON.play}Race</button>
+          <button class="btn" data-act="chars">${ICON.people}Drivers</button>
+          <button class="btn" data-act="worlds">${ICON.globe}Tracks</button>
         </div>
         <div class="home-foot">
           <button class="icon-btn" data-act="settings" aria-label="Settings">${ICON.gear}</button>
@@ -234,19 +248,33 @@ export class Screens {
         <span class="tm">${esc(r.time)}</span>
         <span class="bl">${esc(r.best)}</span>
       </div>`).join('');
+    const st = info.stakes;
+    const pipsOf = (n: number, target: number): string => Array.from({ length: target }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
+    const stakes = !st ? '' : st.kind === 'series'
+      ? `<div class="stakes series${st.over ? ' over' : ''}">
+          <div class="side"><span class="dot" style="background:${esc(st.colors[0])} url('${st.faces[0]}') center/cover"></span><b>${esc(st.names[0])}</b><span class="pips">${pipsOf(st.wins[0], st.target)}</span></div>
+          <div class="tally">${st.wins[0]}<small>–</small>${st.wins[1]}</div>
+          <div class="side right"><span class="pips">${pipsOf(st.wins[1], st.target)}</span><b>${esc(st.names[1])}</b><span class="dot" style="background:${esc(st.colors[1])} url('${st.faces[1]}') center/cover"></span></div>
+          <div class="line">${esc(st.line)}</div>
+        </div>`
+      : `<div class="stakes medal ${st.medal || 'none'}">
+          <span class="disc">${st.medal ? ICON.star : ''}</span>
+          <div><b>${esc(st.title)}</b><div class="line">${esc(st.line)}</div></div>
+        </div>`;
     this.root.innerHTML = `
       <div class="scrim clear">
         <div class="results card" role="dialog" aria-label="Race results">
           <div class="results-top">
             <div><h2>${esc(info.headline)}</h2>
               <div class="muted" style="font-size:calc(var(--u)*3.1)">${esc(info.rivals)} · ${esc(info.note)}</div></div>
-            <div style="text-align:right"><div class="total" style="font-size:calc(var(--u)*7)">${esc(info.best)}<small>${info.newBest ? 'new best race!' : 'your best race'}</small></div></div>
+            ${st && st.kind === 'series' ? '' : `<div style="text-align:right"><div class="total" style="font-size:calc(var(--u)*7)">${esc(info.best)}<small>${info.newBest ? 'new best race!' : 'your best race'}</small></div></div>`}
           </div>
+          ${stakes}
           <div class="race-rows"><div class="race-row head"><span class="pl"></span><span class="dot"></span><span class="nm">Driver</span><span class="tm">Race</span><span class="bl">Best lap</span></div>${rows}</div>
           <div class="sheet-actions">
             <button class="btn" data-act="home">${ICON.home}Home</button>
             ${info.stepUp ? `<button class="btn" data-act="stepup">Try ${esc(info.stepUp)} rivals</button>` : `<button class="btn" data-act="chars">${ICON.people}Characters</button>`}
-            <button class="btn primary big" data-act="again">${ICON.retry}Rematch</button>
+            <button class="btn primary big" data-act="again">${ICON.retry}${esc(info.again)}</button>
           </div>
         </div>
       </div>`;
@@ -347,7 +375,7 @@ export class Screens {
       <div class="chars">
         <div class="chars-head">
           <button class="icon-btn" data-act="back" aria-label="Back">${ICON.back}</button>
-          <h2>My Characters</h2>
+          <h2>Drivers</h2>
         </div>
         <div class="panel card">
           <div class="seg" role="group" aria-label="Which player">
@@ -387,7 +415,7 @@ export class Screens {
     body.innerHTML = `<div class="grid">${list.map((c, i) => `
       <button class="pick" data-i="${i}" aria-pressed="${c.id === cur.id}" title="${esc(describeSpec(c))}">
         <span class="swatch" style="background:${esc(c.accent)}"><img alt="" data-p="${i}" style="width:100%;height:100%;display:block"></span>
-        <span>${esc(c.name)}</span><small>${SPECIES_LABEL[c.species]}</small>
+        <span>${esc(c.name)}</span><small>${kindOf(c)}</small>
       </button>`).join('')}</div>`;
     // portraits are real renders; fill them a few per frame so the list appears instantly
     const imgs = [...body.querySelectorAll<HTMLImageElement>('img[data-p]')];
@@ -501,7 +529,7 @@ export class Screens {
     sheet.className = 'scrim';
     sheet.innerHTML = `
       <div class="sheet card" role="dialog" aria-label="My worlds">
-        <div class="sheet-head"><div><h2>My Worlds</h2>
+        <div class="sheet-head"><div><h2>Tracks</h2>
           <p>Each world is a real place at tiny scale, and it remembers what you do to it.</p></div>
           <button class="icon-btn" data-act="close" aria-label="Close">${ICON.close}</button></div>
         <div class="row"><span class="lbl"><b>Backyard After Dark</b> <span class="tag">playable</span>

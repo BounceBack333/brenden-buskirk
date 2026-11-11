@@ -70,6 +70,8 @@ export function createRig(spec: CharacterSpec, body: BodyDesc): CharacterRig {
   const human = body.species === 'human';
   const dog = body.species === 'dog';
   const bones = body.bones;
+  // grown-ups wear a full-size head smaller; nothing below ever touches the head bone's scale
+  bones[body.head]!.scale.setScalar(body.headScale);
   const restP = body.restP;
   const restQ = body.restQ;
 
@@ -685,8 +687,11 @@ export function createRig(spec: CharacterSpec, body: BodyDesc): CharacterRig {
       if (reach > 0.01 && driving) {
         // hands at ten-to-two on the wheel, turning with it
         const st = Math.max(-1, Math.min(1, ctx.steer ?? 0));
-        reachLimb(0, 0.37, 0.5 - st * 0.07, 0.12, p[C.pitch]!, reach);
-        reachLimb(1, 0.37, 0.5 + st * 0.07, -0.12, p[C.pitch]!, reach);
+        const wx = ctx.wheelX ?? 0.37;
+        const wy = ctx.wheelY ?? 0.5;
+        const wz = ctx.wheelZ ?? 0.12;
+        reachLimb(0, wx, wy - st * wz * 0.58, wz, p[C.pitch]!, reach);
+        reachLimb(1, wx, wy + st * wz * 0.58, -wz, p[C.pitch]!, reach);
       } else if (reach > 0.01) {
         // hands under the basket; the target is given in root space, undo the body squash
         const ty = (cy - 0.03 - p[C.lift]!) / sy;

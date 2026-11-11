@@ -4,7 +4,7 @@
  * nothing here feeds back into the simulation.
  */
 import * as THREE from 'three';
-import { buildCharacter } from '../../characters';
+import { buildCharacter, kartColorOf } from '../../characters';
 import type { AudioKit, CharacterRig, CharacterSpec, MotionContext } from '../../kit/contracts';
 import type { Settings } from '../../core/profile';
 import { buildBackyardWorld, buildKart, buildNightSky } from '../../worlds/backyard';
@@ -88,8 +88,16 @@ function wrap(a: number): number {
   return x;
 }
 
-/** Drivers sit big in small karts: the person is the thing you recognise, not the car. */
-const DRIVER_SCALE = 1.28;
+/**
+ * Drivers sit big in small karts: the person is the thing you recognise, not the car.
+ * A grown-up is built taller than a kid or a pet, so sits at a different scale to fill the
+ * same seat: shoulders above the tub, hands on the wheel.
+ */
+function driverScale(spec: CharacterSpec): number {
+  return spec.species === 'human' && spec.age !== 'kid' ? 1.72 : 1.28;
+}
+/** The wheel rim in the kart's seat space: forward, up, half the gap between the hands. */
+const WHEEL = { x: 0.5, y: 0.6, z: 0.155 };
 
 export class RaceView {
   readonly scene = new THREE.Scene();
@@ -130,11 +138,14 @@ export class RaceView {
     scene.environment = env;
     scene.environmentIntensity = 0.35;
     // dusk rather than pitch dark: everything you race on must read on a phone outdoors
-    scene.add(new THREE.HemisphereLight('#8fa2ff', '#3a4a36', 1.35));
-    const lamp = new THREE.DirectionalLight('#fff0d8', 1.9); // the work lamp, low from the east
+    scene.add(new THREE.HemisphereLight('#8f9cff', '#2a3040', 1.05));
+    const pink = new THREE.DirectionalLight('#ff4f9a', 0.55); // neon from the house side
+    pink.position.set(-60, 30, -40);
+    scene.add(pink);
+    const lamp = new THREE.DirectionalLight('#ffe9c8', 1.55); // the work lamp, low from the east
     lamp.position.set(70, 34, 20);
     scene.add(lamp);
-    const moon = new THREE.DirectionalLight('#9db8ff', 0.8);
+    const moon = new THREE.DirectionalLight('#7fd0ff', 0.85);
     moon.position.set(-40, 60, -50);
     scene.add(moon);
 
@@ -143,11 +154,11 @@ export class RaceView {
     this.specs = cast.slice(0, 4);
     for (let i = 0; i < 4; i++) {
       const spec = this.specs[i]!;
-      const kart = buildKart(spec.accent, spec.species === 'human' ? spec.bottom ?? '#22304f' : spec.secondary);
+      const kart = buildKart(kartColorOf(spec), spec.species === 'human' ? spec.bottom ?? '#22304f' : spec.secondary);
       const rig = buildCharacter(spec);
       rig.setAction('drive');
-      rig.root.scale.setScalar(DRIVER_SCALE);
-      rig.root.scale.setScalar(DRIVER_SCALE);
+      rig.root.scale.setScalar(driverScale(spec));
+      rig.root.scale.setScalar(driverScale(spec));
     kart.seat.add(rig.root);
       scene.add(kart.root);
       this.karts.push(kart);
@@ -164,14 +175,14 @@ export class RaceView {
     this.specs[seat] = spec;
     const old = this.rigs[seat]!;
     old.dispose();
-    const kart = buildKart(spec.accent, spec.species === 'human' ? spec.bottom ?? '#22304f' : spec.secondary);
+    const kart = buildKart(kartColorOf(spec), spec.species === 'human' ? spec.bottom ?? '#22304f' : spec.secondary);
     this.scene.remove(this.karts[seat]!.root);
     this.karts[seat]!.dispose();
     this.karts[seat] = kart;
     this.scene.add(kart.root);
     const rig = buildCharacter(spec);
     rig.setAction('drive');
-    rig.root.scale.setScalar(DRIVER_SCALE);
+    rig.root.scale.setScalar(driverScale(spec));
     kart.seat.add(rig.root);
     this.rigs[seat] = rig;
     if (this.lobby) {
@@ -415,6 +426,14 @@ export class RaceView {
     r.setScissorTest(false);
   }
 
+  /** Tell driver i's rig where the wheel is, in its own (scaled) space. */
+  private wheelFor(i: number): void {
+    const sc = driverScale(this.specs[i]!);
+    this.ctx.wheelX = WHEEL.x / sc;
+    this.ctx.wheelY = WHEEL.y / sc;
+    this.ctx.wheelZ = WHEEL.z / sc;
+  }
+
   private placeKart(i: number, x: number, y: number, z: number, heading: number): void {
     const kart = this.karts[i]!;
     kart.root.position.set(x, y, z);
@@ -438,6 +457,7 @@ export class RaceView {
         }
       }
       this.placeKart(i, p.x, 0, p.z, h);
+      this.wheelFor(i);
       const kart = this.karts[i]!;
       kart.setSteer(ctx.steer ?? 0);
       kart.setBoost(boost);
@@ -491,6 +511,7 @@ export class RaceView {
       ctx.vy = k.vy;
       ctx.steer = k.drifting ? k.driftDir * 0.8 + k.steer * 0.2 : k.steer;
       ctx.lookYaw = 0;
+      this.wheelFor(i);
       // a glance at whoever is alongside
       const fx = Math.cos(q.h);
       const fz = Math.sin(q.h);

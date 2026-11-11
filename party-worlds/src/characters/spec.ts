@@ -4,7 +4,7 @@
  * No three.js in here on purpose — this file is safe to run on a server.
  */
 import type {
-  CharacterSpec, CoatPattern, EarType, FacialHair, Glasses, HairStyle, Hat, Species, TailType,
+  Age, CharacterSpec, CoatPattern, Creature, EarType, FacialHair, Glasses, HairStyle, Hat, Outfit, Species, TailType,
 } from '../kit/contracts';
 import { clamp01, hashString, hexToHsl, hexToRgb, mulberry32, normalizeHex } from './util';
 
@@ -26,10 +26,13 @@ export interface FieldOption {
   highLabel?: string;
 }
 
-const HAIR_STYLES: readonly HairStyle[] = ['short', 'curly', 'long', 'bun', 'ponytail', 'afro', 'spiky', 'bald'];
+const HAIR_STYLES: readonly HairStyle[] = ['short', 'curly', 'long', 'bun', 'ponytail', 'afro', 'spiky', 'bald', 'buzz', 'mohawk'];
 const FACIAL_HAIR: readonly FacialHair[] = ['none', 'beard', 'mustache', 'stubble'];
 const GLASSES: readonly Glasses[] = ['none', 'round', 'square', 'shades'];
-const HATS: readonly Hat[] = ['none', 'cap', 'beanie', 'party'];
+const HATS: readonly Hat[] = ['none', 'cap', 'beanie', 'helmet', 'cowboy', 'party'];
+const AGES: readonly Age[] = ['adult', 'kid'];
+const OUTFITS: readonly Outfit[] = ['tee', 'hoodie', 'jacket', 'suit', 'tank'];
+const CREATURES: readonly Creature[] = ['none', 'bear', 'fox', 'rabbit', 'frog', 'robot', 'alien', 'luchador'];
 const EAR_TYPES: readonly EarType[] = ['floppy', 'pointy', 'folded', 'long'];
 const PATTERNS: readonly CoatPattern[] = ['solid', 'patches', 'mask', 'socks', 'tabby', 'tuxedo', 'spots'];
 const TAILS: readonly TailType[] = ['curl', 'long', 'stub', 'plume'];
@@ -129,6 +132,20 @@ const COLLARS: readonly Swatch[] = [
   { name: 'green', hex: '#5fa34a' },
 ];
 
+/** Kart paint: bright enough to find on a dark track. */
+const KART_PAINT: readonly Swatch[] = [
+  { name: 'red', hex: '#e23b3b' },
+  { name: 'hot pink', hex: '#ff3d8b' },
+  { name: 'orange', hex: '#ff7a3d' },
+  { name: 'sunflower', hex: '#ffb52e' },
+  { name: 'lime', hex: '#9bd63a' },
+  { name: 'teal', hex: '#1fb5a8' },
+  { name: 'sky blue', hex: '#45b6ff' },
+  { name: 'grape', hex: '#7a5cff' },
+  { name: 'white', hex: '#f2f0ea' },
+  { name: 'mint', hex: '#8fe3c0' },
+];
+
 const DOG_EYES: readonly Swatch[] = [
   { name: 'dark brown', hex: '#3d2415' },
   { name: 'amber', hex: '#a8691f' },
@@ -154,6 +171,9 @@ export const SPEC_OPTIONS = {
   facialHair: FACIAL_HAIR,
   glasses: GLASSES,
   hat: HATS,
+  age: AGES,
+  outfit: OUTFITS,
+  creature: CREATURES,
   earType: EAR_TYPES,
   pattern: PATTERNS,
   tail: TAILS,
@@ -179,6 +199,7 @@ export const SPEC_OPTIONS = {
   fields: {
     human: [
       { key: 'name', label: 'Name', kind: 'text' },
+      { key: 'kart', label: 'Kart', kind: 'color', swatches: KART_PAINT },
       { key: 'primary', label: 'Skin', kind: 'color', swatches: SKIN },
       { key: 'hairStyle', label: 'Hair', kind: 'enum', values: HAIR_STYLES },
       { key: 'secondary', label: 'Hair colour', kind: 'color', swatches: HAIR },
@@ -186,13 +207,17 @@ export const SPEC_OPTIONS = {
       { key: 'facialHair', label: 'Facial hair', kind: 'enum', values: FACIAL_HAIR },
       { key: 'glasses', label: 'Glasses', kind: 'enum', values: GLASSES },
       { key: 'hat', label: 'Hat', kind: 'enum', values: HATS },
+      { key: 'outfit', label: 'Outfit', kind: 'enum', values: OUTFITS },
       { key: 'accent', label: 'Top', kind: 'color', swatches: CLOTHES },
       { key: 'bottom', label: 'Bottoms', kind: 'color', swatches: CLOTHES },
       { key: 'build', label: 'Build', kind: 'range', lowLabel: 'slim', highLabel: 'stocky' },
-      { key: 'stature', label: 'Height', kind: 'range', lowLabel: 'little', highLabel: 'tall' },
+      { key: 'stature', label: 'Height', kind: 'range', lowLabel: 'short', highLabel: 'tall' },
+      { key: 'creature', label: 'Kind', kind: 'enum', values: CREATURES },
+      { key: 'age', label: 'Age', kind: 'enum', values: AGES },
     ],
     dog: [
       { key: 'name', label: 'Name', kind: 'text' },
+      { key: 'kart', label: 'Kart', kind: 'color', swatches: KART_PAINT },
       { key: 'primary', label: 'Coat', kind: 'color', swatches: DOG_COAT },
       { key: 'pattern', label: 'Markings', kind: 'enum', values: ['solid', 'patches', 'mask', 'socks', 'spots', 'tuxedo', 'tabby'] },
       { key: 'secondary', label: 'Marking colour', kind: 'color', swatches: SECOND_COAT },
@@ -207,6 +232,7 @@ export const SPEC_OPTIONS = {
     ],
     cat: [
       { key: 'name', label: 'Name', kind: 'text' },
+      { key: 'kart', label: 'Kart', kind: 'color', swatches: KART_PAINT },
       { key: 'primary', label: 'Coat', kind: 'color', swatches: CAT_COAT },
       { key: 'pattern', label: 'Markings', kind: 'enum', values: ['tabby', 'tuxedo', 'solid', 'patches', 'socks', 'mask', 'spots'] },
       { key: 'secondary', label: 'Marking colour', kind: 'color', swatches: SECOND_COAT },
@@ -302,12 +328,16 @@ export function sanitizeSpec(input: unknown): CharacterSpec {
       accent: colour(o.accent, d.accent),
       eyeColor: colour(o.eyeColor, d.eyeColor),
     };
+    if (typeof o.kart === 'string' && o.kart) out.kart = colour(o.kart, out.accent);
     if (species === 'human') {
       out.hairStyle = oneOf(o.hairStyle, HAIR_STYLES, d.hairStyle ?? 'short');
       out.facialHair = oneOf(o.facialHair, FACIAL_HAIR, 'none');
       out.glasses = oneOf(o.glasses, GLASSES, 'none');
       out.hat = oneOf(o.hat, HATS, 'none');
       out.bottom = colour(o.bottom, d.bottom ?? '#2f3b5c');
+      out.age = oneOf(o.age, AGES, 'adult');
+      out.outfit = oneOf(o.outfit, OUTFITS, 'tee');
+      out.creature = oneOf(o.creature, CREATURES, 'none');
     } else {
       out.earType = oneOf(o.earType, EAR_TYPES, d.earType ?? 'floppy');
       out.snout = num01(o.snout, d.snout ?? 0.5);
@@ -351,6 +381,9 @@ export function randomSpec(species: Species, seed: number): CharacterSpec {
       facialHair: rnd() < 0.7 ? 'none' : pick(FACIAL_HAIR),
       glasses: rnd() < 0.65 ? 'none' : pick(GLASSES),
       hat: rnd() < 0.7 ? 'none' : pick(HATS),
+      outfit: pick(OUTFITS),
+      creature: rnd() < 0.82 ? 'none' : pick(CREATURES),
+      age: 'adult',
     });
   }
   const dog = sp === 'dog';
@@ -465,7 +498,8 @@ export function describeSpec(spec: CharacterSpec): string {
   const s = sanitizeSpec(spec);
   if (s.species === 'human') {
     const lead: string[] = [];
-    if (s.stature < 0.2) lead.push('little');
+    const kind = s.creature && s.creature !== 'none' ? s.creature : s.age === 'kid' ? 'kid' : 'person';
+    if (s.stature < 0.2) lead.push('short');
     else if (s.stature > 0.82) lead.push('tall');
     if (s.build > 0.78) lead.push('stocky');
     else if (s.build < 0.18) lead.push('slim');
@@ -480,6 +514,8 @@ export function describeSpec(spec: CharacterSpec): string {
       case 'ponytail': bits.push(`${article(hair)} ponytail`); break;
       case 'afro': bits.push(`${article(hair)} afro`); break;
       case 'spiky': bits.push(`spiky ${hair} hair`); break;
+      case 'buzz': bits.push(`${article(hair)} buzz cut`); break;
+      case 'mohawk': bits.push(`${article(hair)} mohawk`); break;
       default: break;
     }
     if (s.facialHair === 'beard') bits.push(`${article(hair)} beard`);
@@ -491,8 +527,13 @@ export function describeSpec(spec: CharacterSpec): string {
     if (s.hat === 'cap') bits.push('a cap');
     else if (s.hat === 'beanie') bits.push('a beanie');
     else if (s.hat === 'party') bits.push('a party hat');
-    bits.push(`${article(colourName(s.accent))} top`);
-    return capitalise(`${[...lead, 'person'].join(' ')} with ${joinList(bits)}`);
+    else if (s.hat === 'helmet') bits.push('a racing helmet');
+    else if (s.hat === 'cowboy') bits.push('a cowboy hat');
+    const garment = s.outfit === 'hoodie' ? 'hoodie' : s.outfit === 'jacket' ? 'jacket' : s.outfit === 'suit' ? 'suit' : s.outfit === 'tank' ? 'vest' : 'tee';
+    bits.push(`${article(colourName(s.accent))} ${garment}`);
+    // the non-people have no hair or beards to describe
+    const shown = kind === 'person' || kind === 'kid' || kind === 'luchador' ? bits : bits.filter((b) => !/hair|beard|moustache|stubble|bun|ponytail|afro|buzz|mohawk/.test(b));
+    return capitalise(`${[...(kind === 'person' || kind === 'kid' ? lead : lead.filter((l) => l !== 'bald')), kind].join(' ')} with ${joinList(shown)}`);
   }
   const fluff = s.fluff ?? 0.4;
   const lead: string[] = [];
@@ -519,4 +560,9 @@ export function describeSpec(spec: CharacterSpec): string {
   }
   bits.push(`${article(colourName(s.accent))} ${s.species === 'dog' ? 'bandana' : 'collar'}`);
   return capitalise(`${lead.join(' ')} ${s.species} with ${joinList(bits)}`);
+}
+
+/** The colour a driver's kart is painted, and the colour that stands for them on the HUD. */
+export function kartColorOf(spec: CharacterSpec): string {
+  return spec.kart ?? spec.accent;
 }

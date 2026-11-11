@@ -24,6 +24,8 @@ export interface Settings {
 
 export interface Profile {
   version: 1;
+  /** which authored cast the saved seats refer to; an older one resets the seats to the current defaults */
+  castVersion: number;
   settings: Settings;
   /** characters the player has made or edited */
   customCharacters: CharacterSpec[];
@@ -37,6 +39,8 @@ export interface Profile {
 }
 
 const KEY = 'bounceback-party-worlds/profile/v1';
+/** 2 = the grown-up cast */
+export const CAST_VERSION = 2;
 
 export function defaultSettings(): Settings {
   const prefersReduced =
@@ -50,6 +54,7 @@ export function defaultSettings(): Settings {
 export function defaultProfile(): Profile {
   return {
     version: 1,
+    castVersion: CAST_VERSION,
     settings: defaultSettings(),
     customCharacters: [],
     seats: ['', ''],
@@ -68,9 +73,11 @@ export function loadProfile(): Profile {
     if (!data || typeof data !== 'object') return base;
     return {
       version: 1,
+      castVersion: CAST_VERSION,
       settings: { ...base.settings, ...(typeof data.settings === 'object' && data.settings ? data.settings : {}) },
       customCharacters: Array.isArray(data.customCharacters) ? data.customCharacters.slice(0, 24) : [],
-      seats: Array.isArray(data.seats) && data.seats.length === 2 ? [String(data.seats[0]), String(data.seats[1])] : ['', ''],
+      // seats chosen from an earlier cast are dropped once, so nobody is left driving last year's default
+      seats: data.castVersion === CAST_VERSION && Array.isArray(data.seats) && data.seats.length === 2 ? [String(data.seats[0]), String(data.seats[1])] : ['', ''],
       best: data.best && typeof data.best === 'object' ? data.best : {},
       learned: data.learned && typeof data.learned === 'object' ? data.learned : {},
       roundsPlayed: Number.isFinite(data.roundsPlayed) ? Number(data.roundsPlayed) : 0,

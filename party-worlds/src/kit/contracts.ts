@@ -18,10 +18,15 @@ import type * as THREE from 'three';
 
 export type Species = 'human' | 'dog' | 'cat';
 
-export type HairStyle = 'short' | 'curly' | 'long' | 'bun' | 'ponytail' | 'afro' | 'spiky' | 'bald';
+export type HairStyle = 'short' | 'curly' | 'long' | 'bun' | 'ponytail' | 'afro' | 'spiky' | 'bald' | 'buzz' | 'mohawk';
 export type FacialHair = 'none' | 'beard' | 'mustache' | 'stubble';
 export type Glasses = 'none' | 'round' | 'square' | 'shades';
-export type Hat = 'none' | 'cap' | 'beanie' | 'party';
+export type Hat = 'none' | 'cap' | 'beanie' | 'party' | 'helmet' | 'cowboy';
+/** Grown-ups are the default; a kid keeps the big head and small body. Cosmetic only. */
+export type Age = 'adult' | 'kid';
+export type Outfit = 'tee' | 'hoodie' | 'jacket' | 'suit' | 'tank';
+/** A person-shaped driver who is not a person. Cosmetic only: same body, same collider. */
+export type Creature = 'none' | 'bear' | 'fox' | 'rabbit' | 'frog' | 'robot' | 'alien' | 'luchador';
 export type EarType = 'floppy' | 'pointy' | 'folded' | 'long';
 export type CoatPattern = 'solid' | 'patches' | 'mask' | 'socks' | 'tabby' | 'tuxedo' | 'spots';
 export type TailType = 'curl' | 'long' | 'stub' | 'plume';
@@ -54,6 +59,12 @@ export interface CharacterSpec {
   hat?: Hat;
   /** trousers / skirt colour */
   bottom?: string;
+  age?: Age;
+  outfit?: Outfit;
+  creature?: Creature;
+
+  /** paint of this driver's kart (any species). Defaults to `accent`. Cosmetic only. */
+  kart?: string;
 
   // pets only
   earType?: EarType;
@@ -105,6 +116,14 @@ export interface MotionContext {
   steer?: number;
   /** extra head turn in radians while driving (a glance at a rival alongside) */
   lookYaw?: number;
+  /**
+   * Where the steering wheel's rim is in the character's own root space while driving (x forward,
+   * y up, z = half the distance between the hands). The kart's owner knows this; a bigger driver
+   * sits in the same kart, so the numbers shrink as the driver's scale grows.
+   */
+  wheelX?: number;
+  wheelY?: number;
+  wheelZ?: number;
 }
 
 /** Canonical, species-independent numbers every rig must honour. */

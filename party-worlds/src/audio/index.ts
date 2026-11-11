@@ -24,10 +24,14 @@ const R = -1; // rest
 const MELODY = [72, R, 76, 79, R, 76, 74, R, 72, R, 69, 72, 74, R, 76, R, 79, R, 81, 79, R, 76, 74, 76, 72, R, 67, 69, 72, R, R, R];
 const BASS = [48, R, R, R, 55, R, R, R, 45, R, R, R, 55, R, R, R, 48, R, R, R, 52, R, R, R, 53, R, R, R, 55, R, 43, R];
 const WIN = [67, 72, 76, 79, 84, R, 88, R];
-// the race score: A minor pentatonic at 138 bpm, a driving bass under a restless arpeggio
-const STEP_RACE = 60 / 138 / 2;
-const RACE_ARP = [69, 72, 76, 81, 79, 76, 72, 76, 69, 72, 74, 79, 76, 74, 72, 67];
-const RACE_BASS = [45, 45, 57, 45, 45, 57, 45, 48, 43, 43, 55, 43, 41, 41, 53, 55];
+// The racing score is synth-driven: a four-bar loop of Am – F – C – G (the chord run half the
+// songs you grew up with are built on), a kick on every beat, a saw bass and a square arpeggio.
+// The lobby plays the same chords slowly, as pads. Eighth-note steps, eight to a bar.
+const STEP_RACE = 60 / 126 / 2;
+const CHORD_ROOT = [45, 41, 48, 43];
+const CHORD_ARP = [[57, 60, 64, 69], [53, 57, 60, 65], [55, 60, 64, 67], [55, 59, 62, 67]];
+const ARP_ORDER = [0, 1, 2, 3, 2, 1, 2, 3];
+const LEAD = [76, R, 79, R, 81, R, 79, 76, 77, R, 76, R, 72, R, R, R, 79, R, 76, R, 72, R, 74, 76, 74, R, 71, R, 67, R, R, R];
 
 export function createAudioKit(opts: AudioKitOptions = {}): AudioKit {
   const eng = new Engine(opts.context ?? null);
@@ -104,18 +108,36 @@ export function createAudioKit(opts: AudioKitOptions = {}): AudioKit {
     const m = MELODY[k]!;
     const b = BASS[k]!;
     if (mode === 'menu') {
-      if (m !== R) eng.pluck(midi(m), at, 0.7, 0.16, 0.7, (k % 4) * 0.12 - 0.18, bus);
-      if (b !== R) eng.tone({ f0: midi(b), dur: 0.9, gain: 0.1, at, attack: 0.02, bus });
-      if (k % 8 === 4) eng.pluck(midi(m === R ? 79 : m + 12), at, 0.5, 0.05, 1, 0.3, bus);
+      // slow pads and a far-off arpeggio: somewhere to choose a driver
+      const bar = (i >> 3) % 4;
+      const j = i % 8;
+      if (j === 0) {
+        for (const n of CHORD_ARP[bar]!.slice(0, 3)) eng.tone({ type: 'sawtooth', f0: midi(n), dur: STEP * 7.6, gain: 0.03, at, attack: 0.25, lowpass: 950, bus });
+        eng.tone({ type: 'triangle', f0: midi(CHORD_ROOT[bar]!), dur: STEP * 7.4, gain: 0.09, at, attack: 0.04, lowpass: 500, bus });
+      }
+      if (j % 2 === 0) eng.pluck(midi(CHORD_ARP[bar]![ARP_ORDER[j]!]! + 12), at, 0.5, 0.06, 0.8, (j % 4) * 0.2 - 0.3, bus);
+      if (j === 0 || j === 4) eng.tone({ f0: 110, f1: 46, dur: 0.16, gain: 0.1, at, attack: 0.002, bus });
     } else if (mode === 'play') {
       // lighter: every other melody note, softer bass — leaves room for the game
       if (m !== R && k % 2 === 0) eng.pluck(midi(m), at, 0.6, 0.1, 0.6, 0, bus);
       if (b !== R && k % 8 === 0) eng.tone({ f0: midi(b), dur: 0.8, gain: 0.07, at, attack: 0.02, bus });
     } else if (mode === 'race') {
-      const j = i % 16;
-      eng.tone({ type: 'triangle', f0: midi(RACE_BASS[j]!), dur: 0.16, gain: 0.13, at, attack: 0.004, lowpass: 900, bus });
-      if (j % 2 === 0 || (i >> 4) % 2 === 1) eng.pluck(midi(RACE_ARP[j]! + ((i >> 5) % 2 ? 12 : 0)), at, 0.22, 0.07, 0.9, (j % 4) * 0.2 - 0.3, bus);
-      if (j % 4 === 2) eng.burst({ dur: 0.04, gain: 0.05, filter: 'highpass', f0: 5000, at, bus });
+      const bar = (i >> 3) % 4;
+      const j = i % 8;
+      const lift = (i >> 5) % 2; // every other time round, an octave up with a lead line
+      const root = CHORD_ROOT[bar]!;
+      // drums: kick on the beat, snare on two and four, a hat between
+      if (j % 2 === 0) eng.tone({ f0: 135, f1: 44, dur: 0.15, gain: 0.26, at, attack: 0.001, bus });
+      else eng.burst({ dur: 0.03, gain: 0.035, filter: 'highpass', f0: 7000, at, bus });
+      if (j === 2 || j === 6) {
+        eng.burst({ dur: 0.11, gain: 0.11, filter: 'bandpass', f0: 1900, q: 0.8, at, attack: 0.001, bus });
+        eng.tone({ type: 'triangle', f0: 200, f1: 150, dur: 0.07, gain: 0.07, at, attack: 0.001, bus });
+      }
+      // bass bounces the octave; the arpeggio runs the chord
+      eng.tone({ type: 'sawtooth', f0: midi(root + (j % 2 ? 12 : 0)), dur: 0.17, gain: 0.085, at, attack: 0.004, lowpass: 520, bus });
+      eng.tone({ type: 'square', f0: midi(CHORD_ARP[bar]![ARP_ORDER[j]!]! + (lift ? 12 : 0)), dur: 0.13, gain: 0.03, at, attack: 0.003, lowpass: 2600, pan: j % 2 ? 0.35 : -0.35, bus });
+      const l = LEAD[i % LEAD.length]!;
+      if (lift && l !== R) eng.tone({ type: 'sawtooth', f0: midi(l), dur: 0.26, gain: 0.04, at, attack: 0.01, lowpass: 3200, vibHz: 5.5, vibDepth: 5, bus });
     } else if (mode === 'tense') {
       // a ticking ostinato
       eng.pluck(midi(k % 2 === 0 ? 79 : 76), at, 0.18, 0.06, 0.9, 0, bus);

@@ -607,6 +607,7 @@ export function buildPet(spec: CharacterSpec): BodyDesc {
       tongue,
     },
     chains,
+    headScale: 1,
     hair: -1,
     hat: -1,
     topY: hc.y + hry,

@@ -148,12 +148,13 @@ export function buildBackyardWorld(track: Track): BackyardWorld {
   roadGeo.setIndex(idx);
   roadGeo.computeVertexNormals();
   root.add(new THREE.Mesh(roadGeo, new THREE.MeshStandardMaterial({ map: slabTex, roughness: 0.92 })));
-  // chalk edge lines so the road reads at speed, in the dark, on a small screen
-  for (const arr of [edgeL, edgeR]) {
+  // edge lines so the road reads at speed, in the dark, on a small screen: glow tape, pink on the
+  // inside of the lap and blue on the outside, so you always know which way the corner goes
+  for (const [arr, color] of [[edgeL, '#ff5aa5'], [edgeR, '#5fe6ff']] as const) {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
     g.setIndex(idx);
-    root.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: '#fff6dd', transparent: true, opacity: 0.6, depthWrite: false, toneMapped: false })));
+    root.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95, depthWrite: false, toneMapped: false, fog: false })));
   }
   // finish line
   const s0 = S[0]!;
