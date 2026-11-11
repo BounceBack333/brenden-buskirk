@@ -2,6 +2,18 @@
 
 Newest first. Each entry: what was decided, why, what it costs, and what would change it.
 
+## D-021 · An independent review of the racing code, and a ladder on the lawn (2026-11-11)
+A second reviewer read the racing code cold and ran its own probes. What it found and what was done:
+- **The whole infield was a shortcut.** A straight line across the lawn skipped either end of the lap and won by 7–10 s at every rival level. Fixed with an object, not a rule: an aluminium ladder lies along the middle of the lawn from the big pot to the hairpin, rails and end rungs solid, with the tennis ball plugging the last gap. The same cut now ends against the rails. A boost also used to make soil faster than road (it ignored 65 % of a surface penalty); it now ignores 40 %, so boosted grass is about road pace and boosted soil is slower.
+- Editing a preset character left the original on the grid as a bot **with the same name**. Rivals are now chosen to share neither identity nor name with your drivers.
+- Driving back over the start line ranked you a lap ahead. A kart behind the line now counts as behind until it crosses forward again.
+- The race stopped dead on the tick the last person finished. It now runs on for 2.5 s, so a rival half a second behind gets a time rather than "lap 3 of 3", and karts roll on past the flag.
+- Engine and skid kept sounding on the pause screen, and could not be stopped while the phone had suspended audio. Both fixed.
+- A kart caught mid-blink could stay invisible in the lobby; rebuilding a kart leaked the old one; the visible hose ran 7 units past its collider. Fixed.
+- Input: the first finger down was the steering finger for good, so a resting palm took the wheel. A second finger that is clearly steering while the first has not moved now takes over. A well-timed tap now earns the start boost without being held through GO. Split-screen hints name W and ↑ for drift rather than the two Shift keys, which on Windows can raise the Sticky Keys prompt (Shift still works). A tall desktop window is letterboxed instead of rotated.
+**Not acted on:** nearest-road tracking can lose a kart that jumps more than 70 samples ahead; with the ladder in place no route does that. Four-finger system gestures on an iPad in split screen are a risk only a device can show.
+**Why it mattered:** the lawn cut would have decided the first real race between two people the moment one of them tried it.
+
 ## D-020 · Experiments measured and dropped: keyboard wind-up, steering help (2026-11-11)
 Two additions were built, measured against the stand-in drivers in `dev/humanish.ts`, and removed.
 - **Keyboard wind-up** (a held key starts at half lock and winds on): 67.1 s against 64.6 s for plain all-or-nothing keys over three laps with a 250 ms reaction delay. Worse, so plain keys stay; the kart's own 60 ms steering smoothing is the only filter.

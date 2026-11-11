@@ -224,11 +224,13 @@ export function buildBackyardWorld(track: Track): BackyardWorld {
   // garden hose: the outside wall of the hairpin, running off toward the tap
   const hz = track.dressing.hose;
   const hosePts: THREE.Vector3[] = [];
-  for (let i = -3; i <= 27; i++) {
+  // (the visible hose covers exactly the arc that is solid, then leaves the yard away from the road)
+  for (let i = 0; i <= 24; i++) {
     const a = hz.a0 + ((hz.a1 - hz.a0) * i) / 24;
     hosePts.push(new THREE.Vector3(hz.cx + Math.cos(a) * hz.r, 0.5, hz.cz + Math.sin(a) * hz.r));
   }
-  hosePts.push(new THREE.Vector3(30, 0.5, 44), new THREE.Vector3(10, 0.5, 52));
+  hosePts.push(new THREE.Vector3(47.5, 0.5, 40), new THREE.Vector3(38, 0.5, 46.5), new THREE.Vector3(20, 0.5, 51), new THREE.Vector3(2, 0.5, 56));
+  put('metal', new THREE.CylinderGeometry(0.7, 0.45, 1.6, 10).rotateZ(Math.PI / 2), hosePts[0]!.x - 0.6, 0.55, hosePts[0]!.z, 0.2);
   statics.hose!.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(hosePts), 90, 0.55, 10).toNonIndexed());
   // bricks at the chicane
   for (const b of track.dressing.bricks) {
@@ -262,6 +264,15 @@ export function buildBackyardWorld(track: Track): BackyardWorld {
   ballMesh.position.set(tb.x, tb.r * 0.96, tb.z);
   ballMesh.rotation.set(0.5, 0.9, 0.3);
   root.add(ballMesh);
+  // the aluminium ladder lying along the middle of the lawn (solid: see track.ts)
+  const ld = track.dressing.ladder;
+  const ladLen = ld.x1 - ld.x0;
+  for (const z of [ld.z0, ld.z1]) put('metal', new RoundedBoxGeometry(ladLen + 1.2, 1.0, ld.rail * 2, 2, 0.14), (ld.x0 + ld.x1) / 2, 0.52, z);
+  const rungs = Math.round(ladLen / 6.8);
+  for (let i = 0; i <= rungs; i++) {
+    const x = ld.x0 + 1.5 + ((ladLen - 3) * i) / rungs;
+    put('metal', new THREE.CylinderGeometry(0.36, 0.36, ld.z1 - ld.z0, 8).rotateX(Math.PI / 2), x, 0.56, (ld.z0 + ld.z1) / 2);
+  }
   // garden chair legs straddling the straight
   for (const l of track.dressing.chairLegs) {
     put('white', new THREE.CylinderGeometry(l.r, l.r, 30, 12), l.x, 15, l.z);
@@ -527,6 +538,8 @@ export interface KartModel {
   /** world positions of the rear wheels, for sparks */
   rearWheel(side: -1 | 1, out: THREE.Vector3): THREE.Vector3;
   update(dt: number, speed: number): void;
+  /** free this kart's own geometry and one-off materials (shared kit materials are left alone) */
+  dispose(): void;
 }
 
 /** A tin-toy kart: enamel tub, bottle-cap wheels, twin drinking-straw exhausts. */
@@ -626,6 +639,15 @@ export function buildKart(color: string, accent: string): KartModel {
         f.scale.set(s, 0.7 + 0.3 * boost, 0.7 + 0.3 * boost);
       }
       beam.material.opacity = 0.3 + 0.06 * Math.sin(flick * 0.2);
+    },
+    dispose(): void {
+      root.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (!m.isMesh) return;
+        m.geometry.dispose();
+        // only the unlit one-offs made here; mat.* materials are cached and shared
+        if ((m.material as THREE.Material).type === 'MeshBasicMaterial') (m.material as THREE.Material).dispose();
+      });
     },
   };
 }

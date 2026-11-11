@@ -166,6 +166,7 @@ export class RaceView {
     old.dispose();
     const kart = buildKart(spec.accent, spec.species === 'human' ? spec.bottom ?? '#22304f' : spec.secondary);
     this.scene.remove(this.karts[seat]!.root);
+    this.karts[seat]!.dispose();
     this.karts[seat] = kart;
     this.scene.add(kart.root);
     const rig = buildCharacter(spec);
@@ -202,6 +203,7 @@ export class RaceView {
       rig.setAction('drive');
       rig.setExpression('happy');
     }
+    for (const kart of this.karts) kart.root.visible = true; // a kart caught mid-blink must not stay hidden
     this.audio.setEngine(null);
     this.audio.setSkid(null);
   }
@@ -520,7 +522,11 @@ export class RaceView {
 
     // sound for the first local driver
     const me = s.karts[this.humans[0] ?? 0]!;
-    if (s.phase !== 'over') {
+    if (dt === 0) {
+      // paused: a frozen race makes no noise
+      this.audio.setEngine(null);
+      this.audio.setSkid(null);
+    } else if (s.phase !== 'over') {
       const v = forwardSpeed(me);
       this.audio.setEngine(Math.min(1, Math.abs(v) / KART.vBoost) * (s.phase === 'countdown' ? 0.15 : 1) + (s.phase === 'countdown' ? 0.12 : 0), me.boostTicks > 0 ? 1 : 0.3);
       this.audio.setSkid(me.drifting ? 0.5 + Math.min(0.5, me.charge * 0.25) : me.stunTicks > 0 ? 0.8 : null);
@@ -607,6 +613,7 @@ export class RaceView {
 
   dispose(): void {
     for (const rig of this.rigs) rig.dispose();
+    for (const kart of this.karts) kart.dispose();
     this.scene.traverse((o) => {
       const m = o as THREE.Mesh;
       if (m.isMesh && m.geometry) m.geometry.dispose();

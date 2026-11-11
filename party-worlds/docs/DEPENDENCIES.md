@@ -30,5 +30,6 @@ Short list. Each item says what it blocks and who can unblock it.
 - Split screen draws the scene twice; nothing has been done to make the second view cheaper.
 - Ties on the line are broken by seat number.
 - The race is local only. Courier's online rooms are intact but nothing was added to them.
-- The art, character and audio kits were finished by a single author after the first parallel build was interrupted; an independent review pass is still owed (D-015).
+- The racing code has had one independent review (D-021). The art, character and audio kits have had none since the first parallel build was interrupted (D-015).
+- Nearest-road tracking searches a window of the lap; a kart that somehow jumped more than 70 units of track ahead would be treated as lost until put back. No route allows it now.
 - No analytics, accounts, commerce, moderation or crash reporting exist. None were needed to find out whether the core is fun.

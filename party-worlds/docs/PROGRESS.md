@@ -26,7 +26,7 @@ What the review asked for, and where it stands:
 | Asked for | Status | Evidence |
 |---|---|---|
 | One short track, a 60–90 s race | Implemented and tested | Backyard After Dark, 305 units. Rivals at equal throttle: winner 54.6 s on average over 24 races, laps 18.5 s on average (`dev/raceprobe.ts`). Stand-in drivers: 57–70 s |
-| One handling model: steering, grip, sliding, contact, recovery | Implemented and tested | `tests/dash.sim.test.ts` — 24 tests: auto-acceleration and top speed, steering direction, drift keeps speed and charges, early release pays nothing, grass and boost, braking and reverse, karts shove apart, nothing passes through the pot or the tennis ball, determinism, no NaN under random abuse |
+| One handling model: steering, grip, sliding, contact, recovery | Implemented and tested | `tests/dash.sim.test.ts` — 29 tests: auto-acceleration and top speed, steering direction, drift keeps speed and charges, early release pays nothing, grass and boost, braking and reverse, karts shove apart, nothing passes through the pot or the tennis ball, determinism, no NaN under random abuse |
 | Simple touch controls: steer plus one satisfying manoeuvre | Implemented, automation only | Drag to steer; hold DRIFT and release for a boost (two levels, shown by spark colour and a meter). Scripted touch on an emulated phone drove a lap (below). **Whether it is satisfying is unknown** |
 | A dependable route and a faster one that needs better execution | Implemented and tested; the trade-off is **simulated** | Plank 34 units against 60 by road. Stand-in drivers: the plank saved about 5 s over a race at a 150 ms reaction delay (52.0 s against 57.2–57.4 s) and cost about 4 s at 250 ms (64 s against 60 s), from falling into the soil |
 | One world interaction that stays for the race | Implemented and tested | The plank is blocked until someone bumps the peg; the bumper loses 28 % of their speed once; it stays open for everyone; results name them (tests + scripted run) |
@@ -37,6 +37,8 @@ What the review asked for, and where it stands:
 | A direct, full-screen presentation | Partly | A full-screen button appears where the browser allows it (not iPhone Safari). The private preview still sits inside a viewer; a bare URL needs hosting, which needs your go-ahead (`DEPENDENCIES.md` #2) |
 | Less baby-like characters over time | Not started | Needs direction (`DEPENDENCIES.md` #8) |
 | Keep the Courier build | Done | Reachable from the play sheet; its 45 tests still pass |
+
+An independent review of the racing code was run before this was called ready (D-021). Its most important finding: the open lawn was a shortcut worth 7–10 s a race. That is closed by a ladder lying along the lawn; the reviewer's own lawn-cutting driver now fails to finish. Eight smaller defects it found are fixed; two risks it raised need a device.
 
 Other things built for this milestone:
 
@@ -68,17 +70,19 @@ Other things built for this milestone:
 | Thumb, 350 ms, calm, never drifts | 3.8 (finishes about 11 s behind the winner) | 4.0 | 4.0 |
 | Thumb, 350 ms, over-corrects, never drifts | does not finish in time | same | same |
 | Keys, 150 ms, drifts | 1.5, wins 6 | 2.5, wins 1 | 3.9 |
-| Keys, 250 ms, drifts | 3.2 | 4.0 | 4.0 |
+| Keys, 250 ms, drifts | 3.3 | 4.0 | 4.0 |
 
 **What was observed (by me, through screenshots, logs and measurements):**
 - The first rivals were too quick and too alike: three bots finished within 1.3 s of each other and every stand-in came last every time. This is what the rival levels fix.
 - A stand-in that reacts late and steers hard cannot hold the road at all. Whether a real newcomer is like that is not known; it is the first thing to watch for.
-- All-or-nothing keys are harder than a thumb at the same reaction delay (68 s against 60 s at 250 ms on Gentle).
+- All-or-nothing keys are harder than a thumb at the same reaction delay (68 s against 60 s at 250 ms on Gentle). That is a stand-in's result; two people on one keyboard are at least equally handicapped.
 - The first chase camera averaged angles across the wrap-around and looked at the kart from the front after the first corner. Fixed.
 - From behind, a normally proportioned driver was a tuft of hair over a seat back. Hence the bigger drivers and the portraits.
 - BRAKE originally sat under the steering thumb. Moved beside DRIFT.
+- I did not see that the lawn was a shortcut; the independent reviewer did, by writing a driver that tried it. A boost also made flowerbed soil quicker than the road, which undercut the plank. Both fixed (D-021).
+- The race used to end on the tick the player finished, so beaten rivals showed "lap 3 of 3" instead of a gap. It now runs on for 2.5 s.
 
-**What passed:** 69 of 69 automated tests; type-check clean; production build (909 KB JS + 224 KB CSS; 260 KB + 152 KB gzipped); the play-throughs above with zero page errors.
+**What passed:** 74 of 74 automated tests; type-check clean; production build (909 KB JS + 224 KB CSS; 260 KB + 152 KB gzipped); the play-throughs above with zero page errors.
 
 **What failed or is weak:**
 - Frame rate on a real device is unknown, and split screen doubles the drawing. Headless numbers are software rendering and mean nothing here.

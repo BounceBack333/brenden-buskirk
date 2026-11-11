@@ -90,7 +90,10 @@ function boot(): void {
     find(profile.seats[1]) ?? firstOf('dog'),
   ];
   const rivals = (): [CharacterSpec, CharacterSpec] => {
-    const free = PRESET_CHARACTERS.filter((c: CharacterSpec) => c.id !== cast[0].id && c.id !== cast[1].id);
+    // not the same character, and not the same name either: an edited copy of a preset keeps
+    // its name, and two "Pip"s on the results would be unreadable
+    const taken = new Set([cast[0].id, cast[1].id, cast[0].name, cast[1].name]);
+    const free = PRESET_CHARACTERS.filter((c: CharacterSpec) => !taken.has(c.id) && !taken.has(c.name));
     const cat = free.find((c: CharacterSpec) => c.species === 'cat') ?? free[0]!;
     const person = free.find((c: CharacterSpec) => c.species === 'human' && c.id !== cat.id) ?? free[1] ?? free[0]!;
     return [cat, person];
@@ -180,7 +183,8 @@ function boot(): void {
       skills: m === 'split' ? [level.skills[0], level.skills[2]] : [...level.skills],
       pace: m === 'split' ? [level.pace[0], level.pace[2]] : [...level.pace],
     });
-    race.onDone = (s) => window.setTimeout(() => finishRace(s), 2600);
+    // (the simulation has already run on for a moment after the last person finished)
+    race.onDone = (s) => window.setTimeout(() => finishRace(s), 700);
   }
 
   function finishRace(s: RaceState): void {
@@ -416,6 +420,8 @@ function boot(): void {
     if (race && race.state.phase !== 'over' && !race.paused) {
       race.paused = true;
       raceControls.reset();
+      audio.setEngine(null);
+      audio.setSkid(null);
       audio.play('ui_tap');
       screens.pause();
     } else if (round && round.state.phase !== 'done' && !round.paused) {
@@ -447,8 +453,11 @@ function boot(): void {
         courierView.render(r ? r.state : null, frozen ? 1 : alpha, frozen ? 0 : dt);
         if (r) courierHud.update(r.state, courierView, size);
       } else {
-        const frozen = !!race && race.paused;
-        raceView.render(race ? race.state : null, frozen ? 1 : alpha, frozen ? 0 : dt, size.width, size.height);
+        // Paused: nothing moves. Finished and waiting for the results: the simulation has stopped,
+        // so show its last tick exactly (no interpolation), while the celebration keeps animating.
+        const paused = !!race && race.paused;
+        const hold = paused || (!!race && race.state.phase === 'over');
+        raceView.render(race ? race.state : null, hold ? 1 : alpha, paused ? 0 : dt, size.width, size.height);
         if (race) {
           const rects = raceView.layout(size.width, size.height);
           raceControls.rects = rects;

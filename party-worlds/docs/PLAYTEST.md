@@ -23,7 +23,7 @@ Everything below is there to explain a yes or a no.
 
 | Who | Set-up | Why |
 |---|---|---|
-| The founder and one friend | **Split screen** on a tablet or a laptop (keyboard: A/D + Left Shift, and arrows + Right Shift) | The test this build was made for |
+| The founder and one friend | **Split screen** on a tablet or a laptop (keyboard: A/D to steer and W to drift; ←/→ to steer and ↑ to drift) | The test this build was made for |
 | The founder alone, on a phone | Race against Gentle rivals, then Keen | First-touch feel of thumb steering and the drift button; is the phone screen enough |
 | Two friends who do not play games much | Split screen | Whether steering alone is enough to enjoy it |
 | Two friends who do | Split screen, then each solo against Fierce | Whether there is anything to get good at |
@@ -46,7 +46,7 @@ About ten minutes each. Say only: *"This is an early game. Play it however you l
 | Rematch | Unprompted? How many races before they stop, and who stops |
 | Solo | After a win on Gentle, do they take the offer of Keen? |
 | Characters | Any "that's me / that's the dog"? Do they build one? Complaints about how the drivers look |
-| Trouble | Rotating the phone, thumbs covering the kart, the split being too small, sound |
+| Trouble | Rotating the phone, thumbs covering the kart, the split being too small, sound, a palm or a second finger landing on the screen, anyone trying to drive across the lawn |
 
 ## Afterwards (three questions, then stop)
 

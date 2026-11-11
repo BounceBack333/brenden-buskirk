@@ -245,8 +245,7 @@ export class Screens {
           <div class="race-rows"><div class="race-row head"><span class="pl"></span><span class="dot"></span><span class="nm">Driver</span><span class="tm">Race</span><span class="bl">Best lap</span></div>${rows}</div>
           <div class="sheet-actions">
             <button class="btn" data-act="home">${ICON.home}Home</button>
-            <button class="btn" data-act="chars">${ICON.people}Characters</button>
-            ${info.stepUp ? `<button class="btn" data-act="stepup">Try ${esc(info.stepUp)} rivals</button>` : ''}
+            ${info.stepUp ? `<button class="btn" data-act="stepup">Try ${esc(info.stepUp)} rivals</button>` : `<button class="btn" data-act="chars">${ICON.people}Characters</button>`}
             <button class="btn primary big" data-act="again">${ICON.retry}Rematch</button>
           </div>
         </div>

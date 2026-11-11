@@ -43,7 +43,18 @@ export class RaceControls {
   attach(): void {
     this.pointers.onDown = (p) => this.down(p);
     this.pointers.onMove = (p) => {
-      for (const pad of this.pads) if (pad.stick === p) pad.x = p.x;
+      for (const pad of this.pads) {
+        if (pad.stick === p) pad.x = p.x;
+        else if (pad.driftPtr === p && pad.stick && pad.stick.moved < 10 && Math.abs(p.x - p.startX) > 22) {
+          // The first finger down has not moved and this one is plainly steering: they were the
+          // wrong way round (a palm or a gripping finger landed first). This one takes the wheel;
+          // the still one is let go, so it cannot sit there as a held drift either.
+          pad.stick = p;
+          pad.ox = p.startX;
+          pad.x = p.x;
+          pad.driftPtr = null;
+        }
+      }
     };
     this.pointers.onUp = (p) => {
       for (const pad of this.pads) {
@@ -373,8 +384,8 @@ export class RaceHud {
       const pad = this.controls.pads[i]!;
       if (pad.stick) this.touched[i] = true;
       const touch = this.touched[i] || this.coarse;
-      const driftKey = split ? (i === 0 ? 'Left Shift' : 'Right Shift') : 'Space';
-      const auto = touch && (split || settings.autoDrift);
+      const driftKey = split ? (i === 0 ? 'W' : '↑') : 'Space';
+      const auto = settings.autoDrift || (touch && split);
       let hint = '';
       if (s.phase === 'countdown' && !this.learned.raceStart) hint = `It drives itself. Press ${touch ? 'DRIFT' : driftKey} just before GO for a boost.`;
       else if (s.phase === 'racing' && !this.learned.steer) hint = touch ? `${ICON.hand}Drag left or right to steer` : `Steer with ${split ? (i === 0 ? 'A / D' : '← / →') : 'A / D or ← / →'}`;

@@ -431,7 +431,9 @@ export function createAudioKit(opts: AudioKitOptions = {}): AudioKit {
     },
     setEngine(revs, load = 0.3) {
       try {
-        if (!eng.ready || !eng.running) return;
+        // stopping must work even while the context is suspended (phone locked, tab hidden),
+        // or the motor would still be droning when it wakes
+        if (!eng.ready || (!eng.running && revs !== null)) return;
         if (revs === null) {
           if (engine) {
             try { engine.osc2.stop(eng.now + 0.25); } catch { /* stopped */ }
@@ -474,7 +476,7 @@ export function createAudioKit(opts: AudioKitOptions = {}): AudioKit {
     },
     setSkid(amount) {
       try {
-        if (!eng.ready || !eng.running) return;
+        if (!eng.ready || (!eng.running && amount !== null)) return;
         if (amount === null) {
           stopLoop(skid);
           skid = null;

@@ -34,7 +34,7 @@ export const KART = {
   startWindowTicks: 22, // press drift this close to GO for a start boost
   grass: 0.55,
   soil: 0.4,
-  boostIgnoresSurface: 0.65, // a boost shrugs off this much of a surface penalty
+  boostIgnoresSurface: 0.4, // a boost shrugs off this much of a surface penalty (boosted grass ≈ road pace, never better)
   steerScrub: 0.05,
   draftRange: 6.5,
   draftCos: 0.975, // ~13° cone
@@ -53,6 +53,8 @@ export const RACE = {
   countdownTicks: 3 * TICK_HZ,
   /** race is called this long after the first finisher, ranking the rest by progress */
   graceTicks: 25 * TICK_HZ,
+  /** once the people are home the race runs on this long, so rivals close behind get a real gap */
+  runOutTicks: Math.round(2.5 * TICK_HZ),
   maxTicks: 4 * 60 * TICK_HZ,
 } as const;
 
@@ -98,6 +100,8 @@ export interface Track {
     hose: { cx: number; cz: number; r: number; a0: number; a1: number };
     pot: Circle;
     ball: Circle;
+    /** the ladder on the lawn: outer rails at z0 and z1, from x0 to x1 */
+    ladder: { x0: number; x1: number; z0: number; z1: number; rail: number };
     chairLegs: Circle[];
     bricks: Capsule[];
     workLight: { x: number; z: number };
@@ -222,8 +226,17 @@ function buildBackyard(): Track {
     { x: -24, z: 25.2, r: 0.55 }, { x: -24, z: 34.8, r: 0.55 },
   ];
   const pot: Circle = { x: -45, z: 15, r: 7 };
-  // a lost tennis ball in the middle of the hairpin's infield: something to steer round if you cut across
-  const ball: Circle = { x: 45, z: 15, r: 2.4 };
+  // A ladder left lying along the middle of the lawn, from the pot to the hairpin. Without it the
+  // whole infield is a shortcut: a straight line across the grass skips either end of the lap.
+  // Rails and end rungs are solid; a lost tennis ball plugs the gap at the hairpin end.
+  const ladder = { x0: -38, x1: 46, z0: 10.2, z1: 19.8, rail: 0.55 };
+  capsules.push(
+    { x1: ladder.x0, z1: ladder.z0, x2: ladder.x1, z2: ladder.z0, r: ladder.rail },
+    { x1: ladder.x0, z1: ladder.z1, x2: ladder.x1, z2: ladder.z1, r: ladder.rail },
+    { x1: ladder.x0 + 1.5, z1: ladder.z0, x2: ladder.x0 + 1.5, z2: ladder.z1, r: 0.4 },
+    { x1: ladder.x1 - 1.5, z1: ladder.z0, x2: ladder.x1 - 1.5, z2: ladder.z1, r: 0.4 },
+  );
+  const ball: Circle = { x: 49.2, z: 15, r: 2.4 };
   const circles: Circle[] = [pot, ball, ...chairLegs];
 
   const grid = [
@@ -242,7 +255,7 @@ function buildBackyard(): Track {
       prop: { x: 3.6, z: 2.3, r: 0.65 },
     },
     bed: { x: -14.5, z: -7, rx: 16.5, rz: 9.6 },
-    dressing: { hose, pot, ball, chairLegs, bricks, workLight: { x: 70, z: 15 } },
+    dressing: { hose, pot, ball, ladder, chairLegs, bricks, workLight: { x: 70, z: 15 } },
   };
 }
 

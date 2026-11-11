@@ -67,6 +67,8 @@ export interface Kart {
   driftHeldTicks: number;
   startPressTick: number;
   jumped: boolean;
+  /** rolled back over the start line: counts as a lap behind until it is crossed forward again */
+  behind: boolean;
   /**
    * Throttle, 0.5…1: how much of the kart's top speed this driver uses. People always have 1.
    * Rival bots ease off by a stated amount per difficulty; it is never changed mid-race.
@@ -103,6 +105,8 @@ export interface RaceState {
   plankOpen: boolean;
   plankOpener: number;
   firstFinishTick: number;
+  /** tick on which the last required seat finished (0 = not yet) */
+  homeTick: number;
   /** seats whose finish ends the race (the humans); empty = everyone */
   required: number[];
   events: RaceEvent[];
@@ -132,13 +136,13 @@ export function createRace(config: RaceConfig = {}): RaceState {
       drifting: false, driftDir: 0, charge: 0, boostTicks: 0, stunTicks: 0, stallTicks: 0, draftTicks: 0,
       surface: SURFACE.road, idx: (N - Math.round(-5 - g.x)) % N, lap: 0, cpMask: 3,
       finished: false, finishTick: 0, place: i + 1, lapStartTick: 0, bestLapTicks: 0,
-      stuckTicks: 0, wrongTicks: 0, blinkTicks: 0, prevDrift: false, driftHeldTicks: 0, startPressTick: -999, jumped: false,
+      stuckTicks: 0, wrongTicks: 0, blinkTicks: 0, prevDrift: false, driftHeldTicks: 0, startPressTick: -999, jumped: false, behind: false,
       pace: clamp(config.pace?.[i] ?? 1, 0.5, 1),
     });
   }
   return {
     tick: 0, phase: 'countdown', phaseTick: 0, laps: Math.max(1, Math.floor(config.laps ?? RACE.laps)),
-    karts, plankOpen: false, plankOpener: -1, firstFinishTick: 0,
+    karts, plankOpen: false, plankOpener: -1, firstFinishTick: 0, homeTick: 0,
     required: (config.required ?? []).filter((s) => s >= 0 && s < n), events: [],
   };
 }
@@ -156,7 +160,7 @@ export function hashRace(s: RaceState): number {
 /** Race progress as one number: higher is further ahead. */
 export function progressOf(s: RaceState, k: Kart): number {
   const N = trackOf(s).samples.length;
-  return (k.lap - 1) * N + k.idx;
+  return (k.lap - 1 - (k.behind ? 1 : 0)) * N + k.idx;
 }
 
 /** Forward speed along the kart's nose. */
@@ -189,7 +193,8 @@ export function stepRace(s: RaceState, inputs: readonly DriveInput[]): void {
         const k = s.karts[i]!;
         k.lapStartTick = s.tick;
         const since = RACE.countdownTicks - k.startPressTick;
-        if (k.driftHeldTicks > 0 && since <= KART.startWindowTicks) {
+        if (since >= 0 && since <= KART.startWindowTicks) {
+          // a well-timed press is enough; it does not have to be held through GO
           k.boostTicks = KART.startBoostTicks;
           s.events.push({ type: 'start_boost', seat: i });
         } else if (k.driftHeldTicks > 50) {
@@ -209,12 +214,18 @@ export function stepRace(s: RaceState, inputs: readonly DriveInput[]): void {
   for (let i = 0; i < s.karts.length; i++) follow(s, track, i);
   rank(s);
 
-  // the race ends when the people who matter are home, or a while after the winner
+  // The race ends when everyone is home; or a short run-out after the people who matter are
+  // (so a rival half a second behind is given its time, not "still racing"); or a while after
+  // the winner, whoever is still out.
   let done = true;
-  if (s.required.length > 0) {
-    for (const seat of s.required) if (!s.karts[seat]!.finished) done = false;
-  } else {
-    for (const k of s.karts) if (!k.finished) done = false;
+  for (const k of s.karts) if (!k.finished) done = false;
+  if (!done && s.required.length > 0) {
+    let home = true;
+    for (const seat of s.required) if (!s.karts[seat]!.finished) home = false;
+    if (home) {
+      if (s.homeTick === 0) s.homeTick = s.tick;
+      if (s.tick - s.homeTick >= RACE.runOutTicks) done = true;
+    }
   }
   if (s.firstFinishTick > 0 && s.tick - s.firstFinishTick >= RACE.graceTicks) done = true;
   if (s.tick >= RACE.maxTicks) done = true;
@@ -516,7 +527,9 @@ function follow(s: RaceState, track: Track, seat: number): void {
       if (passed(c2)) k.cpMask |= 2;
       if (best < k.idx) {
         // crossed the line going forward
-        if (k.cpMask === 3) {
+        if (k.behind) {
+          k.behind = false; // only undoing a roll back over the line: nothing earned
+        } else if (k.cpMask === 3) {
           if (k.lap >= 1) {
             const ticks = s.tick - k.lapStartTick;
             if (k.bestLapTicks === 0 || ticks < k.bestLapTicks) k.bestLapTicks = ticks;
@@ -534,6 +547,7 @@ function follow(s: RaceState, track: Track, seat: number): void {
       }
     } else if (best > k.idx) {
       k.cpMask = 0; // rolled back over the line: that lap has to be earned again
+      k.behind = true;
     }
     k.idx = best;
   }

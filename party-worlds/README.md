@@ -20,7 +20,7 @@ Open it on a phone or tablet on the same network with `npm run dev -- --host 0.0
 | Command | What it does |
 |---|---|
 | `npm run dev` | Development server with hot reload |
-| `npm test` | 69 automated tests: race rules, Courier rules, private-room server |
+| `npm test` | 74 automated tests: race rules, Courier rules, private-room server |
 | `npm run typecheck` | Strict TypeScript check |
 | `npm run build` | Production build into `dist/` (static files; host anywhere) |
 | `npm run server` | Private-room server for Courier on port 8787 (`PORT`, `ALLOWED_ORIGINS`, `LAUNCHES` env vars) |
@@ -38,7 +38,7 @@ Open it on a phone or tablet on the same network with `npm run dev -- --host 0.0
 | Drift, then boost | Hold DRIFT (or a second finger) while turning; let go | Space, Shift or J |
 | Start boost | Press DRIFT just before GO | same |
 | Brake / reverse | BRAKE | S or ↓ |
-| Split screen | Each half is its own stick; steering hard starts the drift by itself | Player 1: A / D, Left Shift, S · Player 2: ← / →, Right Shift, ↓ |
+| Split screen | Each half is its own stick; steering hard starts the drift by itself | Player 1: A / D steer, W drift, S brake · Player 2: ← / → steer, ↑ drift, ↓ brake |
 
 `?laps=1` on the URL shortens a race for quick checks (personal bests are only kept for three-lap races). The game lowers its own picture quality if the device cannot hold about 50 frames per second; `?hq` turns that off (useful for screenshots on slow machines).
 

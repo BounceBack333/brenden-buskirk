@@ -40,9 +40,9 @@ What a race gives you to be better at:
 
 ## 4. First world — Backyard After Dark
 
-Physical personality: **hard things bounce you, soft ground drags, narrow wood is fast.** Paving slabs grip. Grass costs 45 % of your speed, flowerbed soil 60 % (a boost shrugs most of it off). The hose, the bricks, the chair legs, the pot and the tennis ball are solid; a hard hit spins you once.
+Physical personality: **hard things bounce you, soft ground drags, narrow wood is fast.** Paving slabs grip. Grass costs 45 % of your speed, flowerbed soil 60 % (a boost takes the edge off, but never makes soft ground quicker than the road). The hose, the bricks, the chair legs, the pot, the ladder on the lawn and the tennis ball are solid; a hard hit spins you once.
 
-What players can do *because of* that behaviour: cut a corner over grass on a boost, lean on the hose through the hairpin, thread the brick chicane, and cross the bed on the plank.
+What players can do *because of* that behaviour: clip an apex over grass on a boost, lean on the hose through the hairpin, thread the brick chicane, and cross the bed on the plank. What they cannot do is cross the lawn: a ladder lies along the middle of it (D-021).
 
 Layout: start straight under a garden chair → east hairpin inside the coiled hose, lit by a work lamp → brick chicane → the fork (road north round the flowerbed, or plank straight across it with a jump at the far end) → long sweeper round the big pot → back under the chair. 305 units; 18–20 s a lap.
 

@@ -8,7 +8,7 @@ Everything here is a rule the kits must follow so that authored characters, pers
 
 - 1 world unit ≈ one tiny person. A cupcake is 3 units tall. A teaspoon is 9 units long. A birthday cake is a cliff.
 - Scale is the joke and the wonder. Props are **ordinary objects at true relative size** — never "game platforms" dressed up. If a shape cannot be named as a real table object, replace it.
-- **Racing:** a kart is about 1.7 units long, a toy you could hold in your palm. A paving slab is 4 units, the garden hose is over a unit thick, a tennis ball is a boulder, a chair leg is a pillar going up out of sight. The camera rides two units up behind the kart; anything that matters to a decision (road edge, plank, peg) must read from there at speed.
+- **Racing:** a kart is about 1.7 units long, a toy you could hold in your palm. A paving slab is 4 units, the garden hose is over a unit thick, a tennis ball is a boulder, a ladder left on the lawn is a wall as long as the straight, a chair leg is a pillar going up out of sight. The camera rides two units up behind the kart; anything that matters to a decision (road edge, plank, peg) must read from there at speed.
 - **Courier (parked):** gameplay lives on the `z = 0` plane, seen from the side with a slight downward tilt. Set dressing sits behind (`z < -2.5`) or in front and below the camera line; it never hides a gameplay object.
 
 ## Characters

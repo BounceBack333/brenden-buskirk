@@ -73,6 +73,17 @@ describe('starting', () => {
   });
 });
 
+describe('starting, continued', () => {
+  it('a tap in the window is enough: the button need not still be down at GO', () => {
+    const s = createRace({ karts: 2 });
+    const press = RACE.countdownTicks - 12;
+    const ev = run(s, RACE.countdownTicks, (t) => [{ steer: 0, drift: t >= press && t < press + 5, brake: false }, noDrive()]);
+    expect(ev.some((e) => e.type === 'start_boost' && e.seat === 0)).toBe(true);
+    expect(ev.some((e) => e.type === 'start_boost' && e.seat === 1)).toBe(false);
+    expect(s.karts[0]!.boostTicks).toBeGreaterThan(0);
+  });
+});
+
 describe('handling', () => {
   it('accelerates by itself to top speed and no further', () => {
     const s = createRace({ karts: 1 });
@@ -172,6 +183,54 @@ describe('contact', () => {
       run(s, 50);
       expect(Math.hypot(k.x - ball.x, k.z - ball.z)).toBeGreaterThanOrEqual(ball.r + KART.radius - 0.02);
     }
+  });
+});
+
+describe('no free laps', () => {
+  it('the ladder on the lawn stops any straight line across the infield, from either side', () => {
+    const ld = trackOf(createRace()).dressing.ladder;
+    for (let x = ld.x0 + 1; x <= ld.x1 - 1; x += 5.5) {
+      for (const dir of [-1, 1]) {
+        const s = createRace({ karts: 1 });
+        go(s);
+        const k = s.karts[0]!;
+        k.x = x; k.z = dir < 0 ? 26 : 5; k.heading = dir < 0 ? 4.71238898038469 : 1.5707963267948966;
+        k.vx = 0; k.vz = dir * KART.vBoost; k.boostTicks = 90;
+        for (let t = 0; t < 240; t++) {
+          stepRace(s, idle(1));
+          // never inside the rails' band, whatever it does after bouncing off
+          if (dir < 0) expect(k.z).toBeGreaterThan(ld.z1);
+          else expect(k.z).toBeLessThan(ld.z0);
+        }
+      }
+    }
+  });
+  it('the pot, the ladder and the tennis ball leave no gap a kart fits through', () => {
+    const t = trackOf(createRace());
+    const { pot, ball, ladder } = t.dressing;
+    expect(ladder.x0 - (pot.x + pot.r)).toBeLessThan(KART.radius * 2);
+    expect(ball.x - ball.r - ladder.x1).toBeLessThan(KART.radius * 2);
+  });
+  it('rolling back over the start line does not count as being a lap ahead', () => {
+    const s = createRace({ karts: 2, laps: 3 });
+    go(s);
+    const line = trackOf(s).samples[0]!;
+    const [a, b] = [s.karts[0]!, s.karts[1]!];
+    // both a little past the line on lap one; a turns round and drives back over it
+    a.lap = 1; a.cpMask = 0; a.idx = 4; a.x = line.x + 4; a.z = line.z - 2; a.heading = 3.141592653589793; a.vx = -10; a.vz = 0;
+    b.lap = 1; b.cpMask = 0; b.idx = 3; b.x = line.x + 3; b.z = line.z + 2; b.heading = 0; b.vx = 0; b.vz = 0;
+    const west: DriveInput[] = [noDrive(), { steer: 0, drift: false, brake: true }];
+    const ev = run(s, 70, () => west);
+    expect(a.x).toBeLessThan(line.x - 2);
+    expect(a.behind).toBe(true);
+    expect(a.place).toBe(2); // behind the kart that stayed put
+    expect(a.lap).toBe(1);
+    // …and coming forward again earns nothing
+    a.heading = 0; a.vx = 12; a.vz = 0;
+    ev.push(...run(s, 80, () => west));
+    expect(a.behind).toBe(false);
+    expect(a.lap).toBe(1);
+    expect(ev.some((e) => e.type === 'lap')).toBe(false);
   });
 });
 
@@ -299,6 +358,33 @@ describe('a whole race', () => {
     expect(s.karts[0]!.finished).toBe(true);
     expect(s.karts[0]!.place).toBe(1);
     expect(s.karts[1]!.place).toBe(2);
+  });
+  it('after the people are home the race runs on briefly, so a rival just behind gets a finishing time', () => {
+    const s = createRace({ karts: 2, laps: 1, required: [0] });
+    go(s);
+    // both on the last stretch: the person ten units from the line, the rival fifteen behind them
+    const line = trackOf(s).samples[0]!;
+    const N = trackOf(s).samples.length;
+    s.karts.forEach((k, i) => {
+      k.lap = 1; k.cpMask = 3; k.heading = 0; k.vx = KART.vMax; k.vz = 0;
+      k.x = line.x - 10 - i * 15; k.z = line.z; k.idx = N - 10 - i * 15;
+    });
+    run(s, 600);
+    expect(s.phase).toBe('over');
+    expect(s.karts[0]!.finished).toBe(true);
+    expect(s.karts[1]!.finished).toBe(true); // home inside the run-out
+    expect(s.karts[1]!.finishTick).toBeGreaterThan(s.karts[0]!.finishTick);
+    // and a rival a long way back is not waited for
+    const far = createRace({ karts: 2, laps: 1, required: [0] });
+    go(far);
+    const a = far.karts[0]!;
+    a.lap = 1; a.cpMask = 3; a.heading = 0; a.vx = KART.vMax; a.vz = 0; a.x = line.x - 10; a.z = line.z; a.idx = N - 10;
+    const ev = run(far, 600);
+    expect(far.phase).toBe('over');
+    expect(far.karts[1]!.finished).toBe(false);
+    const over = far.tick;
+    expect(over - a.finishTick).toBe(RACE.runOutTicks);
+    expect(ev.filter((e) => e.type === 'over')).toHaveLength(1);
   });
 });
 
