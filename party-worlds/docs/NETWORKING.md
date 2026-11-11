@@ -2,6 +2,8 @@
 
 Status words are defined in `PROGRESS.md`. Nothing here has been played by real people on separate devices over the internet yet.
 
+**Scope:** everything below describes the private rooms built for Catapult Courier, which is now a parked experiment (D-016). **Backyard Dash is local only** (solo and split screen). Its simulation is the same kind of pure, fixed-step function of inputs (`src/attractions/dash/sim.ts`: steer, drift and brake per kart per tick), so the server could run it unchanged; what is not designed yet is client prediction for four karts that push each other.
+
 ## Authority model
 
 The room server (`server/`) runs the exact simulation module the browser runs (`src/attractions/courier/sim.ts`). Clients send **inputs only**. A client cannot claim a position, a catch or a score, because the protocol has no message for it.

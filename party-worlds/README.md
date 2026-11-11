@@ -2,9 +2,11 @@
 
 **Our people and pets, inside impossible little worlds.**
 
-A social game where you, the people you love, and your pets are shrunk onto an ordinary table. First playable attraction: **Catapult Courier** — one of you is flung off a bent spoon and feathers a cocktail umbrella on the way down; the other sprints and dives to catch them in a cupcake liner. Roles swap every launch, and the table remembers what you do to it.
+A social racing game where you, your friends and your pets are tin-toy racers in places hidden in ordinary objects. The playable prototype is **Backyard Dash**: three laps of a patio at night. Karts drive themselves, you steer; hold DRIFT through a corner and let go for a boost; take the road or risk the plank across the flowerbed, once somebody has knocked the peg out from under it.
 
 This is a **web build** (TypeScript + Three.js). It is not a native iOS app. Nobody has play-tested it yet. See `docs/PROGRESS.md` for exactly what is and is not proven.
+
+An earlier co-operative attraction, **Catapult Courier**, is kept as a parked experiment and is still playable from the play sheet (`docs/DECISIONS.md`, D-016).
 
 ## Run it
 
@@ -13,31 +15,32 @@ npm install
 npm run dev          # game at http://127.0.0.1:5173
 ```
 
-Open it on a phone on the same network with `npm run dev -- --host 0.0.0.0`, then visit `http://<your-computer-ip>:5173`.
+Open it on a phone or tablet on the same network with `npm run dev -- --host 0.0.0.0`, then visit `http://<your-computer-ip>:5173`. That is also the way to see it full-screen without any viewer around it; on an iPhone, "Add to Home Screen" then opens it without browser bars.
 
 | Command | What it does |
 |---|---|
 | `npm run dev` | Development server with hot reload |
-| `npm test` | 45 automated tests: simulation rules + private-room server |
+| `npm test` | 69 automated tests: race rules, Courier rules, private-room server |
 | `npm run typecheck` | Strict TypeScript check |
 | `npm run build` | Production build into `dist/` (static files; host anywhere) |
-| `npm run server` | Private-room server on port 8787 (`PORT`, `ALLOWED_ORIGINS`, `LAUNCHES` env vars) |
+| `npm run server` | Private-room server for Courier on port 8787 (`PORT`, `ALLOWED_ORIGINS`, `LAUNCHES` env vars) |
 | `node scripts/build-single-file.mjs out.html --page` | One self-contained HTML file (after `npm run build`) |
 
 ### Play modes
-- **With Buddy** — just you; your second character is played by a labelled bot partner.
-- **Same screen** — two players on one device; Player 1 owns the left half, Player 2 the right.
-- **Online room** — two devices, a four-letter code. Needs the room server: run `npm run server` and the game finds it on `localhost`; for another host add `?server=wss://your-host` to the game URL or build with `VITE_ROOM_SERVER`.
+- **Race** — you against three rivals. Rivals are bots and are labelled; your second character drives the quickest one. Pick how hard they race: Gentle, Keen or Fierce.
+- **Split screen** — two people on one device, left and right halves, plus two bot rivals. Best on a tablet or a laptop.
+- **Parked: Catapult Courier** — with a bot partner, same screen, or an online room (needs `npm run server`).
 
 ### Controls
-| | Touch | Keyboard / mouse |
+| | Touch | Keyboard |
 |---|---|---|
-| Launch | Drag back anywhere in your area, let go | Mouse drag, or hold and release Space |
-| Umbrella (in flight) | Hold | Space or W |
-| Run (catcher) | Drag left / right | A / D or ← / → |
-| Dive | DIVE button, quick tap, or a second finger | Shift, S or ↓ |
+| Steer | Drag left / right anywhere in your half | A / D or ← / → |
+| Drift, then boost | Hold DRIFT (or a second finger) while turning; let go | Space, Shift or J |
+| Start boost | Press DRIFT just before GO | same |
+| Brake / reverse | BRAKE | S or ↓ |
+| Split screen | Each half is its own stick; steering hard starts the drift by itself | Player 1: A / D, Left Shift, S · Player 2: ← / →, Right Shift, ↓ |
 
-`?launches=2` on the URL shortens a local round for quick checks. The game lowers its own picture quality if the device cannot hold about 50 frames per second; `?hq` turns that off (useful for screenshots on slow machines).
+`?laps=1` on the URL shortens a race for quick checks (personal bests are only kept for three-lap races). The game lowers its own picture quality if the device cannot hold about 50 frames per second; `?hq` turns that off (useful for screenshots on slow machines).
 
 ## How it is put together
 
@@ -47,9 +50,11 @@ src/
   kit/          contracts between the game and its art/audio kits; shared materials
   render/       stage (renderer + lights), camera rig, particles, portraits
   characters/   people, dogs and cats from data: builder → skinned mesh → animation rig
-  worlds/birthday/   the Birthday Continental prop kit
+  worlds/backyard/   Backyard After Dark: the patio, its props and the karts
+  worlds/birthday/   the Birthday Continental prop kit (Courier)
   audio/        procedural sound effects and music (no audio files)
-  attractions/courier/   rules, simulation, bot, controls, view, local + online sessions
+  attractions/dash/      the race: track, simulation, rival bots and levels, view, HUD/controls/session
+  attractions/courier/   parked: rules, simulation, bot, controls, view, local + online sessions
   net/          wire protocol and browser room client
   ui/           HUD, menus, styles
 server/         private-room server (authoritative simulation over WebSockets)
@@ -58,25 +63,29 @@ dev/            dev pages and automation: play-through, online test, audio measu
 docs/           the design and decision records — start with GDD.md
 ```
 
-The rule that shapes the code: **the simulation is a pure, deterministic function of inputs** (`src/attractions/courier/sim.ts`, using only `src/core/dmath.ts`). The same module runs in the browser, in the bot, in tests and on the server, which is what makes online authority, prediction and input-replay validation possible.
+The rule that shapes the code: **each simulation is a pure, deterministic function of inputs** (`src/attractions/dash/sim.ts` and `src/attractions/courier/sim.ts`, using only `src/core/dmath.ts`). The same module runs in the browser, in the bots and in tests (and, for Courier, on the server), which is what makes authority, prediction and input-replay validation possible.
 
 ## Automated checks you can run
 
 ```bash
 npm test
-node dev/playthrough.mjs "http://127.0.0.1:5173/?launches=2" buddy dev/shots/play     # a full round through the real UI
-node dev/playthrough.mjs "http://127.0.0.1:5173/?launches=1" buddy dev/shots/port --portrait
-LAUNCHES=2 npm run server &  node dev/online-test.mjs                                # two browsers, one room
-node dev/touch-test.mjs                                                             # one launch with real touch events
-node dev/measure-audio.mjs                                                          # every sound, rendered offline
-npx tsx dev/botmatch.ts                                                             # balance: bots play 240 rounds
+node dev/raceplay.mjs "http://127.0.0.1:5173/?laps=1" solo dev/shots/race --slow=0.25      # a whole race through the real UI, by keys
+node dev/raceplay.mjs "http://127.0.0.1:5173/?laps=1" split dev/shots/split --slow=0.25 --rematch
+node dev/raceplay.mjs "http://127.0.0.1:5173/?laps=1" solo dev/shots/touch --touch --slow=0.2   # by touch, on an emulated phone
+sh dev/race-evidence.sh                                                                    # all of the above and more, one summary line each
+LEVEL=1 npx tsx dev/humanish.ts                                                            # stand-in drivers against a rival level
+npx tsx dev/raceprobe.ts                                                                   # rivals race each other: lap times, boosts, bumps
+node dev/measure-audio.mjs                                                                 # every sound, rendered offline
 ```
+
+`--slow` runs game time slower for the scripted driver only: the headless browser draws in software and acknowledges input about once a frame, so without it the script reacts far later than a person would. Courier's checks (`dev/playthrough.mjs`, `dev/online-test.mjs`, `dev/touch-test.mjs`, `dev/botmatch.ts`) still work.
 
 ## Documents
 
 | File | What it is |
 |---|---|
 | `docs/MASTER_BRIEF.md` | The founder's charter, verbatim |
+| `docs/RACING_BRIEF.md` | The change of direction to racing, and the brief for this build |
 | `docs/GDD.md` | Living game design document |
 | `docs/DECISIONS.md` | Why things are the way they are |
 | `docs/ATTRACTIONS.md` | Attraction registry and acceptance criteria |

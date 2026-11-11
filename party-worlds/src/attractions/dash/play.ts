@@ -170,6 +170,10 @@ export class RaceHud {
   private readonly proj = { x: 0, y: 0, visible: false, dist: 0 };
   private readonly pos = { x: 0, y: 0, z: 0 };
   private drove = false;
+  /** which local players have steered by touch this session */
+  private touched = [false, false];
+  /** a phone or tablet: assume thumbs until proven otherwise */
+  private coarse = typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
   private order = [0, 1, 2, 3];
   private done = [0, 0, 0, 0];
   private tagD = [0, 0, 0, 0];
@@ -363,15 +367,18 @@ export class RaceHud {
         p.banner.classList.remove('show');
       }
       const lefty = settings.leftHanded;
-      p.drift.style.right = lefty ? '' : 'calc(var(--u) * 4)';
-      p.drift.style.left = lefty ? 'calc(var(--u) * 4)' : '';
-      p.brake.style.left = lefty ? '' : 'calc(var(--u) * 4)';
-      p.brake.style.right = lefty ? 'calc(var(--u) * 4)' : '';
-      // first-race hints, retired once done
+      // both buttons live on one side so the other thumb has its whole side of the screen to steer in
+      p.root.classList.toggle('lefty', lefty);
+      // first-race hints, retired once done; worded for whatever this player is steering with
+      const pad = this.controls.pads[i]!;
+      if (pad.stick) this.touched[i] = true;
+      const touch = this.touched[i] || this.coarse;
+      const driftKey = split ? (i === 0 ? 'Left Shift' : 'Right Shift') : 'Space';
+      const auto = touch && (split || settings.autoDrift);
       let hint = '';
-      if (s.phase === 'countdown' && !this.learned.raceStart) hint = 'It drives itself. Press DRIFT just before GO for a boost.';
-      else if (s.phase === 'racing' && !this.learned.steer) hint = `${ICON.hand}Drag left or right to steer`;
-      else if (s.phase === 'racing' && !this.learned.drift && s.phaseTick > 240) hint = 'Hold DRIFT in a corner, let go to boost';
+      if (s.phase === 'countdown' && !this.learned.raceStart) hint = `It drives itself. Press ${touch ? 'DRIFT' : driftKey} just before GO for a boost.`;
+      else if (s.phase === 'racing' && !this.learned.steer) hint = touch ? `${ICON.hand}Drag left or right to steer` : `Steer with ${split ? (i === 0 ? 'A / D' : '← / →') : 'A / D or ← / →'}`;
+      else if (s.phase === 'racing' && !this.learned.drift && s.phaseTick > 240) hint = auto ? 'Steer hard into a corner to slide, ease off to boost' : `Hold ${touch ? 'DRIFT' : driftKey} in a corner, let go to boost`;
       else if (s.phase === 'racing' && !s.plankOpen && !this.learned.plank && k.lap >= 2) hint = 'Bump the glowing peg to drop the plank';
       if (p.hint.dataset.t !== hint) {
         p.hint.dataset.t = hint;

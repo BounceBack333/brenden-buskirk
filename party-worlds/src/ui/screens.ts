@@ -91,6 +91,24 @@ export interface ResultsInfo {
 
 const SPECIES_LABEL: Record<Species, string> = { human: 'Person', dog: 'Dog', cat: 'Cat' };
 
+/** True where the browser lets a page go full screen (not iPhone Safari, not every embedded viewer). */
+function canFullscreen(): boolean {
+  try {
+    return !!document.fullscreenEnabled && typeof document.documentElement.requestFullscreen === 'function';
+  } catch {
+    return false;
+  }
+}
+
+function toggleFullscreen(): void {
+  try {
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => undefined);
+  } catch {
+    /* not allowed here: the button simply does nothing */
+  }
+}
+
 export class Screens {
   private editSeat: 0 | 1 = 0;
   private editTab: 'cast' | 'make' = 'cast';
@@ -138,6 +156,7 @@ export class Screens {
         </div>
         <div class="home-foot">
           <button class="icon-btn" data-act="settings" aria-label="Settings">${ICON.gear}</button>
+          ${canFullscreen() ? `<button class="icon-btn" data-act="fullscreen" aria-label="Full screen">${ICON.expand}</button>` : ''}
           <span class="build">${esc(a.buildLabel)}</span>
         </div>
         <div class="cast-strip">${chip(0)}${chip(1)}</div>
@@ -146,6 +165,7 @@ export class Screens {
     this.on('[data-act="chars"]', () => { this.tap(); this.characters(0); });
     this.on('[data-act="worlds"]', () => { this.tap(); this.worlds(); });
     this.on('[data-act="settings"]', () => { this.tap(); this.settings(() => this.home()); });
+    this.on('[data-act="fullscreen"]', () => { this.tap(); toggleFullscreen(); });
     this.on('.cast-chip', (el) => { this.tap(); this.characters(Number(el.dataset.seat) as 0 | 1); });
   }
 

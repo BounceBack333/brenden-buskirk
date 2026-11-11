@@ -1,12 +1,13 @@
 # Party Worlds — project instructions
 
-Original social game. Read `docs/GDD.md` and `docs/PROGRESS.md` before changing anything substantial; `docs/MASTER_BRIEF.md` is the founder's intent and `docs/DECISIONS.md` records what has been decided since.
+Original social racing game (racing has been the core since D-016; Catapult Courier is a parked experiment kept intact). Read `docs/GDD.md` and `docs/PROGRESS.md` before changing anything substantial; `docs/MASTER_BRIEF.md` is the founder's intent, `docs/RACING_BRIEF.md` is the direction that followed it, and `docs/DECISIONS.md` records what has been decided since.
 
 ## Rules that must hold
 
 1. **The simulation is deterministic and pure.** Code under `src/attractions/*/sim.ts` and `rules.ts` may use only `+ - * /`, `Math.sqrt/floor/round/abs/min/max` and `src/core/dmath.ts`. No `Math.sin`, `Math.random`, `Date`, DOM or rendering. The server and the tests run the same file.
 2. **Presentation never changes outcomes.** Kits (`characters`, `worlds`, `audio`), the view and the HUD only read state. Looks, species and cosmetic size never change colliders or reach (`RIG` in `src/kit/contracts.ts`).
-3. **Outcomes are authoritative.** Online, a catch, a miss and every point come from the server only.
+3. **Outcomes are authoritative.** Online, a catch, a miss and every point come from the server only. Race results come from the race simulation only.
+   **One kart for everyone:** nothing a player picks changes `KART` numbers or the collider. Rival bots differ only by the skill and throttle stated in `src/attractions/dash/rivals.ts`; no rubber band.
 4. **Report evidence honestly.** Use the status words in `docs/PROGRESS.md`. A scripted play-through is not a play-test; a local simulation is not verified online play; this web build is not a native iOS app. Never write measurements, reactions or results that were not observed.
 5. **Bots and assists are labelled** wherever they appear, including results.
 6. **No real people's photos or likenesses** in development. The cast is invented. Do not name a character "Bailey" without an authorised reference.
@@ -16,7 +17,7 @@ Original social game. Read `docs/GDD.md` and `docs/PROGRESS.md` before changing 
 ## Working here
 
 - `npm run dev`, `npm test`, `npm run typecheck`, `npm run build`, `npm run server`.
-- Look at what you build: `node dev/playthrough.mjs <url> <mode> <outDir>` drives a round and saves screenshots; `dev/tile.sh` stitches them.
-- Tuning numbers live in `src/attractions/courier/rules.ts`. After changing them run `npx tsx dev/probe.ts` (where launches land) and `npx tsx dev/botmatch.ts` (balance), then the tests.
+- Look at what you build: `node dev/raceplay.mjs <url> solo|split <outDir> --slow=0.25` drives a race and saves screenshots (`dev/playthrough.mjs` does the same for Courier); `dev/tile.sh` stitches them. Headless frame rates are software rendering and mean nothing for phones.
+- Race tuning lives in `src/attractions/dash/track.ts` (`KART`, `RACE`, the circuit) and `rivals.ts` (levels). After changing it run `npx tsx dev/raceprobe.ts` (rivals against each other) and `LEVEL=0|1|2 npx tsx dev/humanish.ts` (stand-in drivers against a level), then the tests. Courier's numbers are in `src/attractions/courier/rules.ts` (`dev/probe.ts`, `dev/botmatch.ts`).
 - When a decision changes behaviour or scope, add an entry to `docs/DECISIONS.md` and update `docs/PROGRESS.md` in the same change.
 - New attraction: complete its entry in `docs/ATTRACTIONS.md` (players, controls, scoring, ties, accessibility, network authority, disconnects, acceptance criteria) before writing code.

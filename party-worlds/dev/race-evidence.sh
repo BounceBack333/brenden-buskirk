@@ -1,10 +1,11 @@
 #!/bin/sh
 # Runs the automated race play-throughs one after another and collects one summary line each.
 #   sh dev/race-evidence.sh [baseUrl] [outDir]
-# Needs the dev server (npm run dev) or a preview of the build at baseUrl.
+# Needs a preview of the production build at baseUrl: npm run build && npx vite preview --host 127.0.0.1 --port 4173
+# (not the dev server: saving a source file reloads the page and ruins the run).
 # Scripted input in a headless browser: evidence that the screens, controls and rules hold
 # together end to end. It is not a play-test.
-base="${1:-http://127.0.0.1:5173/}"
+base="${1:-http://127.0.0.1:4173/}"
 out="${2:-dev/shots}"
 sum="$out/race-evidence.jsonl"
 mkdir -p "$out"

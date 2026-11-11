@@ -269,7 +269,7 @@ input[type='range'] { width: calc(var(--u) * 44); height: calc(var(--u) * 8); ac
 .race-map { position: absolute; right: calc(var(--pad-x) + var(--u) * 13); top: var(--pad-y); width: calc(var(--u) * 30); height: calc(var(--u) * 20); opacity: 0.95; }
 .race-pane { position: absolute; pointer-events: none; overflow: hidden; }
 .race-pane.split + .race-pane.split { box-shadow: inset calc(var(--u) * 0.6) 0 0 #14162c; }
-.race-place { position: absolute; left: calc(var(--u) * 4); bottom: calc(var(--u) * 22); font-weight: 700; font-size: calc(var(--u) * 13); line-height: 1; color: #fff; text-shadow: 0 calc(var(--u) * 0.8) 0 #14162c, 0 0 calc(var(--u) * 2.4) rgba(20, 22, 44, 0.7); font-style: italic; }
+.race-place { position: absolute; left: calc(var(--u) * 4); bottom: calc(var(--u) * 5); font-weight: 700; font-size: calc(var(--u) * 13); line-height: 1; color: #fff; text-shadow: 0 calc(var(--u) * 0.8) 0 #14162c, 0 0 calc(var(--u) * 2.4) rgba(20, 22, 44, 0.7); font-style: italic; }
 .race-place.bump { animation: bump 0.4s ease; }
 .race-lap { position: absolute; left: calc(var(--u) * 4); top: calc(var(--pad-y) + var(--u) * 1); font-weight: 700; font-size: calc(var(--u) * 4.2); color: #fff; background: rgba(20, 22, 44, 0.6); padding: calc(var(--u) * 0.8) calc(var(--u) * 2.4); border-radius: calc(var(--u) * 3); }
 .race-meter { position: absolute; left: 50%; bottom: calc(var(--u) * 5); transform: translateX(-50%); width: calc(var(--u) * 46); height: calc(var(--u) * 3.6); border-radius: calc(var(--u) * 2); background: rgba(20, 22, 44, 0.55); border: calc(var(--u) * 0.5) solid rgba(255, 255, 255, 0.85); overflow: hidden; opacity: 0.35; transition: opacity 0.15s; }
@@ -305,8 +305,8 @@ input[type='range'] { width: calc(var(--u) * 44); height: calc(var(--u) * 8); ac
 .race-row .nm { font-weight: 700; }
 .race-row .tm, .race-row .bl { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
 
-.race-face { position: absolute; left: calc(var(--u) * 4); bottom: calc(var(--u) * 36); width: calc(var(--u) * 13); height: calc(var(--u) * 13); border-radius: 50%; border: calc(var(--u) * 0.7) solid #fff; box-shadow: 0 calc(var(--u) * 0.6) 0 rgba(20, 22, 44, 0.55); }
-.race-pane.split .race-face { width: calc(var(--u) * 10); height: calc(var(--u) * 10); bottom: calc(var(--u) * 33); }
+.race-face { position: absolute; left: calc(var(--u) * 4); bottom: calc(var(--u) * 19); width: calc(var(--u) * 13); height: calc(var(--u) * 13); border-radius: 50%; border: calc(var(--u) * 0.7) solid #fff; box-shadow: 0 calc(var(--u) * 0.6) 0 rgba(20, 22, 44, 0.55); }
+.race-pane.split .race-face { width: calc(var(--u) * 10); height: calc(var(--u) * 10); bottom: calc(var(--u) * 16); }
 
 .rivals-row { display: flex; align-items: center; gap: calc(var(--u) * 2.4); margin-top: calc(var(--u) * 2.4); }
 .rivals-row .lbl { font-weight: 700; font-size: calc(var(--u) * 3.4); }
@@ -316,3 +316,13 @@ input[type='range'] { width: calc(var(--u) * 44); height: calc(var(--u) * 8); ac
 
 .race-pane.split .race-hint { max-width: 86%; white-space: normal; text-align: center; bottom: calc(var(--u) * 28); font-size: calc(var(--u) * 2.9); }
 .race-pane.split .race-lap { top: calc(var(--pad-y) + var(--u) * 9); }
+
+.race-btn.drift { right: calc(var(--u) * 4); }
+.race-btn.brake { right: calc(var(--u) * 9.5); bottom: calc(var(--u) * 35); }
+.race-pane.split .race-btn.brake { right: calc(var(--u) * 6.5); bottom: calc(var(--u) * 28); width: calc(var(--u) * 13); height: calc(var(--u) * 13); font-size: calc(var(--u) * 2.4); }
+.race-pane.lefty .race-btn.drift { right: auto; left: calc(var(--u) * 4); }
+.race-pane.lefty .race-btn.brake { right: auto; left: calc(var(--u) * 9.5); }
+.race-pane.split.lefty .race-btn.brake { left: calc(var(--u) * 6.5); }
+.race-pane.lefty .race-place, .race-pane.lefty .race-face { left: auto; right: calc(var(--u) * 4); }
+.race-pane.split .race-hint { max-width: calc(var(--u) * 40); bottom: calc(var(--u) * 11); font-size: calc(var(--u) * 2.6); padding: calc(var(--u) * 1.1) calc(var(--u) * 2.2); border-radius: calc(var(--u) * 3); }
+.race-pane.split .race-meter { width: calc(var(--u) * 34); }

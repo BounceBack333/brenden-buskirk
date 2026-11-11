@@ -2,7 +2,9 @@
 
 Raw results are never compared across attractions. Each attraction produces its own raw result, which is converted to **Party Points (PP)** by placement.
 
-Status: Catapult Courier raw scoring is **implemented and tested**. Party Points, Set the Table and the two other attractions in the worked example are **proposed**.
+Status: Catapult Courier raw scoring is **implemented and tested**. Party Points, Set the Table and the two other attractions in the worked example are **proposed**, and belong to the table design that was parked by D-016.
+
+**Backyard Dash** has no points. A race result is finishing order; the results screen shows the winner's time, everyone else's gap (or the lap they reached), each driver's best lap, the rival level, and who opened the plank. A personal best race time is kept on the device per mode and rival level for three-lap races. Nothing is submitted anywhere.
 
 ## 1. Raw result → Party Points
 
