@@ -28,7 +28,7 @@ Nothing in this project has been played by a person other than through scripts, 
 | No flight can stall | Implemented and tested | Jelly tires after two bounces, the liner goes soft after eight rattles, a wedged flyer is called a miss within 0.75 s, hard cap 9 s. 1,440 bot launches after the fix: zero timeouts |
 | "The table remembers" | Implemented and tested (within a round) | Popped balloons stay popped; every miss leaves a splat in the launcher's colour |
 | Buddy, the labelled bot partner | Simulated partner, implemented and tested | 240 bot-with-bot rounds: 82 % / 93 % / 99 % catches at skill 0.3 / 0.65 / 0.9. Labelled "bot" in the play sheet, HUD and results |
-| Touch, mouse and keyboard controls | Implemented, automation only | `dev/playthrough.mjs` completes rounds with real pointer events; no person has tried the gestures |
+| Touch, mouse and keyboard controls | Implemented, automation only | `dev/playthrough.mjs` completes rounds with mouse and keyboard; `dev/touch-test.mjs` performs the pull, release and umbrella hold with real touch events on an emulated 844×390 phone (Chromium engine, not iOS Safari). No person has tried the gestures |
 | Same-screen two-player | Implemented, automation only | Script launches from both halves; catching in this mode was not scripted |
 | Always-landscape rotation for portrait windows | Implemented, automation only | Play-through at 390×844 completes a launch with remapped pointer input |
 | Camera (lean-in, pull-reveal, flight framing, outcome close-up) | Implemented, automation only | Screenshot review of every phase |

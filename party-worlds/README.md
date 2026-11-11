@@ -67,6 +67,7 @@ npm test
 node dev/playthrough.mjs "http://127.0.0.1:5173/?launches=2" buddy dev/shots/play     # a full round through the real UI
 node dev/playthrough.mjs "http://127.0.0.1:5173/?launches=1" buddy dev/shots/port --portrait
 LAUNCHES=2 npm run server &  node dev/online-test.mjs                                # two browsers, one room
+node dev/touch-test.mjs                                                             # one launch with real touch events
 node dev/measure-audio.mjs                                                          # every sound, rendered offline
 npx tsx dev/botmatch.ts                                                             # balance: bots play 240 rounds
 ```
