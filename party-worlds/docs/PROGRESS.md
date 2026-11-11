@@ -50,7 +50,7 @@ Other things built for this milestone:
 | Chase camera, countdown and finish orbits, boost FOV, shake | Implemented, automation only | Screenshot review. A bug that showed the kart from the front mid-race was found this way and fixed |
 | Race HUD: place, driver portrait, lap, clock, minimap, drift meter, banners, wrong-way, rival tags that avoid each other | Implemented, automation only | Screenshot review at 1280×720, 844×390 and split |
 | Backyard After Dark world kit and karts | Implemented, automation only | Screenshot review. One race view: about 72–82 draw calls and 58–62k triangles (measured in the page); split screen draws it twice |
-| Race audio: engine, skid, boost, charge, bumps, laps, plank, race music | Implemented, **measured but never heard** | <!--AUDIO--> |
+| Race audio: engine, skid, boost, charge, bumps, laps, plank, race music | Implemented, **measured but never heard** | `dev/measure-audio.mjs` renders every sound offline, the race set included: no NaN, nothing silent, no clipping (ten sounds stacked peak at 0.72), every one-shot ends. The engine never stops, so it was set to sit level with the skid and under the one-shots (RMS about 0.04–0.06 against 0.04–0.09 for boosts and chimes). That balance is a guess made from numbers |
 | Hints that retire once the action is done | Implemented, automation only | Start, steer, drift, peg |
 | Personal best per mode and rival level | Implemented, untested | Stored on the device; three-lap races only |
 

@@ -469,7 +469,8 @@ export function createAudioKit(opts: AudioKitOptions = {}): AudioKit {
         (engine.src as OscillatorNode).frequency.setTargetAtTime(f, now, 0.05);
         engine.osc2.frequency.setTargetAtTime(f * 1.505, now, 0.05);
         engine.filter.frequency.setTargetAtTime(380 + 1500 * k + 900 * l, now, 0.06);
-        engine.gain.gain.setTargetAtTime(0.035 + 0.03 * k + 0.035 * l, now, 0.06);
+        // kept low on purpose: it never stops, so it sits under every one-shot (set by measurement, not by ear)
+        engine.gain.gain.setTargetAtTime(0.007 + 0.006 * k + 0.009 * l, now, 0.06);
       } catch {
         /* optional */
       }
