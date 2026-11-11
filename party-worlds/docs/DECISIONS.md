@@ -2,6 +2,21 @@
 
 Newest first. Each entry: what was decided, why, what it costs, and what would change it.
 
+## D-022 · A game for grown-ups that looks like one (2026-11-11)
+The founder, on seeing the racing build: it feels like a child's game; the characters are babies and dolls; make it something adults enjoy and come back to, "nostalgia plus new age", with adult drivers who can be funny, different, animals, anything, and only one or two kid options.
+**What changed.**
+- **Drivers are adults by default.** About four heads tall instead of two and a bit; a neck, shoulders wider than the head, a jawline, eyes a sensible size, a nose with a bridge, almost no blush. Done by building the head at the size every face part, hairstyle, pair of glasses and hat was designed for, and wearing it at 60 % on a new, longer body (`BodyDesc.headScale`), so nothing had to be redrawn.
+- **Clothes say who someone is:** tee, hoodie, jacket, suit, vest. A racing helmet and a cowboy hat; a buzz cut and a mohawk.
+- **Drivers who are not people,** on the same adult body: a bear, a fox, a rabbit, a frog, a robot, an alien, a masked wrestler. This is where "funny, different, animals" lives.
+- **The cast:** ten adults, seven non-people, two kids (the old proportions, kept as an option and labelled Kid), four dogs, three cats. Seats saved from the old cast are reset once, so nobody opens the new build to last week's toddler.
+- **The kart's paint belongs to the driver** and is what stands for them on the minimap, tags and results.
+- **The look:** dark glass and thin neon instead of cream cards; a condensed italic typeface and slanted buttons (the bones of the arcade racers adults grew up on) with a modern finish. Glow-tape road edges, pink on the inside of the lap and blue on the outside. Moodier light.
+- **The sound:** the music box is gone from the race and the lobby; both are synth tracks on one four-chord loop.
+- **Something to race for:** two people play a first-to-three series with a scoreboard that carries across rematches; alone there are bronze, silver and gold times and the gap to the next one.
+**On "addicted".** The aim is that people want another race and feel fine about having wanted it. So the hooks are a score to settle, a time to beat and a rival to move up to, and each of them ends: a series finishes at three, gold is gold. There are no timers that punish leaving, no streaks that break if you stop, no random rewards, nothing for sale. That is the brief's "trustworthy" promise applied to this request, and it is a limit on what will be built here.
+**Cost.** Kids' proportions and the Courier poses were tuned for the old bodies; adults in Courier are untested beyond one scripted round. Font payload grew (CSS 225 → 326 KB). Medal times and everything about tone are untested on people.
+**What would change it.** The founder's eye, first. Then real adults: if they still pick the dog every time, or nobody laughs at the frog, the cast is wrong.
+
 ## D-021 · An independent review of the racing code, and a ladder on the lawn (2026-11-11)
 A second reviewer read the racing code cold and ran its own probes. What it found and what was done:
 - **The whole infield was a shortcut.** A straight line across the lawn skipped either end of the lap and won by 7–10 s at every rival level. Fixed with an object, not a rule: an aluminium ladder lies along the middle of the lawn from the big pot to the hairpin, rails and end rungs solid, with the tennis ball plugging the last gap. The same cut now ends against the rails. A boost also used to make soil faster than road (it ignored 65 % of a surface penalty); it now ignores 40 %, so boosted grass is about road pace and boosted soil is slower.

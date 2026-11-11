@@ -4,20 +4,24 @@ Working title: **BounceBack Party Worlds**. Status words used throughout are def
 
 ## 1. Identity
 
-**You and your friends, and your dogs and cats, as tin-toy racers on a track hidden in an ordinary place — and the place remembers what you did to it.**
+**You and your friends, as tin-toy racers on a track hidden in an ordinary place — and the place remembers what you did to it. Made for adults: the karts are toys, the grudges are real.**
 
 Described without other games: you pick a small, expressive version of yourself or your pet, sit it in a toy kart, and race three laps of a patio at night against your friends. The garden hose is a banked wall, a scaffold plank is a shortcut, a lost tennis ball is a boulder. Someone knocks the peg out from under the plank and it stays down for everybody.
 
-**Audience:** adult friend groups first. People who would play one more race to settle it. (Changed from "families and pairs" by D-016.)
+**Audience:** adults. Friend groups first: people who would play one more race to settle it. (Changed from "families and pairs" by D-016; the look and cast followed in D-022.)
+
+**Tone:** nostalgia plus new. The nostalgia is the back garden, the toy karts and the arcade-racer bones (slanted menus, scoreboard numerals, a four-chord synth loop). The new is the finish: dark glass, thin neon, clean type. Funny rather than cute: a frog in a cowboy hat, a rabbit in a suit, a grandmother who will put you in the flowerbed.
 
 Three promises, in priority order when they conflict:
-1. **It's us.** Drivers are recognisable and affectionate, and the game brings their faces to the screen. Looks never change how anyone drives.
+1. **It's us.** Drivers are recognisable grown-ups (or gloriously not people at all), and the game brings their faces to the screen. Looks never change how anyone drives.
 2. **I beat you fairly.** One kart, one handling model, one set of rules for everyone on the track. Nothing bought, nothing hidden, no rubber band.
 3. **I can see why.** Every result can be explained by pointing at something that happened: a boost held too long, a plank missed, a peg someone else paid for.
 
 ## 2. Central loop
 
-`Pick drivers → countdown (meet your driver) → three laps (≈ 60 s) → results (who, by how much, who opened the shortcut) → Rematch`
+`Pick drivers → countdown (meet your driver) → three laps (≈ 60 s) → results (who, by how much, who opened the shortcut, and the score) → Next race`
+
+A race is never just a race (D-022). Two people are playing a **first-to-three series**: the scoreboard carries across rematches, says who cannot afford to lose the next one, and ends. One person is chasing **bronze, silver and gold** times, sees the gap to the next, and is offered tougher rivals after gold. Each of these is finite on purpose.
 
 The test this build exists to pass, in the advisor's words: *can you and a friend identify something you did better, get competitive about the result, and choose another race without being prompted?*
 
@@ -81,8 +85,8 @@ Not done: text scaling, a colour-blind review of spark colours, screen-reader pa
 
 ## 8. Characters and personalisation
 
-- **Built:** a parametric template system — people, dogs and cats from about fifteen data fields — with an authored cast, a builder, a driving pose for every species, and portraits rendered by the game.
-- **Direction from the review:** drivers should read less baby-like over time. Not started; the current cast is used provisionally.
+- **Built:** a parametric template system — grown-ups, the not-quite-people (bear, fox, rabbit, frog, robot, alien, masked wrestler), two kids, dogs and cats — from about twenty data fields, with an authored cast of twenty-six, a builder, a driving pose for all of them, and face portraits rendered by the game.
+- **Adults are the default** (D-022): about four heads tall, with outfits, helmets and hats. The first pass exists; whether it is the right kind of grown-up is the founder's call.
 - **Not built:** photo → character. See `research/avatar-pipeline.md`. No real photos are used anywhere in development, and no character is named after a real pet.
 - **Fairness (enforced in code):** every kart has the same collider and the same numbers whatever is sitting in it.
 
@@ -107,3 +111,6 @@ Before D-016 the central loop was "one table, one evening": three or four short 
 5. Whether split screen on the device they actually have is big enough.
 6. Real-device frame time, in split screen especially.
 7. Whether the drivers are recognisable enough from behind, with the portrait, to matter.
+8. Whether the new cast reads as adult and funny to adults, or merely as taller toys.
+9. Whether a first-to-three series gets played out, and whether a second one gets started.
+10. Whether the medal times are in the right place for real hands.

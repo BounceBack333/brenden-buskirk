@@ -13,7 +13,7 @@ Short list. Each item says what it blocks and who can unblock it.
 | 5 | **Native iOS route:** Capacitor wrapper of this build, or an engine port | App Store work | Needs a Mac with Xcode and an Apple developer account. Neither exists in this environment |
 | 6 | **Photo-to-character:** which processor, what consent text, what budget | "That is exactly me" | Research note in `research/avatar-pipeline.md`; a direct read of vendor documentation needs these hosts allowed: developers.tripo3d.ai, docs.meshy.ai, developer.apple.com, www.ftc.gov |
 | 7 | **Authorised reference for Bailey** | A real Bailey driver | Until then the cast uses invented dogs only |
-| 8 | **How grown-up should drivers look?** | The review asked for less baby-like characters over time | A direction or two or three reference styles you like would be enough to start |
+| 8 | **Is this the right kind of grown-up?** | Everything further on the cast and the look | A first adult pass exists (D-022). Your reaction to it is the input: too plain, too silly, wrong style, who is missing |
 
 ## Needs equipment or people
 

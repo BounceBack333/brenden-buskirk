@@ -1,6 +1,6 @@
 # Progress and acceptance record
 
-Last updated: 2026-11-11 (racing prototype).
+Last updated: 2026-11-11 (grown-up pass).
 
 ## Status words
 
@@ -14,6 +14,29 @@ Last updated: 2026-11-11 (racing prototype).
 | **Blocked** | Cannot proceed without the named dependency |
 
 One recording of Catapult Courier was made by the founder and reviewed by an advisor; that review is the reason for the change of direction (D-016). Apart from that, nothing in this project has been played by a person, and nothing has run on a physical phone that we have observed. There are no player reactions, retention figures, revenue figures or device frame rates in this repository, because none exist.
+
+## Milestone: the grown-up pass (D-022)
+
+**Asked for:** a game adults enjoy and come back to; nostalgia plus new; adult avatar characters, funny and different and animals welcome, one or two kids at most; not a child's game.
+
+| Asked for | Status | Evidence |
+|---|---|---|
+| Adult drivers instead of babies and dolls | Implemented, automation only | Grown-ups are the default: about four heads tall, neck, shoulders, jaw, smaller eyes, a nose. Contact sheets of the whole cast reviewed by eye, standing and seated in karts. **Nobody but me has looked at them** |
+| Funny, different, animals | Implemented, automation only | Seven drivers who are not people (bear, fox, rabbit, frog, robot, alien, masked wrestler) on the adult body; outfits, a racing helmet, a cowboy hat, a mohawk. Dogs and cats remain |
+| Only one or two kids | Done | Two in the cast, labelled Kid; "Age" is an option in the builder. Seats saved from the old cast reset once |
+| Not a child's game: the look | Implemented, automation only | Dark glass and neon interface, condensed italic type, slanted buttons, glow-tape track edges, moodier light. Screens reviewed at 1280×720 and 844×390: home, play sheet, driver picker and builder, race HUD, results |
+| Not a child's game: the sound | Implemented, **measured but never heard** | Lobby and race are synth tracks on one four-chord loop; the music box is gone from both. Offline render: no clipping, nothing silent |
+| Something to come back for | Implemented and tested (the arithmetic); automation only (the screens) | Two players: a first-to-three series whose score carries across rematches (`tests/stakes.test.ts`). Solo: bronze, silver and gold times with the gap to the next. Both end; nothing punishes stopping (D-022) |
+| "Every person in the world gets hooked" | **Not something a build can claim** | What exists is a race, a score to settle and a time to beat. Whether anyone wants a second race is the open question it has always been, and only people can answer it |
+
+<!--ADULT-EVIDENCE-->
+
+**What is weak or unknown here:**
+- Taste. Whether this is the right kind of adult, and whether the non-people are funny, is the founder's call and then real players'.
+- Bodies are simple: one-piece arms and legs, no elbows or knees. Seated in a kart that reads fine; standing in the picker's preview they are a little stiff.
+- Medal times (55 / 58.5 / 63 s) come from the stand-in drivers.
+- The parked Courier mode was tuned for the old bodies; with adults it has had one scripted round and no visual review.
+- Still one track, still local only, still never played by a person or run on a phone.
 
 ## Milestone: racing prototype — Backyard Dash
 
@@ -90,7 +113,7 @@ Five runs, zero page errors. They were run on the build that includes every fix 
 - I did not see that the lawn was a shortcut; the independent reviewer did, by writing a driver that tried it. A boost also made flowerbed soil quicker than the road, which undercut the plank. Both fixed (D-021).
 - The race used to end on the tick the player finished, so beaten rivals showed "lap 3 of 3" instead of a gap. It now runs on for 2.5 s.
 
-**What passed:** 74 of 74 automated tests; type-check clean; production build (911 KB JS + 225 KB CSS; 261 KB + 153 KB gzipped); the play-throughs above with zero page errors.
+**What passed (at that point):** 74 of 74 automated tests; type-check clean; production build (911 KB JS + 225 KB CSS; 261 KB + 153 KB gzipped); the play-throughs above with zero page errors.
 
 **What failed or is weak:**
 - Frame rate on a real device is unknown, and split screen doubles the drawing. Headless numbers are software rendering and mean nothing here.

@@ -1,6 +1,8 @@
 # Art & Audio Bible (v0.2)
 
-One sentence: **our people and pets, shrunk into ordinary places, built like well-loved vinyl toys.** The racing world, Backyard After Dark, is that at night under string lights; the parked Birthday Continental is that in warm afternoon light.
+One sentence: **grown-ups, their pets and a few things that are neither, shrunk into ordinary places, raced like an arcade cabinet you remember and finished like something made this year.** The racing world, Backyard After Dark, is that at night under string lights; the parked Birthday Continental is the earlier daytime toy-box look.
+
+**For adults (D-022).** Funny, not cute. If a choice makes the game look like it is for small children — a blush, a bubble font, a pastel card, a bounce where a snap would do — it is the wrong choice.
 
 Everything here is a rule the kits must follow so that authored characters, personalised characters and props read as one world. Code-level contracts live in `src/kit/contracts.ts`; shared materials and palette live in `src/kit/materials.ts`; shared lighting lives in `src/render/stage.ts`.
 
@@ -13,7 +15,8 @@ Everything here is a rule the kits must follow so that authored characters, pers
 
 ## Characters
 
-- **Proportions:** head ≈ 42% of standing height for people. Short limbs, mitten hands, small feet. Pets are true quadrupeds with a big head (≈ 38% of body length), stubby legs, expressive ears and tail.
+- **Proportions:** a grown-up is about four heads tall, with a neck, shoulders wider than the head and a jaw. The head is built full size and worn at 60 %, so faces keep their detail. A kid (two in the cast, an option in the builder) keeps the old proportions: head ≈ 42 % of height. Pets are true quadrupeds with a big head, stubby legs, expressive ears and tail.
+- **Not people:** bear, fox, rabbit, frog, robot, alien, masked wrestler, each on the adult body with its own head. They wear the same clothes as everyone else, which is most of the joke.
 - **Recognition comes from five levers, in this order:** silhouette (hair / ears / tail), colour blocking (skin or coat + pattern), face furniture (glasses, facial hair, muzzle length), build, outfit accent. A character must be identifiable as a 48-pixel-tall silhouette-plus-colours.
 - **Faces:** real 3D eyes (white + coloured iris + pupil + highlight) that can blink, widen, squint and look. Brows are separate movable shapes. Mouths are simple swappable shapes (smile, open, small "o", gritted, wobble). Pets add a muzzle, nose, and a tongue that can flap. Faces are readable from the gameplay camera at ~1/12 of screen height — exaggerate.
 - **Selective exaggeration:** squash and stretch the whole body up to ±25%. Ears, hair tufts, tails, cheeks and tongues are spring-driven and lag behind motion. Never distort a face into something grotesque; the result must stay affectionate.
@@ -56,10 +59,10 @@ Everything here is a rule the kits must follow so that authored characters, pers
 - Every interactive event has a sound that carries information: tension rises in pitch as the spoon bends; air rush follows speed; the umbrella opens with a papery *fwup*; jelly *boings* lower when hit harder; the rim is a tick of tin; a catch is a soft paper thump + two rising notes; a perfect catch adds a bell.
 - Music is a small looping music-box motif in a major pentatonic that thins out in tense moments and resolves on a catch.
 - Nothing is harsh, nothing mocks. A miss gets a soft descending two-note "whoops", not a buzzer.
-- **Racing:** a small buzzy two-voice engine that follows speed and opens up under boost; a filtered-noise skid while sliding; a chime at each charge level; a rising whoosh for the boost; wooden clatter when the plank drops; two plucked notes for each lap and a brighter three-note figure for the last. Race music is a quicker minor-pentatonic pattern on the same instruments. All of it has been measured for level and clipping and none of it has been heard by a person.
+- **Racing:** a small buzzy two-voice engine that follows speed and opens up under boost; a filtered-noise skid while sliding; a chime at each charge level; a rising whoosh for the boost; wooden clatter when the plank drops; two plucked notes for each lap and a brighter three-note figure for the last. Race music is a quicker minor-pentatonic pattern on the same instruments. Lobby and race share one four-chord loop (Am – F – C – G): slow pads in the lobby; kick, snare, saw bass and a square arpeggio at 126 bpm in the race. All of it has been measured for level and clipping and none of it has been heard by a person.
 
 ## Interface
 
-- Typeface: Fredoka (bundled, OFL). Big rounded numerals. Minimum touch target 56 px; primary actions 72 px.
+- Typefaces: Barlow Condensed for anything shouted (uppercase, italic at weight 800 for titles, places and numerals) and Barlow for anything read. Both bundled, OFL. Minimum touch target 56 px; primary actions 72 px.
 - Never rely on colour alone: every state also has a shape, icon or label.
-- UI sits on paper-like cards with a navy ink colour (`PALETTE.navy`), coral for primary actions, teal for confirmations.
+- UI is dark glass with a thin cool border. One hot gradient (pink through orange to amber) is reserved for the thing to press and the thing just won; cyan labels; butter yellow for needle ("cannot lose this one"). Buttons lean nine degrees, like the cabinet menus they are borrowed from.

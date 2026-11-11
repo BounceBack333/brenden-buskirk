@@ -18,6 +18,7 @@ Everything below is there to explain a yes or a no.
 4. Is the plank an argument ("you open it", "don't you dare")? Or does nobody notice it?
 5. Can a first-time player stay on the patio?
 6. Does seeing themselves or their pet in the kart matter to them?
+7. Does it read as a game for adults?
 
 ## Sessions
 
@@ -45,7 +46,9 @@ About ten minutes each. Say only: *"This is an early game. Play it however you l
 | Results | Do they read times and gaps? Do they mention best lap? First button pressed |
 | Rematch | Unprompted? How many races before they stop, and who stops |
 | Solo | After a win on Gentle, do they take the offer of Keen? |
-| Characters | Any "that's me / that's the dog"? Do they build one? Complaints about how the drivers look |
+| Drivers | Who do they pick, and how fast? A grown-up, a pet, or one of the not-people? Any laugh, any "that's you"? Do they build one? Any "this looks like a kids' game" |
+| The score | In split screen, do they play the series out to three? Does the loser start a second? Does anyone quote the scoreboard at the other |
+| Medals | Alone, do they go again for the next medal? Do they notice the gap |
 | Trouble | Rotating the phone, thumbs covering the kart, the split being too small, sound, a palm or a second finger landing on the screen, anyone trying to drive across the lawn |
 
 ## Afterwards (three questions, then stop)

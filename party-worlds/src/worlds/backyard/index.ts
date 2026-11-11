@@ -440,6 +440,50 @@ export function buildBackyardWorld(track: Track): BackyardWorld {
   sky.position.y = -6;
   root.add(sky);
 
+  // ── things a grown-up left out here ──
+  // a boombox on the lawn beyond the start straight, speakers thumping
+  const box = new THREE.Group();
+  box.position.set(14, 0, 57);
+  box.rotation.y = Math.PI + 0.35; // facing the track
+  const shellM = mat.glossy('#2a2c3a', { roughness: 0.45 });
+  box.add(new THREE.Mesh(new RoundedBoxGeometry(15, 8, 4, 3, 0.5).translate(0, 4.3, 0), shellM));
+  const handle = new THREE.Mesh(new THREE.TorusGeometry(4.2, 0.28, 6, 16, Math.PI).translate(0, 8.2, 0), mat.metal('#c7cedb'));
+  box.add(handle);
+  const cones: THREE.Mesh[] = [];
+  for (const x of [-4.6, 4.6]) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(2.5, 0.22, 6, 20).translate(x, 4.1, 2.02), mat.metal('#c7cedb'));
+    const cone = new THREE.Mesh(new THREE.CircleGeometry(2.3, 20), new THREE.MeshBasicMaterial({ color: '#ff3d8b', toneMapped: false, fog: false }));
+    cone.position.set(x, 4.1, 2.04);
+    box.add(ring, cone);
+    cones.push(cone);
+  }
+  const deck = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 1.8), new THREE.MeshBasicMaterial({ color: '#ffd15c', toneMapped: false, fog: false }));
+  deck.position.set(0, 5.4, 2.03);
+  box.add(deck);
+  box.add(new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 9, 5).rotateZ(-0.5).translate(8.6, 11, -1), mat.metal('#c7cedb')));
+  root.add(box);
+  root.add(lightPool(11, 50, 14, '#ff5aa5', 0.3));
+
+  // a neon sign on the back fence
+  const signTex = canvasTex(1024, 256, (ctx) => {
+    ctx.clearRect(0, 0, 1024, 256);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'italic 800 170px "Barlow Condensed", "Arial Narrow", Impact, sans-serif';
+    for (const [blur, alpha] of [[46, 0.9], [18, 1], [0, 1]] as const) {
+      ctx.shadowColor = '#ff2f7e';
+      ctx.shadowBlur = blur;
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = blur ? '#ff5aa5' : '#fff0f6';
+      ctx.fillText('OPEN LATE', 512, 132);
+    }
+    ctx.globalAlpha = 1;
+  }, false);
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(46, 11.5), new THREE.MeshBasicMaterial({ map: signTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false }));
+  sign.position.set(-18, 15, -57.4);
+  root.add(sign);
+  root.add(lightPool(-18, -50, 22, '#ff5aa5', 0.22));
+
   // fireflies
   const flyN = 46;
   const flyBase = new Float32Array(flyN * 3);
@@ -507,6 +551,11 @@ export function buildBackyardWorld(track: Track): BackyardWorld {
       }
       a.needsUpdate = true;
       bulbMat.size = 5.5 + Math.sin(time * 2.1) * 0.25;
+      // speakers kick at the race tempo; the sign has a tube that will not stay lit
+      const beat = (time * 126) / 60;
+      const kick = Math.max(0, 1 - (beat - Math.floor(beat)) * 3.2);
+      for (const c of cones) c.scale.setScalar(1 + 0.12 * kick);
+      (sign.material as THREE.MeshBasicMaterial).opacity = Math.sin(time * 37) > 0.985 || Math.sin(time * 2.3) > 0.995 ? 0.45 : 1;
     },
   };
 }

@@ -2,7 +2,7 @@
 
 **Our people and pets, inside impossible little worlds.**
 
-A social racing game where you, your friends and your pets are tin-toy racers in places hidden in ordinary objects. The playable prototype is **Backyard Dash**: three laps of a patio at night. Karts drive themselves, you steer; hold DRIFT through a corner and let go for a boost; take the road or risk the plank across the flowerbed, once somebody has knocked the peg out from under it.
+A racing game for adults: you and your friends (or a bear in a jacket, a frog in a cowboy hat, your dog) as tin-toy racers in places hidden in ordinary objects. The playable prototype is **Backyard Dash**: three laps of a patio at night. Karts drive themselves, you steer; hold DRIFT through a corner and let go for a boost; take the road or risk the plank across the flowerbed, once somebody has knocked the peg out from under it.
 
 This is a **web build** (TypeScript + Three.js). It is not a native iOS app. Nobody has play-tested it yet. See `docs/PROGRESS.md` for exactly what is and is not proven.
 
@@ -20,7 +20,7 @@ Open it on a phone or tablet on the same network with `npm run dev -- --host 0.0
 | Command | What it does |
 |---|---|
 | `npm run dev` | Development server with hot reload |
-| `npm test` | 74 automated tests: race rules, Courier rules, private-room server |
+| `npm test` | 79 automated tests: race rules, medals and series, Courier rules, private-room server |
 | `npm run typecheck` | Strict TypeScript check |
 | `npm run build` | Production build into `dist/` (static files; host anywhere) |
 | `npm run server` | Private-room server for Courier on port 8787 (`PORT`, `ALLOWED_ORIGINS`, `LAUNCHES` env vars) |
@@ -28,7 +28,8 @@ Open it on a phone or tablet on the same network with `npm run dev -- --host 0.0
 
 ### Play modes
 - **Race** — you against three rivals. Rivals are bots and are labelled; your second character drives the quickest one. Pick how hard they race: Gentle, Keen or Fierce.
-- **Split screen** — two people on one device, left and right halves, plus two bot rivals. Best on a tablet or a laptop.
+- **Split screen** — two people on one device, left and right halves, plus two bot rivals. Best on a tablet or a laptop. It is a first-to-three series: the score carries across rematches.
+- **Alone** there are bronze, silver and gold times to beat (three-lap races).
 - **Parked: Catapult Courier** — with a bot partner, same screen, or an online room (needs `npm run server`).
 
 ### Controls

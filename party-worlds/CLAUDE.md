@@ -11,6 +11,7 @@ Original social racing game (racing has been the core since D-016; Catapult Cour
 4. **Report evidence honestly.** Use the status words in `docs/PROGRESS.md`. A scripted play-through is not a play-test; a local simulation is not verified online play; this web build is not a native iOS app. Never write measurements, reactions or results that were not observed.
 5. **Bots and assists are labelled** wherever they appear, including results.
 6. **No real people's photos or likenesses** in development. The cast is invented. Do not name a character "Bailey" without an authorised reference.
+   **The game is for adults (D-022):** grown-up drivers by default, funny rather than cute, no toy-box styling. Hooks must be things that end (a series, a medal); no timers, punishing streaks, random rewards or anything bought.
 7. **No external assets.** Everything is generated in code. If that changes, record the source and licence in `docs/ASSETS.md` first.
 8. Keep the game inside `party-worlds/`. The repository root is the founder's portfolio site: do not touch it.
 
