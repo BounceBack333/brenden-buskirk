@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#ffe7c2">
+<title>BounceBack Party Worlds</title>
+<meta name="description" content="Our people and pets, inside impossible little worlds. First playable: Catapult Courier on the Birthday Continental.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%23ff6b5e'/><circle cx='50' cy='44' r='22' fill='%23fff4dc'/><path d='M22 70 Q50 96 78 70' stroke='%23fff4dc' stroke-width='9' fill='none' stroke-linecap='round'/></svg>">
+</head>
+<body>
+<div id="stage">
+  <canvas id="gl" aria-label="Game view"></canvas>
+  <div id="hud" hidden></div>
+  <div id="popups" aria-live="polite"></div>
+  <div id="ui"></div>
+  <div id="boot">
+    <div class="boot-card">
+      <div class="boot-title">Party Worlds</div>
+      <div class="boot-sub" id="boot-status">Setting the table…</div>
+    </div>
+  </div>
+</div>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
