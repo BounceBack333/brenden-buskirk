@@ -44,7 +44,7 @@ const body = bodyMatch[1].replace(/<script[\s\S]*?<\/script>/g, '').trim();
 
 const fragment = [
   '<title>BounceBack Party Worlds</title>',
-  '<meta name="theme-color" content="#ffe7c2">',
+  '<meta name="theme-color" content="#141a45">',
   `<style>${css}</style>`,
   body,
   `<script type="module">${js}</script>`,

@@ -323,7 +323,10 @@ export class RaceView {
         break;
       }
       case 'lap':
-        if (local(e.seat)) {
+        if (local(e.seat) && e.lap >= s.laps) {
+          // that was the last lap: the flag, not "lap 4"
+          this.onBanner?.(this.viewOf(e.seat), 'Finish!', `Last lap ${(e.ticks / 60).toFixed(2)} s`);
+        } else if (local(e.seat)) {
           const last = e.lap + 1 === s.laps;
           a.play(last ? 'final_lap' : 'lap');
           this.onBanner?.(this.viewOf(e.seat), last ? 'Final lap!' : `Lap ${e.lap + 1}`, `${(e.ticks / 60).toFixed(2)} s`);

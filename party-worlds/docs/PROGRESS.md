@@ -34,7 +34,7 @@ What the review asked for, and where it stands:
 | Fast recovery and rematching | Implemented, automation only | Wall hits nose you along the wall; a hard hit is one spin (0.37 s); stuck or wrong-way karts are put back on the road; Rematch from results starts a new countdown (scripted) |
 | Existing characters, used provisionally | Implemented, automation only | All 16 cast members and any built character drive; a `drive` pose for people and pets |
 | Characters easier to read | Implemented, automation only | Drivers 1.28× with a low seat back; face-to-face countdown; portrait by your place; portraits on rival tags and results (D-018). Judged from screenshots only |
-| A direct, full-screen presentation | Partly | A full-screen button appears where the browser allows it (not iPhone Safari). The private preview still sits inside a viewer; a bare URL needs hosting, which needs your go-ahead (`DEPENDENCIES.md` #2) |
+| A direct, full-screen presentation | Partly | A full-screen button appears where the browser allows it (not iPhone Safari). A single self-contained HTML file can be opened straight from disk on a laptop, with no viewer around it (checked: it boots from a `file://` address). The private preview still sits inside a viewer; a bare URL for a phone needs hosting, which needs your go-ahead (`DEPENDENCIES.md` #2) |
 | Less baby-like characters over time | Not started | Needs direction (`DEPENDENCIES.md` #8) |
 | Keep the Courier build | Done | Reachable from the play sheet; its 45 tests still pass |
 
@@ -49,14 +49,22 @@ Other things built for this milestone:
 | Start boost and stall | Implemented and tested | Tests |
 | Chase camera, countdown and finish orbits, boost FOV, shake | Implemented, automation only | Screenshot review. A bug that showed the kart from the front mid-race was found this way and fixed |
 | Race HUD: place, driver portrait, lap, clock, minimap, drift meter, banners, wrong-way, rival tags that avoid each other | Implemented, automation only | Screenshot review at 1280×720, 844×390 and split |
-| Backyard After Dark world kit and karts | Implemented, automation only | Screenshot review. One race view: about 72–82 draw calls and 58–62k triangles (measured in the page); split screen draws it twice |
+| Backyard After Dark world kit and karts | Implemented, automation only | Screenshot review. One race view: 78 draw calls and 62k triangles, with about 2 ms of script per frame (measured in the page); split screen draws it twice |
 | Race audio: engine, skid, boost, charge, bumps, laps, plank, race music | Implemented, **measured but never heard** | `dev/measure-audio.mjs` renders every sound offline, the race set included: no NaN, nothing silent, no clipping (ten sounds stacked peak at 0.72), every one-shot ends. The engine never stops, so it was set to sit level with the skid and under the one-shots (RMS about 0.04–0.06 against 0.04–0.09 for boosts and chimes). That balance is a guess made from numbers |
 | Hints that retire once the action is done | Implemented, automation only | Start, steer, drift, peg |
 | Personal best per mode and rival level | Implemented, untested | Stored on the device; three-lap races only |
 
 **Automated play-throughs** (headless Chromium, software rendering, scripted input through the real UI, production build). Game time was slowed for the scripted driver because this browser acknowledges input about once per 100 ms frame; without that a script reacts 0.5–1.5 s late, which no driver survives. Each run failed on any page error.
 
-<!--EVIDENCE-->
+| Run (`dev/race-evidence.sh`) | Window | What happened |
+|---|---|---|
+| Solo, keyboard, three laps, then Rematch | 1280×720 | The scripted driver knocked the peg out, took the plank, and won on Gentle in 54.32 s (best lap 17.75 s). Waffles, a bot, +1.78 s. Results offered Keen. Rematch started a new countdown |
+| Split screen, two keyboards, one lap, then Rematch | 1280×720 | Player 1 first in 19.87 s, player 2 second at +0.90 s, a bot third at +1.45 s. A bot opened the plank. Rematch started |
+| Solo, touch (floating stick, second finger to drift), one lap | 844×390, emulated phone | Third, 0.98 s behind the winning bot; best lap 20.43 s against the bots' 19.5–19.9 s |
+| Solo, touch, phone held upright (stage rotated), one lap | 390×844, emulated phone | First in 20.70 s |
+| Split screen, two thumbs with automatic drift, one lap | 1180×820, emulated tablet | Player 1 first in 18.53 s, player 2 second at +0.73 s |
+
+Five runs, zero page errors. They were run on the build that includes every fix in D-021 except the last two, which changed only the engine's loudness and the wording of the finish banner.
 
 **Stand-in drivers against each rival level** (`dev/humanish.ts`, 12 races each, **simulated**: a pursuit driver with a reaction delay; "thumb" steers proportionally, "keys" all-or-nothing):
 
@@ -82,12 +90,12 @@ Other things built for this milestone:
 - I did not see that the lawn was a shortcut; the independent reviewer did, by writing a driver that tried it. A boost also made flowerbed soil quicker than the road, which undercut the plank. Both fixed (D-021).
 - The race used to end on the tick the player finished, so beaten rivals showed "lap 3 of 3" instead of a gap. It now runs on for 2.5 s.
 
-**What passed:** 74 of 74 automated tests; type-check clean; production build (909 KB JS + 224 KB CSS; 260 KB + 152 KB gzipped); the play-throughs above with zero page errors.
+**What passed:** 74 of 74 automated tests; type-check clean; production build (911 KB JS + 225 KB CSS; 261 KB + 153 KB gzipped); the play-throughs above with zero page errors.
 
 **What failed or is weak:**
 - Frame rate on a real device is unknown, and split screen doubles the drawing. Headless numbers are software rendering and mean nothing here.
 - Nothing about feel is known: whether the drift is satisfying, whether the speed is right, whether the plank reads as a choice.
-- The scripted drivers are poor (they place third or fourth), so the play-throughs show that the game holds together, not that it can be driven well through the UI.
+- The scripted drivers only cope with game time slowed four or five times, because this browser hands them input late. The play-throughs show that the game holds together and can be driven through its real controls; they say nothing about how it feels at full speed in a hand.
 - Split screen on a phone is small. It wants a tablet or a laptop.
 - Sound has never been listened to.
 - Online racing does not exist.
