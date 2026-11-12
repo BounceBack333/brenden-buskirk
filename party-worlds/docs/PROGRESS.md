@@ -29,7 +29,17 @@ One recording of Catapult Courier was made by the founder and reviewed by an adv
 | Something to come back for | Implemented and tested (the arithmetic); automation only (the screens) | Two players: a first-to-three series whose score carries across rematches (`tests/stakes.test.ts`). Solo: bronze, silver and gold times with the gap to the next. Both end; nothing punishes stopping (D-022) |
 | "Every person in the world gets hooked" | **Not something a build can claim** | What exists is a race, a score to settle and a time to beat. Whether anyone wants a second race is the open question it has always been, and only people can answer it |
 
-<!--ADULT-EVIDENCE-->
+**Checks on this build:** 79 of 79 automated tests; type-check clean; production build 930 KB JS + 326 KB CSS (267 KB + 220 KB gzipped; the CSS is mostly the two bundled typefaces). The five scripted play-throughs were run again on it (before the boombox, the neon sign and a one-line results fix were added), zero page errors:
+
+| Run | What happened |
+|---|---|
+| Solo, keyboard, three laps, then the main button | The scripted driver opened the plank, used it and won on Gentle in 55.17 s: **Silver, 0.17 s off Gold**, and the main button read "Go for Gold". Pressing it started a new countdown |
+| Split screen, two keyboards, one lap, then the main button | Rex first, Zadie third behind a bot. Scoreboard: "Rex 1–0 Zadie · Rex leads. First to 3". "Next race" started the next one |
+| Solo, touch, landscape phone | Finished fourth, 14 s back, with one very slow lap: the scripted thumb, not a person |
+| Solo, touch, phone upright | Finished fourth, 5.5 s back |
+| Split screen, two thumbs | Rex beat Zadie by 0.22 s; series 1–0 |
+
+The parked Courier mode completed one scripted round with the adult cast, zero page errors.
 
 **What is weak or unknown here:**
 - Taste. Whether this is the right kind of adult, and whether the non-people are funny, is the founder's call and then real players'.

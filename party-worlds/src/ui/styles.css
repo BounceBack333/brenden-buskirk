@@ -505,3 +505,6 @@ input[type='range'] { accent-color: var(--coral); }
 .results .btn.big { min-height: calc(var(--u) * 12.5); font-size: calc(var(--u) * 5.6); }
 
 .race-row.head span { white-space: nowrap; letter-spacing: 0.1em; }
+
+.results .total { white-space: nowrap; }
+.results .total small { white-space: nowrap; }
