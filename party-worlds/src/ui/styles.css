@@ -584,3 +584,4 @@ input[type='range'] { accent-color: var(--coral); }
 .race-lock.firing i { border-color: #ff3b3b; }
 .race-lock.firing { animation: lock-kick 0.1s steps(2) infinite; }
 @keyframes lock-kick { 50% { transform: translate(-50%, -50%) scale(0.9); } }
+.race-feed.split { top: calc(var(--pad-y) + var(--u) * 18); }

@@ -478,6 +478,7 @@ export class RaceHud {
       }
     }
     while (this.feedLines.length && now > this.feedLines[this.feedLines.length - 1]!.until) this.feedLines.pop()!.el.remove();
+    this.feed.classList.toggle('split', split); // two panes: sit below their lap counters
     for (let i = s.karts.length - 1; i >= 0; i--) {
       const k = s.karts[i]!;
       const [x, y] = this.mapXY(k.x, k.z);

@@ -524,7 +524,7 @@ export class RaceView {
     }
     for (let i = 0; i < (big ? 10 : 5); i++) {
       const a = i * 1.7;
-      this.sparks.spawn(x + Math.cos(a) * 0.6, 0.7, z + Math.sin(a) * 0.6, Math.cos(a) * 0.8, 1.6 + (i % 3) * 0.5, Math.sin(a) * 0.8, 1.1 + (i % 4) * 0.2, 0.8 + (i % 3) * 0.25, i % 2 ? '#4b4b57' : '#34343d', -0.6);
+      this.sparks.spawn(x + Math.cos(a) * 0.6, 0.7, z + Math.sin(a) * 0.6, Math.cos(a) * 1.2, 1.8 + (i % 3) * 0.6, Math.sin(a) * 1.2, 0.9 + (i % 4) * 0.15, 0.5 + (i % 3) * 0.14, i % 2 ? '#4b4b57' : '#3a3a43', -0.6);
     }
   }
 
@@ -706,7 +706,8 @@ export class RaceView {
       if (s.combat && emit && !k.finished && (k.wreckTicks > 0 || (k.armor < 40 && (this.smokeTurn + i) % (k.armor < 20 ? 2 : 4) === 0))) {
         kart.bonnet(this.v);
         const heavy = k.wreckTicks > 0;
-        this.sparks.spawn(this.v.x, this.v.y, this.v.z, Math.sin(this.time * 13 + i) * 0.5, heavy ? 2.6 : 1.8, Math.cos(this.time * 11 + i) * 0.5, heavy ? 1.1 : 0.7, heavy ? 0.75 : 0.42, heavy ? '#33333b' : '#5a5a66', -0.5);
+        // (kept small: the driver of a wreck is looking straight through this)
+        this.sparks.spawn(this.v.x, this.v.y, this.v.z, Math.sin(this.time * 13 + i) * 0.7, heavy ? 3 : 1.8, Math.cos(this.time * 11 + i) * 0.7, heavy ? 0.9 : 0.7, heavy ? 0.46 : 0.3, heavy ? '#3a3a43' : '#5a5a66', -0.5);
         if (heavy && this.smokeTurn % 3 === 0) this.sparks.spawn(this.v.x, this.v.y, this.v.z, Math.sin(this.time * 29) * 2, 3.5, Math.cos(this.time * 31) * 2, 0.4, 0.14, '#ff8a3a', 8);
       }
 
