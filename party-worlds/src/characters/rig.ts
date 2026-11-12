@@ -151,8 +151,6 @@ export function createRig(spec: CharacterSpec, body: BodyDesc): CharacterRig {
   const grav = new THREE.Vector3();
 
   const D = body.dims;
-  const legLen = body.limbs[2].restLen;
-  const armLen = body.limbs[0].restLen;
 
   // ───────────────────────────── target poses ─────────────────────────────
 

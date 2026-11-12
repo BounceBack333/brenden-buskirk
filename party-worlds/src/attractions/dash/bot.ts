@@ -64,9 +64,10 @@ export class Rival {
       this.plankLap = k.lap;
       this.usePlank = s.plankOpen && this.rng.next() < 0.25 + this.skill * 0.6;
     }
-    const nearFork = k.x < 16 && k.x > pl.bx - 2 && k.z < 6 && k.z > -6;
+    const inZone = (zn: { x0: number; x1: number; z0: number; z1: number }): boolean => k.x > zn.x0 && k.x < zn.x1 && k.z > zn.z0 && k.z < zn.z1;
+    const nearFork = inZone(pl.fork);
     // the sharpest rival opens the plank itself on lap two if nobody has
-    const wantOpen = !s.plankOpen && this.skill > 0.8 && k.lap === 2 && k.x < 20 && k.x > 2 && k.z > -5 && k.z < 8;
+    const wantOpen = !s.plankOpen && this.skill > 0.8 && k.lap === 2 && inZone(pl.opener);
 
     let tx: number;
     let tz: number;
@@ -75,9 +76,17 @@ export class Rival {
       tx = pl.prop.x;
       tz = pl.prop.z;
     } else if (this.usePlank && s.plankOpen && nearFork && k.surface !== 2) {
-      // aim along the plank, a little ahead
-      tx = Math.max(pl.bx - 6, k.x - (5 + vf * 0.3));
-      tz = pl.az + this.wobble * 0.35;
+      // aim along the plank, a little ahead, whichever way it lies
+      const px = pl.bx - pl.ax;
+      const pz = pl.bz - pl.az;
+      const len = Math.sqrt(px * px + pz * pz);
+      const ux = px / len;
+      const uz = pz / len;
+      const done = (k.x - pl.ax) * ux + (k.z - pl.az) * uz;
+      const reach = Math.min(len + 6, done + 5 + vf * 0.3);
+      const off = this.wobble * 0.35;
+      tx = pl.ax + ux * reach + uz * off;
+      tz = pl.az + uz * reach - ux * off;
     } else {
       const ahead = Math.round(5 + vf * 0.5);
       const p = S[(k.idx + ahead) % N]!;

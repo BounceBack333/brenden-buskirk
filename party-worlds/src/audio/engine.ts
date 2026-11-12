@@ -56,7 +56,7 @@ export class Engine {
   private noiseBuf: AudioBuffer | null = null;
   private volumes = { master: 0.9, sfx: 1, music: 0.6 };
 
-  constructor(private provided: Ctx | null = null) {
+  constructor(provided: Ctx | null = null) {
     this.offline = !!provided && typeof (provided as OfflineAudioContext).startRendering === 'function';
     if (provided) this.attach(provided);
   }

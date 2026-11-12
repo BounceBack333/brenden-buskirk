@@ -12,7 +12,7 @@ import * as THREE from 'three';
 import type { RingGate } from '../../kit/contracts';
 import { PALETTE, Spring, mat } from '../../kit/materials';
 import { softDiscTexture } from './textures';
-import { Batch, TAU, clamp01, damp, gridSurface, mixHex, own, seeded, vcMat } from './util';
+import { Batch, TAU, damp, gridSurface, mixHex, own, seeded, vcMat } from './util';
 
 const SPRINKLE_COLORS = [PALETTE.frostingWhite, PALETTE.butter, PALETTE.teal, PALETTE.sky, PALETTE.grape, PALETTE.sunflower, PALETTE.mint];
 const RIBBON_LENGTH = 30;

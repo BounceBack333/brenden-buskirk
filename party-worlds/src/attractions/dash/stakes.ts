@@ -15,29 +15,28 @@ export interface Medal {
   ticks: number;
 }
 
-/**
- * Backyard After Dark, three laps. Set from stand-in drivers (dev/humanish.ts), not people:
- * a steady first-timer lands near bronze, drifting well reaches silver, and gold needs the plank.
- */
-export const MEDALS: readonly Medal[] = [
-  { id: 'gold', name: 'Gold', ticks: 55 * 60 },
-  { id: 'silver', name: 'Silver', ticks: 58.5 * 60 },
-  { id: 'bronze', name: 'Bronze', ticks: 63 * 60 },
-];
+/** A track's medals, best first. The times live with the track (track.ts), in seconds. */
+export function medalsOf(track: { medals: { gold: number; silver: number; bronze: number } }): Medal[] {
+  return [
+    { id: 'gold', name: 'Gold', ticks: Math.round(track.medals.gold * 60) },
+    { id: 'silver', name: 'Silver', ticks: Math.round(track.medals.silver * 60) },
+    { id: 'bronze', name: 'Bronze', ticks: Math.round(track.medals.bronze * 60) },
+  ];
+}
 
-export function medalFor(ticks: number): Medal | null {
+export function medalFor(ticks: number, medals: readonly Medal[]): Medal | null {
   if (!(ticks > 0)) return null;
-  for (const m of MEDALS) if (ticks <= m.ticks) return m;
+  for (const m of medals) if (ticks <= m.ticks) return m;
   return null;
 }
 
 /** The next medal up from this time and how many ticks away it is; null when gold is already in hand. */
-export function nextMedal(ticks: number): { medal: Medal; gap: number } | null {
-  if (!(ticks > 0)) return { medal: MEDALS[MEDALS.length - 1]!, gap: 0 };
+export function nextMedal(ticks: number, medals: readonly Medal[]): { medal: Medal; gap: number } | null {
+  if (!(ticks > 0)) return { medal: medals[medals.length - 1]!, gap: 0 };
   let next: Medal | null = null;
-  // MEDALS is best-first, so the last one still out of reach is the nearest target
-  for (let i = MEDALS.length - 1; i >= 0; i--) {
-    if (ticks > MEDALS[i]!.ticks) { next = MEDALS[i]!; break; }
+  // best first, so the last one still out of reach is the nearest target
+  for (let i = medals.length - 1; i >= 0; i--) {
+    if (ticks > medals[i]!.ticks) { next = medals[i]!; break; }
   }
   return next ? { medal: next, gap: ticks - next.ticks } : null;
 }

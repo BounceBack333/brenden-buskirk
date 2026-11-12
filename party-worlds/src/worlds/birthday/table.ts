@@ -271,7 +271,6 @@ interface CandleSpot { x: number; y: number; z: number; h: number }
 
 function buildCake(b: Batches, cx: number, cz: number, half: number, root: THREE.Group, candles: CandleSpot[]): void {
   const o = { x: 0, z: 0 };
-  const white = PALETTE.frostingWhite;
   const glaze = pale(PALETTE.frosting, 0.12);
   const piping = pale(PALETTE.coral, 0.3);
   const tiers = [

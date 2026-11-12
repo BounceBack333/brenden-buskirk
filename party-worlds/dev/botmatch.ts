@@ -19,7 +19,7 @@ function play(seed: number, skillA: number, skillB: number) {
 
 const t0 = performance.now();
 for (const [a, b] of [[0.3, 0.3], [0.65, 0.65], [0.9, 0.9], [1, 1]] as const) {
-  let caught = 0, launches = 0, total = 0, rings = 0, perfect = 0, dive = 0, jelly = 0, ticks = 0, rim = 0;
+  let caught = 0, launches = 0, total = 0, rings = 0, perfect = 0, dive = 0, jelly = 0, ticks = 0;
   const kinds: Record<string, number> = {};
   const stars = [0, 0, 0, 0];
   const N = 60;

@@ -12,7 +12,7 @@
  * everyone for the rest of the race.
  */
 import { clamp, dcos, dsin, hashNumbers } from '../../core/dmath';
-import { DT, KART, RACE, backyard, segDist2 } from './track';
+import { DEFAULT_TRACK, DT, KART, RACE, segDist2, trackById } from './track';
 import type { Capsule, Circle, Track } from './track';
 
 export interface DriveInput {
@@ -96,6 +96,8 @@ export type RaceEvent =
 export type RacePhase = 'countdown' | 'racing' | 'over';
 
 export interface RaceState {
+  /** which circuit this is (see track.ts): part of the state so a replay or a server needs nothing else */
+  trackId: string;
   tick: number;
   phase: RacePhase;
   phaseTick: number;
@@ -116,31 +118,48 @@ export interface RaceConfig {
   karts?: number;
   laps?: number;
   required?: number[];
+  /** track id; the default track when missing or unknown */
+  track?: string;
   /** per-seat throttle for rival bots (see Kart.pace); missing seats get 1 */
   pace?: number[];
 }
 
-export function trackOf(_s: RaceState): Track {
-  return backyard();
+export function trackOf(s: RaceState): Track {
+  return trackById(s.trackId);
+}
+
+/** Nearest centre-line sample to a point, searching the whole lap (set-up only: not per tick). */
+function nearestSample(track: Track, x: number, z: number): number {
+  let best = 0;
+  let bestD = Infinity;
+  for (let i = 0; i < track.samples.length; i++) {
+    const p = track.samples[i]!;
+    const d = (p.x - x) * (p.x - x) + (p.z - z) * (p.z - z);
+    if (d < bestD) {
+      bestD = d;
+      best = i;
+    }
+  }
+  return best;
 }
 
 export function createRace(config: RaceConfig = {}): RaceState {
-  const track = backyard();
+  const track = trackById(config.track ?? DEFAULT_TRACK);
   const n = clamp(Math.floor(config.karts ?? 4), 1, track.grid.length);
-  const N = track.samples.length;
   const karts: Kart[] = [];
   for (let i = 0; i < n; i++) {
     const g = track.grid[i]!;
     karts.push({
       x: g.x, z: g.z, heading: g.heading, vx: 0, vz: 0, y: 0, vy: 0, steer: 0,
       drifting: false, driftDir: 0, charge: 0, boostTicks: 0, stunTicks: 0, stallTicks: 0, draftTicks: 0,
-      surface: SURFACE.road, idx: (N - Math.round(-5 - g.x)) % N, lap: 0, cpMask: 3,
+      surface: SURFACE.road, idx: nearestSample(track, g.x, g.z), lap: 0, cpMask: 3,
       finished: false, finishTick: 0, place: i + 1, lapStartTick: 0, bestLapTicks: 0,
       stuckTicks: 0, wrongTicks: 0, blinkTicks: 0, prevDrift: false, driftHeldTicks: 0, startPressTick: -999, jumped: false, behind: false,
       pace: clamp(config.pace?.[i] ?? 1, 0.5, 1),
     });
   }
   return {
+    trackId: track.id,
     tick: 0, phase: 'countdown', phaseTick: 0, laps: Math.max(1, Math.floor(config.laps ?? RACE.laps)),
     karts, plankOpen: false, plankOpener: -1, firstFinishTick: 0, homeTick: 0,
     required: (config.required ?? []).filter((s) => s >= 0 && s < n), events: [],
@@ -510,7 +529,11 @@ function follow(s: RaceState, track: Track, seat: number): void {
   const fx = dcos(k.heading);
   const fz = dsin(k.heading);
   const vf = k.vx * fx + k.vz * fz;
-  if (onPlank && tPlank >= pl.rampFrom && k.y === 0 && vf > 7 && fx < -0.5) {
+  // (only when driving along the plank toward its far end, whichever way the plank lies)
+  const pdx = pl.bx - pl.ax;
+  const pdz = pl.bz - pl.az;
+  const along = (fx * pdx + fz * pdz) / Math.sqrt(pdx * pdx + pdz * pdz);
+  if (onPlank && tPlank >= pl.rampFrom && k.y === 0 && vf > 7 && along > 0.5) {
     k.vy = 2.4 + 0.17 * vf;
     k.jumped = true;
     s.events.push({ type: 'jump', seat });

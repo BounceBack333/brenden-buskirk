@@ -72,6 +72,8 @@ export interface Sample {
 
 export interface Circle { x: number; z: number; r: number }
 export interface Capsule { x1: number; z1: number; x2: number; z2: number; r: number }
+/** an axis-aligned patch of ground */
+export interface Zone { x0: number; x1: number; z0: number; z1: number }
 
 export interface Track {
   id: string;
@@ -92,6 +94,18 @@ export interface Track {
     blocker: Capsule;
     /** bump this to drop the plank for everyone */
     prop: Circle;
+    /** where a rival who means to take the plank lines up for it */
+    fork: Zone;
+    /** where a rival who means to open it turns for the peg */
+    opener: Zone;
+  };
+  /** race times, in seconds, for a standard race here (RACE.laps laps): what a medal costs */
+  medals: { gold: number; silver: number; bronze: number };
+  /** where the menu parks the drivers, and where it looks at them from */
+  lobby: {
+    spots: { x: number; z: number; heading: number }[];
+    camera: { x: number; y: number; z: number };
+    look: { x: number; y: number; z: number };
   };
   /** the flowerbed the plank crosses (ellipse): very slow going */
   bed: { x: number; z: number; rx: number; rz: number };
@@ -253,16 +267,48 @@ function buildBackyard(): Track {
       ax: 3, az: -1, bx: -31, bz: -1, hw: 1.35, rampFrom: 0.9,
       blocker: { x1: 1.2, z1: -2.7, x2: 1.2, z2: 0.7, r: 0.4 },
       prop: { x: 3.6, z: 2.3, r: 0.65 },
+      fork: { x0: -33, x1: 16, z0: -6, z1: 6 },
+      opener: { x0: 2, x1: 20, z0: -5, z1: 8 },
+    },
+    // from stand-in drivers (dev/humanish.ts), not people: a steady first-timer lands near
+    // bronze, drifting well reaches silver, and gold needs the plank
+    medals: { gold: 55, silver: 58.5, bronze: 63 },
+    lobby: {
+      // the two chosen drivers nose-out by the finish line; the other two wait further back
+      spots: [{ x: -7.4, z: 28.4, heading: 0.5 }, { x: -9.2, z: 31.9, heading: 0.25 }, { x: -16, z: 27.6, heading: 0 }, { x: -18.5, z: 31.6, heading: 0 }],
+      camera: { x: -0.9, y: 2.15, z: 36.3 },
+      look: { x: -8.3, y: 0.95, z: 30.2 },
     },
     bed: { x: -14.5, z: -7, rx: 16.5, rz: 9.6 },
     dressing: { hose, pot, ball, ladder, chairLegs, bricks, workLight: { x: 70, z: 15 } },
   };
 }
 
-let cached: Track | null = null;
+// ───────────────────────────── the track registry ─────────────────────────────
+// A track is data: a centre line, solid things, one gated shortcut, medal times and a place to
+// park in the menu. Adding one means writing a builder like buildBackyard, a world kit to draw
+// it (src/worlds), and one line here. Nothing else in the game names a track.
+const BUILDERS: Record<string, () => Track> = {
+  backyard: buildBackyard,
+};
+const built = new Map<string, Track>();
+
+export const DEFAULT_TRACK = 'backyard';
+export const TRACK_IDS: readonly string[] = Object.keys(BUILDERS);
+
+/** The track with this id; an unknown id gives the default track, never an exception. */
+export function trackById(id: string): Track {
+  const key = Object.prototype.hasOwnProperty.call(BUILDERS, id) ? id : DEFAULT_TRACK;
+  let t = built.get(key);
+  if (!t) {
+    t = BUILDERS[key]!();
+    built.set(key, t);
+  }
+  return t;
+}
+
 export function backyard(): Track {
-  if (!cached) cached = buildBackyard();
-  return cached;
+  return trackById('backyard');
 }
 
 /** Squared distance from a point to a segment, with the closest point's parameter. */

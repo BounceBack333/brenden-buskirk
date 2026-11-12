@@ -26,7 +26,6 @@ const NECK = { x: -1.1, y: 0.3, angle: (27 * Math.PI) / 180 };
 const CLAMP = { x: -6.9, y: 0.9, tipX: -7.85 };
 
 const WOOD = '#e7bf87';
-const WOOD_DARK = '#c99a5e';
 
 function bowlGeometry(): THREE.BufferGeometry {
   const outline = (theta: number, out: { x: number; z: number }): void => {

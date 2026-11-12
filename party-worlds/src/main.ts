@@ -25,9 +25,9 @@ import type { CourierState } from './attractions/courier/sim';
 import { CourierView } from './attractions/courier/view';
 import { RaceControls, RaceHud, RaceSession } from './attractions/dash/play';
 import { RIVAL_LEVELS, rivalLevel } from './attractions/dash/rivals';
-import { medalFor, newSeries, nextMedal, scoreSeries, seriesLine, seriesWinner } from './attractions/dash/stakes';
+import { medalFor, medalsOf, newSeries, nextMedal, scoreSeries, seriesLine, seriesWinner } from './attractions/dash/stakes';
 import type { RaceState } from './attractions/dash/sim';
-import { RACE, backyard } from './attractions/dash/track';
+import { DEFAULT_TRACK, RACE, trackById } from './attractions/dash/track';
 import { RaceView } from './attractions/dash/view';
 import { FixedLoop } from './core/loop';
 import { Pointers } from './core/pointers';
@@ -104,7 +104,9 @@ function boot(): void {
   const grid = (): CharacterSpec[] => [cast[0], cast[1], ...rivals()];
 
   // ── views ──
-  const raceView = new RaceView(stage.renderer, stage.scene.environment, audio, grid(), profile.settings);
+  // the circuit: one today, chosen in one place (see track.ts for how another is added)
+  const track = trackById(DEFAULT_TRACK);
+  const raceView = new RaceView(stage.renderer, stage.scene.environment, audio, grid(), profile.settings, track);
   let courierView: CourierView | null = null;
   const studio = new PortraitStudio(stage);
   const hudRoot = $('hud');
@@ -179,6 +181,7 @@ function boot(): void {
     raceControls.attach();
     raceHud.show(true);
     race = new RaceSession(raceView, raceControls, raceHud, {
+      track: track.id,
       humans,
       names: specs.map((c) => c.name),
       colors: specs.map((c) => kartColorOf(c)),
@@ -212,7 +215,7 @@ function boot(): void {
       best: k.bestLapTicks ? seconds(k.bestLapTicks) : '—',
     }));
     // personal best: your fastest finished race in this mode (lower is better)
-    const key = `backyard:${raceMode}:${rivalLevel(raceLevel).id}:time`;
+    const key = `${track.id}:${raceMode}:${rivalLevel(raceLevel).id}:time`;
     const mine = setup.humans.map((seat) => s.karts[seat]!).filter((k) => k.finished).map((k) => k.finishTick - RACE.countdownTicks);
     const prev = profile.best[key] ?? 0;
     const now = mine.length ? Math.min(...mine) : 0;
@@ -242,12 +245,13 @@ function boot(): void {
       headline = `${names[ahead]} beats ${names[ahead === 0 ? 1 : 0]}`;
       again = over ? 'New series' : series.wins[0] === series.wins[1] && series.wins[0] === series.target - 1 ? 'Decider' : 'Next race';
     } else if (s.laps === RACE.laps) {
-      const medal = now > 0 ? medalFor(now) : null;
-      const up = nextMedal(now);
-      const bestMedal = profile.best['backyard:medal'] ?? 0; // 3 gold, 2 silver, 1 bronze
+      const medals = medalsOf(track);
+      const medal = now > 0 ? medalFor(now, medals) : null;
+      const up = nextMedal(now, medals);
+      const bestMedal = profile.best[`${track.id}:medal`] ?? 0; // 3 gold, 2 silver, 1 bronze
       const rank = medal ? (medal.id === 'gold' ? 3 : medal.id === 'silver' ? 2 : 1) : 0;
       if (rank > bestMedal) {
-        profile.best['backyard:medal'] = rank;
+        profile.best[`${track.id}:medal`] = rank;
         saveProfile(profile);
       }
       const bits: string[] = [];
@@ -573,7 +577,7 @@ function boot(): void {
     get round() { return round; },
     get race() { return race; },
     get room() { return room; },
-    raceView, raceControls, loop, profile, viewport, stage, api, track: backyard(),
+    raceView, raceControls, loop, profile, viewport, stage, api, track,
   };
   requestAnimationFrame(() => requestAnimationFrame(() => {
     $('boot').classList.add('gone');

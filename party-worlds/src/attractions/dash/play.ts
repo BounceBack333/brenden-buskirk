@@ -12,8 +12,9 @@ import type { StageSize } from '../../core/viewport';
 import { esc } from '../../ui/hud';
 import { ICON } from '../../ui/icons';
 import { Rival } from './bot';
-import { KART, RACE, backyard } from './track';
-import { createRace, forwardSpeed, noDrive, stepRace } from './sim';
+import { KART, RACE } from './track';
+import type { Track } from './track';
+import { createRace, forwardSpeed, noDrive, stepRace, trackOf } from './sim';
 import type { DriveInput, RaceState } from './sim';
 import type { RaceView, Rect } from './view';
 
@@ -206,7 +207,6 @@ export class RaceHud {
     pause.addEventListener('click', () => this.onPause?.());
     root.append(this.clock, this.map, pause);
     for (let i = 0; i < 2; i++) this.panes.push(this.makePane(i));
-    this.drawMapBase();
   }
 
   private makePane(i: number): Pane {
@@ -241,13 +241,36 @@ export class RaceHud {
     return { root: p, place, face, lap, meter, fill: meter.querySelector('i') as HTMLElement, banner, count, wrong, drift, brake, hint, tags, bannerUntil: 0, lastPlace: 0 };
   }
 
+  private track: Track | null = null;
+  /** world → minimap pixels: fitted to the track's centre line with a margin */
+  private mapK = 1;
+  private mapOX = 0;
+  private mapOY = 0;
+
   private mapXY(x: number, z: number): [number, number] {
-    return [(x + 66) * 1.2 + 6, (z + 30) * 1.2 + 14];
+    return [x * this.mapK + this.mapOX, z * this.mapK + this.mapOY];
   }
 
-  private drawMapBase(): void {
+  private fitMap(t: Track): void {
+    let x0 = Infinity; let x1 = -Infinity; let z0 = Infinity; let z1 = -Infinity;
+    for (const p of t.samples) {
+      if (p.x < x0) x0 = p.x;
+      if (p.x > x1) x1 = p.x;
+      if (p.z < z0) z0 = p.z;
+      if (p.z > z1) z1 = p.z;
+    }
+    const W = this.map.width;
+    const H = this.map.height;
+    const pad = 12;
+    this.mapK = Math.min((W - pad * 2) / Math.max(1, x1 - x0), (H - pad * 2) / Math.max(1, z1 - z0));
+    this.mapOX = W / 2 - ((x0 + x1) / 2) * this.mapK;
+    this.mapOY = H / 2 - ((z0 + z1) / 2) * this.mapK;
+  }
+
+  private drawMapBase(t: Track): void {
+    this.fitMap(t);
     const ctx = this.mapBase.getContext('2d')!;
-    const t = backyard();
+    ctx.clearRect(0, 0, this.mapBase.width, this.mapBase.height);
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     const path = (): void => {
@@ -272,7 +295,11 @@ export class RaceHud {
     ctx.fillRect(fx - 1.5, fy - 6, 3, 12);
   }
 
-  setup(names: string[], colors: string[], bots: boolean[], faces: string[], humans: number[]): void {
+  setup(names: string[], colors: string[], bots: boolean[], faces: string[], humans: number[], track: Track): void {
+    if (this.track !== track) {
+      this.track = track;
+      this.drawMapBase(track);
+    }
     this.names = names;
     this.colors = colors;
     this.bots = bots;
@@ -315,8 +342,8 @@ export class RaceHud {
     const ctx = this.map.getContext('2d')!;
     ctx.clearRect(0, 0, 168, 112);
     ctx.drawImage(this.mapBase, 0, 0);
-    const tr = backyard();
-    if (s.plankOpen) {
+    const tr = this.track;
+    if (tr && s.plankOpen) {
       const [ax, ay] = this.mapXY(tr.plank.ax, tr.plank.az);
       const [bx, by] = this.mapXY(tr.plank.bx, tr.plank.bz);
       ctx.strokeStyle = '#ffd15c';
@@ -458,6 +485,8 @@ export class RaceHud {
 // ───────────────────────────── session ─────────────────────────────
 
 export interface RaceSetup {
+  /** which circuit (track.ts) */
+  track: string;
   /** seats driven on this device, in view order */
   humans: number[];
   names: string[];
@@ -481,11 +510,11 @@ export class RaceSession {
   private inputs: DriveInput[];
   private doneFired = false;
 
-  constructor(private view: RaceView, private controls: RaceControls, private hud: RaceHud, readonly setup: RaceSetup) {
+  constructor(private view: RaceView, private controls: RaceControls, hud: RaceHud, readonly setup: RaceSetup) {
     let b = 0;
     let q = 0;
     this.state = createRace({
-      karts: 4, laps: setup.laps, required: setup.humans,
+      karts: 4, laps: setup.laps, required: setup.humans, track: setup.track,
       pace: [0, 1, 2, 3].map((seat) => (setup.humans.includes(seat) ? 1 : setup.pace[q++] ?? 1)),
     });
     this.rivals = [0, 1, 2, 3].map((seat) => (setup.humans.includes(seat) ? null : new Rival({ seed: setup.seed * 13 + seat * 7 + 1, skill: setup.skills[b++] ?? 0.6 })));
@@ -496,7 +525,7 @@ export class RaceSession {
     controls.enabled = true;
     view.onBanner = (v, l1, l2) => hud.banner(v, l1, l2, l1.startsWith('Shortcut') ? 3200 : 1900);
     view.beginRace(this.state, setup.humans, setup.names);
-    hud.setup(setup.names, setup.colors, this.bots, setup.faces, setup.humans);
+    hud.setup(setup.names, setup.colors, this.bots, setup.faces, setup.humans, trackOf(this.state));
   }
 
   tick(): void {

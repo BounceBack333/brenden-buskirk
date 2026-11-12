@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { SURFACE, cloneRace, createRace, forwardSpeed, hashRace, headingOf, noDrive, stepRace, trackOf } from '../src/attractions/dash/sim';
 import type { DriveInput, RaceEvent, RaceState } from '../src/attractions/dash/sim';
 import { Rival } from '../src/attractions/dash/bot';
-import { KART, RACE } from '../src/attractions/dash/track';
+import { DEFAULT_TRACK, KART, RACE, TRACK_IDS, trackById } from '../src/attractions/dash/track';
 import { RIVAL_LEVELS, rivalLevel } from '../src/attractions/dash/rivals';
 import { Rng } from '../src/core/dmath';
 
@@ -45,6 +45,51 @@ describe('the circuit', () => {
   it('headingOf matches atan2', () => {
     for (let a = 0.05; a < 6.2; a += 0.173) {
       expect(Math.abs(headingOf(Math.cos(a), Math.sin(a)) - a)).toBeLessThan(2e-4);
+    }
+  });
+});
+
+describe('every track in the registry', () => {
+  it('is a complete, self-consistent piece of data', () => {
+    expect(TRACK_IDS).toContain(DEFAULT_TRACK);
+    for (const id of TRACK_IDS) {
+      const t = trackById(id);
+      expect(t.id).toBe(id);
+      expect(t.samples.length).toBeGreaterThan(100);
+      expect(t.grid.length).toBeGreaterThanOrEqual(4);
+      expect(t.lobby.spots.length).toBeGreaterThanOrEqual(4);
+      const inside = (x: number, z: number): boolean => x > t.bounds.x0 && x < t.bounds.x1 && z > t.bounds.z0 && z < t.bounds.z1;
+      for (const g of t.grid) expect(inside(g.x, g.z)).toBe(true);
+      for (const p of t.samples) expect(inside(p.x, p.z)).toBe(true);
+      // the shortcut: both ends in the yard, shorter than the road it replaces, zones that contain what they are for
+      const pl = t.plank;
+      expect(inside(pl.ax, pl.az) && inside(pl.bx, pl.bz)).toBe(true);
+      const zoneHas = (zn: { x0: number; x1: number; z0: number; z1: number }, x: number, z: number): boolean => x > zn.x0 && x < zn.x1 && z > zn.z0 && z < zn.z1;
+      expect(zoneHas(pl.fork, pl.ax, pl.az)).toBe(true);
+      expect(zoneHas(pl.opener, pl.prop.x, pl.prop.z)).toBe(true);
+      expect(pl.rampFrom).toBeGreaterThan(0.5);
+      expect(pl.rampFrom).toBeLessThan(1);
+    }
+  });
+  it('an unknown track id is the default track, and a race remembers which track it is on', () => {
+    expect(trackById('no-such-track')).toBe(trackById(DEFAULT_TRACK));
+    expect(createRace({ track: 'no-such-track' }).trackId).toBe(DEFAULT_TRACK);
+    for (const id of TRACK_IDS) {
+      const s = createRace({ track: id });
+      expect(s.trackId).toBe(id);
+      expect(trackOf(s)).toBe(trackById(id));
+      // every kart starts with its place on the lap known: just behind the line
+      const N = trackOf(s).samples.length;
+      for (const k of s.karts) expect(k.idx).toBeGreaterThan(N * 0.8);
+    }
+  });
+  it('rivals complete a race on every track', () => {
+    for (const id of TRACK_IDS) {
+      const s = createRace({ track: id, karts: 4, laps: 1 });
+      const bots = [0.9, 0.7, 0.5, 0.3].map((skill, i) => new Rival({ seed: 5 + i, skill }));
+      for (let t = 0; t < 60 * 120 && s.phase !== 'over'; t++) stepRace(s, bots.map((b, i) => ({ ...b.think(s, i) })));
+      expect(s.phase).toBe('over');
+      expect(s.karts.filter((k) => k.finished).length).toBeGreaterThanOrEqual(3);
     }
   });
 });

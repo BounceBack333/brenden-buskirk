@@ -80,7 +80,6 @@ export interface Xf {
   s?: number | [number, number, number];
 }
 
-const _m = new THREE.Matrix4();
 const _q = new THREE.Quaternion();
 const _e = new THREE.Euler();
 const _p = new THREE.Vector3();

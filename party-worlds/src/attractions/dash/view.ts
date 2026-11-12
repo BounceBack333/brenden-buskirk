@@ -7,9 +7,10 @@ import * as THREE from 'three';
 import { buildCharacter, kartColorOf } from '../../characters';
 import type { AudioKit, CharacterRig, CharacterSpec, MotionContext } from '../../kit/contracts';
 import type { Settings } from '../../core/profile';
-import { buildBackyardWorld, buildKart, buildNightSky } from '../../worlds/backyard';
-import type { BackyardWorld, KartModel } from '../../worlds/backyard';
-import { KART, RACE, backyard } from './track';
+import { buildKart, buildNightSky, buildRaceWorld } from '../../worlds';
+import type { KartModel, RaceWorld } from '../../worlds';
+import { KART, RACE } from './track';
+import type { Track } from './track';
 import { SURFACE, forwardSpeed } from './sim';
 import type { RaceEvent, RaceState } from './sim';
 
@@ -106,7 +107,7 @@ export class RaceView {
   onBanner: ((view: number, l1: string, l2: string) => void) | null = null;
   onBuzz: ((ms: number | number[]) => void) | null = null;
 
-  private world: BackyardWorld;
+  private world: RaceWorld;
   private karts: KartModel[] = [];
   private rigs: CharacterRig[] = [];
   private specs: CharacterSpec[];
@@ -131,6 +132,7 @@ export class RaceView {
     private audio: AudioKit,
     cast: CharacterSpec[],
     private settings: Settings,
+    private track: Track,
   ) {
     const scene = this.scene;
     scene.background = buildNightSky();
@@ -149,7 +151,7 @@ export class RaceView {
     moon.position.set(-40, 60, -50);
     scene.add(moon);
 
-    this.world = buildBackyardWorld(backyard());
+    this.world = buildRaceWorld(track);
     scene.add(this.world.root, this.sparks.mesh);
     this.specs = cast.slice(0, 4);
     for (let i = 0; i < 4; i++) {
@@ -197,13 +199,27 @@ export class RaceView {
   }
 
   private placeLobby(): void {
-    // the two chosen characters parked nose-out by the finish line; rivals wait further back
-    const spots = [[-7.4, 28.4, 0.5], [-9.2, 31.9, 0.25], [-16, 27.6, 0], [-18.5, 31.6, 0]] as const;
+    // where the track says the menu parks its drivers
+    const spots = this.track.lobby.spots;
     for (let i = 0; i < 4; i++) {
-      const [x, z, h] = spots[i]!;
-      this.pose[i] = { x, z, h, y: 0 };
-      this.prev[i] = { x, z, h, y: 0 };
+      const sp = spots[i] ?? spots[spots.length - 1]!;
+      this.pose[i] = { x: sp.x, z: sp.z, h: sp.heading, y: 0 };
+      this.prev[i] = { x: sp.x, z: sp.z, h: sp.heading, y: 0 };
     }
+  }
+
+  /** Change circuit: swap the world kit. The karts, drivers and cameras carry over. */
+  setTrack(track: Track): void {
+    if (track === this.track) return;
+    this.scene.remove(this.world.root);
+    this.world.root.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (m.isMesh || (o as THREE.Points).isPoints || (o as THREE.LineSegments).isLineSegments) m.geometry.dispose();
+    });
+    this.track = track;
+    this.world = buildRaceWorld(track);
+    this.scene.add(this.world.root);
+    if (this.lobby) this.placeLobby();
   }
 
   enterLobby(): void {
@@ -316,7 +332,7 @@ export class RaceView {
       case 'plank_open': {
         this.world.openPlank();
         a.play('plank');
-        const pl = backyard().plank;
+        const pl = this.track.plank;
         this.burst(pl.ax - 2, 0.3, pl.az, 18, '#e8d2aa', 5, 0.45);
         this.onBanner?.(-1, 'Shortcut open!', `${this.names[e.seat] ?? 'Someone'} knocked the peg out — the plank is down for everyone`);
         break;
@@ -474,8 +490,9 @@ export class RaceView {
       }
     }
     const cam = this.lobbyCam;
-    cam.position.set(-0.9 + Math.sin(this.time * 0.25) * 0.4, 2.15, 36.3);
-    cam.lookAt(-8.3, 0.95, 30.2);
+    const lb = this.track.lobby;
+    cam.position.set(lb.camera.x + Math.sin(this.time * 0.25) * 0.4, lb.camera.y, lb.camera.z);
+    cam.lookAt(lb.look.x, lb.look.y, lb.look.z);
   }
 
   private frameRace(s: RaceState, alpha: number, dt: number): void {
