@@ -1,6 +1,14 @@
 /*
  * All sizes use --u (1% of the stage's short side, set by core/viewport.ts) instead of vh/vw,
  * because the stage may be CSS-rotated to stay landscape.
+ *
+ * HOW THIS FILE IS LAID OUT (it is layered, and later layers win):
+ *   1. structure and the original daytime look: positions, sizes, the Courier HUD
+ *   2. race HUD and results (search "play sheet (race first)")
+ *   3. NIGHT THEME: colours, type and shapes for everything (search "NIGHT THEME")
+ *   4. small fitted blocks added since (stakes strip, results sizing)
+ * To restyle, edit layer 3 or 4. Layer 1's colours are mostly overridden; folding the layers
+ * into one pass is owed (docs/DEPENDENCIES.md) and should be done with screenshots to hand.
  */
 :root {
   --cream: #fff4dc;
@@ -508,3 +516,5 @@ input[type='range'] { accent-color: var(--coral); }
 
 .results .total { white-space: nowrap; }
 .results .total small { white-space: nowrap; }
+
+.boot-error { color: #ffb3cf; }

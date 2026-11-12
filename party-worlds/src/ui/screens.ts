@@ -202,7 +202,7 @@ export class Screens {
             <span class="d">You as ${p0}, against ${p1} and two more. Rivals are bots and say so.</span></button>
           <button class="choice" data-race="split">${ICON.couch}
             <span class="t">Split screen</span>
-            <span class="d">Two players, one device: ${p0} left, ${p1} right, plus two bot rivals.</span></button>
+            <span class="d">Two players, one screen: ${p0} left, ${p1} right, plus two bot rivals. Thumbs, one keyboard (A/D + W · ←/→ + ↑) or two controllers.</span></button>
         </div>
         <div class="rivals-row">
           <span class="lbl">Rivals</span>
@@ -566,12 +566,13 @@ export class Screens {
         <div class="sheet-head"><h2>Settings</h2>
           <button class="icon-btn" data-act="close" aria-label="Close">${ICON.close}</button></div>
         ${range('master', 'Volume')}${range('music', 'Music')}${range('sfx', 'Sound effects')}
-        ${sw('reducedMotion', 'Reduced motion', 'Steady wide camera, no shake or zoom punches.')}
+        ${sw('autoDrift', 'Auto drift', 'Steering hard starts the slide by itself, for one-thumb play. Always on when two share a touch screen.')}
+        ${sw('leftHanded', 'Left-handed', 'Puts DRIFT and BRAKE on the left.')}
+        ${sw('reducedMotion', 'Reduced motion', 'No camera shake, roll, orbit or speed zoom.')}
+        ${sw('haptics', 'Vibration', 'Light taps on supported devices.')}
+        <div class="field" style="margin:calc(var(--u)*2.4) 0 0"><span class="flabel">Parked experiment · Catapult Courier</span></div>
         ${sw('aimAssist', 'Aim assist', 'Shows the whole flight path and the landing spot. Marked on the results.')}
         ${sw('umbrellaToggle', 'Tap umbrella', 'Tap to open and tap to close, instead of holding.')}
-        ${sw('autoDrift', 'Auto drift', 'Racing: steering hard starts the slide by itself. Always on when two share a screen.')}
-        ${sw('leftHanded', 'Left-handed', 'Swaps the DRIFT / DIVE button to the left.')}
-        ${sw('haptics', 'Vibration', 'Light taps on supported devices.')}
       </div>`;
     this.root.append(sheet);
     const close = (): void => { a.audio.play('ui_back'); a.save(); sheet.remove(); onClose(); };

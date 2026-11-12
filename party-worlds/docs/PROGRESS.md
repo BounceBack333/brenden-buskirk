@@ -1,6 +1,6 @@
 # Progress and acceptance record
 
-Last updated: 2026-11-11 (grown-up pass).
+Last updated: 2026-11-12 (scrap and future-proofing pass).
 
 ## Status words
 
@@ -14,6 +14,25 @@ Last updated: 2026-11-11 (grown-up pass).
 | **Blocked** | Cannot proceed without the named dependency |
 
 One recording of Catapult Courier was made by the founder and reviewed by an advisor; that review is the reason for the change of direction (D-016). Apart from that, nothing in this project has been played by a person, and nothing has run on a physical phone that we have observed. There are no player reactions, retention figures, revenue figures or device frame rates in this repository, because none exist.
+
+## Milestone: less scrap, fewer assumptions (D-023)
+
+Nothing here changes how the game plays; `npm run fingerprint` printed the same nine state hashes before and after.
+
+| Area | Status | Evidence |
+|---|---|---|
+| Tracks are data: registry, track id in the race, per-track medals, rival cues, menu parking, world kits; self-fitting minimap | Implemented and tested | Identical fingerprint; `tests/dash.sim.test.ts` checks and races every registered track; a race on an unknown track id falls back to the default |
+| The purity rule is enforced | Implemented and tested | `tests/purity.test.ts` reads the seven simulation sources and fails on any platform-dependent maths, clock, DOM or rendering import |
+| The character kit is tested | Implemented and tested | `tests/characters.test.ts`: all 26 cast members through all 14 actions; every kind of driver in every hat; every hairstyle with every hat, beard and glasses at both ages; random specs; rubbish input. No exception, no non-finite number, triangle budget held |
+| One command, and CI | Implemented and tested | `npm run check`; the same steps passed from a clean checkout here, and passed on GitHub Actions (first run: 36 s) |
+| Size budget | Implemented and tested | `scripts/check-size.mjs`: JS 260 KB and CSS 119 KB gzipped, against budgets of 300 and 160 |
+| Font payload | Reduced | One format per weight instead of two: CSS 326 → 196 KB (gzipped 220 → 122 KB) |
+| Game controllers | Implemented, automation only | A split-screen race driven by two stand-in controllers finished cleanly and the A button started the next race; hints read "Steer with the stick" and "Hold A in a corner". **No real controller has been plugged in** |
+| Lost graphics context | Implemented, automation only | `dev/context-loss.mjs` takes the context away mid-race: the game pauses, stops its loop and shows "The picture was interrupted. Tap to carry on." Not seen on a real phone |
+| Reduced motion in the race | Implemented, untested | Removes the countdown and finish orbits and the speed zoom, as well as shake and roll |
+| Compiler rejects unused code | Done | `noUnusedLocals` and `noUnusedParameters` are on; nine leftovers removed |
+
+**Total:** 108 of 108 tests pass; type-check clean; build 911 KB JS + 196 KB CSS.
 
 ## Milestone: the grown-up pass (D-022)
 

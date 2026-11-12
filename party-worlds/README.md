@@ -20,7 +20,10 @@ Open it on a phone or tablet on the same network with `npm run dev -- --host 0.0
 | Command | What it does |
 |---|---|
 | `npm run dev` | Development server with hot reload |
-| `npm test` | 79 automated tests: race rules, medals and series, Courier rules, private-room server |
+| `npm test` | 108 automated tests: race rules, tracks, medals and series, the character kit, the simulation purity rule, Courier rules, private-room server |
+| `npm run check` | Everything a change must pass: type-check, tests, build, size budget. CI runs exactly this |
+| `npm run size` | Built file sizes against the budget (after a build) |
+| `npm run fingerprint` | State hashes of nine bot races: identical before and after a refactor that should not change play |
 | `npm run typecheck` | Strict TypeScript check |
 | `npm run build` | Production build into `dist/` (static files; host anywhere) |
 | `npm run server` | Private-room server for Courier on port 8787 (`PORT`, `ALLOWED_ORIGINS`, `LAUNCHES` env vars) |
@@ -40,6 +43,7 @@ Open it on a phone or tablet on the same network with `npm run dev -- --host 0.0
 | Start boost | Press DRIFT just before GO | same |
 | Brake / reverse | BRAKE | S or ↓ |
 | Split screen | Each half is its own stick; steering hard starts the drift by itself | Player 1: A / D steer, W drift, S brake · Player 2: ← / → steer, ↑ drift, ↓ brake |
+| Game controller | — | Stick or d-pad to steer, A (or right bumper / trigger) to drift, B to brake. One controller per player in split screen. A also presses the main button between races; Start pauses |
 
 `?laps=1` on the URL shortens a race for quick checks (personal bests are only kept for three-lap races). The game lowers its own picture quality if the device cannot hold about 50 frames per second; `?hq` turns that off (useful for screenshots on slow machines).
 
@@ -66,6 +70,16 @@ docs/           the design and decision records — start with GDD.md
 
 The rule that shapes the code: **each simulation is a pure, deterministic function of inputs** (`src/attractions/dash/sim.ts` and `src/attractions/courier/sim.ts`, using only `src/core/dmath.ts`). The same module runs in the browser, in the bots and in tests (and, for Courier, on the server), which is what makes authority, prediction and input-replay validation possible.
 
+## Adding a track
+
+A track is data plus a kit to draw it; nothing else names a track.
+
+1. In `src/attractions/dash/track.ts`, write a builder like `buildBackyard` (centre line, solid circles and capsules, start grid, one gated shortcut with its `fork` and `opener` zones, medal times, menu parking spots) and add it to `BUILDERS`.
+2. In `src/worlds/`, write a kit that returns a `RaceWorld` for it and add it to `KITS` in `src/worlds/index.ts`. Until you do, the new track is drawn with the backyard's kit so it can be driven straight away.
+3. `npm run check`. The registry tests check and race every registered track.
+
+Choosing between tracks in the menu is not built: `main.ts` uses `DEFAULT_TRACK` in one place.
+
 ## Automated checks you can run
 
 ```bash
@@ -78,6 +92,8 @@ LEVEL=1 npx tsx dev/humanish.ts                                                 
 npx tsx dev/raceprobe.ts                                                                   # rivals race each other: lap times, boosts, bumps
 node dev/measure-audio.mjs                                                                 # every sound, rendered offline
 ```
+
+The `dev/*.mjs` scripts need Playwright with a Chromium browser (`npm i -D playwright`); it is not a dependency of the game. `node dev/raceplay.mjs … --pad` drives with stand-in game controllers, and `node dev/context-loss.mjs` takes the graphics context away mid-race.
 
 `--slow` runs game time slower for the scripted driver only: the headless browser draws in software and acknowledges input about once a frame, so without it the script reacts far later than a person would. Courier's checks (`dev/playthrough.mjs`, `dev/online-test.mjs`, `dev/touch-test.mjs`, `dev/botmatch.ts`) still work.
 

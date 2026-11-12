@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Automated race in a real browser with real keyboard (or touch) input.
- *   node dev/raceplay.mjs [url] [mode=solo|split] [outDir] [--touch] [--portrait] [--plank] [--rematch] [--size=WxH] [--slow=0.25]
+ *   node dev/raceplay.mjs [url] [mode=solo|split] [outDir] [--touch] [--portrait] [--plank] [--rematch] [--size=WxH] [--slow=0.25] [--pad]
  * A small pursuit driver in this script reads the kart's position from the page and presses the
  * same keys (or drags the same on-screen stick) a person would. It takes screenshots through the
  * race and fails on any page error.
@@ -21,6 +21,7 @@ const out = args[2] ?? `dev/shots/race-${mode}`;
 mkdirSync(out, { recursive: true });
 
 const touchMode = flags.has('--touch');
+const padMode = flags.has('--pad'); // drive with scripted game controllers (one per local player)
 const portrait = flags.has('--portrait');
 const sizeFlag = [...flags].find((f) => f.startsWith('--size='));
 const viewport = sizeFlag
@@ -30,6 +31,14 @@ const viewport = sizeFlag
     : (portrait ? { width: 390, height: 844 } : { width: 1280, height: 720 });
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, hasTouch: touchMode, isMobile: touchMode });
+if (padMode) {
+  // stand-in controllers: the page sees two standard gamepads whose sticks and buttons this script sets
+  await ctx.addInitScript(() => {
+    const mk = (index) => ({ index, connected: true, id: 'Scripted pad', mapping: 'standard', timestamp: 0, axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, touched: false, value: 0 })) });
+    window.__fakePads = [mk(0), mk(1)];
+    navigator.getGamepads = () => window.__fakePads;
+  });
+}
 const page = await ctx.newPage();
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -159,7 +168,18 @@ const centres = () => (mode === 'split'
   ? [{ x: stageW * 0.25, y: stageH * 0.62 }, { x: stageW * 0.75, y: stageH * 0.62 }]
   : [{ x: stageW * 0.3, y: stageH * 0.62 }]);
 
+const padSet = (view, steer, drift) => page.evaluate(([v, x, d]) => {
+  const p = window.__fakePads[v];
+  p.axes[0] = x;
+  p.buttons[0].pressed = d;
+  p.buttons[0].value = d ? 1 : 0;
+}, [view, steer, drift]);
+
 async function apply(view, cmd) {
+  if (padMode) {
+    await padSet(view, cmd.steer, cmd.drift);
+    return;
+  }
   if (!touchMode) {
     const K = KEYS[view];
     await key(K.l, cmd.steer < -0.28);
@@ -184,7 +204,7 @@ const once = async (name, cond) => {
 };
 
 const t0 = Date.now();
-const log = { mode, touch: touchMode, portrait, viewport, slow, fps: [], events: [] };
+const log = { mode, touch: touchMode, pad: padMode, portrait, viewport, slow, fps: [], events: [] };
 let last = null;
 let started = false;
 while (Date.now() - t0 < 900000) {
@@ -195,7 +215,8 @@ while (Date.now() - t0 < 900000) {
     await once('countdown-face', st.phaseTick > 30);
     await once('countdown-swing', st.phaseTick > 110);
     // a well-timed start: press drift just before GO
-    if (!touchMode) for (let v = 0; v < st.humans.length; v++) await key(KEYS[v].d, st.phaseTick >= 168);
+    if (padMode) for (let v = 0; v < st.humans.length; v++) await padSet(v, 0, st.phaseTick >= 168);
+    else if (!touchMode) for (let v = 0; v < st.humans.length; v++) await key(KEYS[v].d, st.phaseTick >= 168);
     else if (touchMode && !started) {
       started = true;
       for (let v = 0; v < st.humans.length; v++) { const c = centres()[v]; await finger(10 + v, c.x, c.y); }
@@ -233,6 +254,7 @@ while (Date.now() - t0 < 900000) {
   else await page.waitForTimeout(12);
 }
 for (const code of [...held]) await key(code, false);
+if (padMode) for (let v = 0; v < 2; v++) await padSet(v, 0, false);
 if (touchMode) for (const id of [...fingers.keys()]) await lift(id);
 
 await page.waitForSelector('.race-results, [data-act="again"]', { timeout: 20000 }).catch(() => errors.push('results never appeared'));
@@ -245,7 +267,18 @@ const results = await page.evaluate(() => {
 log.results = results;
 log.text = await page.evaluate(() => document.querySelector('#ui')?.innerText ?? '');
 
-if (flags.has('--rematch')) {
+if (padMode) log.hints = await page.evaluate(() => [...document.querySelectorAll('.race-hint')].map((h) => h.dataset.t || ''));
+if (flags.has('--rematch') && padMode) {
+  // the controller's A button takes the main action on the results
+  await page.evaluate(() => { const b = window.__fakePads[0].buttons[0]; b.pressed = true; b.value = 1; });
+  await page.waitForTimeout(600);
+  await page.evaluate(() => { const b = window.__fakePads[0].buttons[0]; b.pressed = false; b.value = 0; });
+  await page.waitForTimeout(1500);
+  const again = await read();
+  log.rematch = again ? { phase: again.phase, tick: again.tick, by: 'controller' } : null;
+  if (!again || again.phase !== 'countdown') errors.push('the controller A button did not start the next race');
+  await shot('rematch');
+} else if (flags.has('--rematch')) {
   await click('[data-act="again"]');
   await page.waitForTimeout(1500);
   const again = await read();
@@ -259,7 +292,7 @@ writeFileSync(`${out}/log.json`, JSON.stringify(log, null, 1));
 await browser.close();
 const fpsSorted = [...log.fps].sort((a, b) => a - b);
 console.log(JSON.stringify({
-  mode, touch: touchMode, portrait, slow,
+  mode, touch: touchMode, pad: padMode, portrait, slow,
   bestLapSeconds: results?.karts.map((k) => +(k.best / 60).toFixed(1)),
   finished: results?.karts.map((k) => `${k.place}${k.finished ? '' : '*'}`).join(','),
   raceSeconds: results ? +(results.tick / 60).toFixed(1) : null,

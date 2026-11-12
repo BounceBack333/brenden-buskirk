@@ -13,11 +13,12 @@ Original social racing game (racing has been the core since D-016; Catapult Cour
 6. **No real people's photos or likenesses** in development. The cast is invented. Do not name a character "Bailey" without an authorised reference.
    **The game is for adults (D-022):** grown-up drivers by default, funny rather than cute, no toy-box styling. Hooks must be things that end (a series, a medal); no timers, punishing streaks, random rewards or anything bought.
 7. **No external assets.** Everything is generated in code. If that changes, record the source and licence in `docs/ASSETS.md` first.
-8. Keep the game inside `party-worlds/`. The repository root is the founder's portfolio site: do not touch it.
+8. Keep the game inside `party-worlds/`. The repository root is the founder's portfolio site, published by GitHub Pages from `main`: do not touch it. The single exception is `.github/workflows/party-worlds.yml`, which only checks this folder.
 
 ## Working here
 
-- `npm run dev`, `npm test`, `npm run typecheck`, `npm run build`, `npm run server`.
+- `npm run dev`, `npm test`, `npm run typecheck`, `npm run build`, `npm run server`. Before pushing: `npm run check` (type-check, tests, build, size budget; CI runs the same). For a refactor that must not change play, `npm run fingerprint` before and after.
+- Tracks are data: see "Adding a track" in `README.md`. Nothing outside `track.ts` and `src/worlds/index.ts` should name a track.
 - Look at what you build: `node dev/raceplay.mjs <url> solo|split <outDir> --slow=0.25` drives a race and saves screenshots (`dev/playthrough.mjs` does the same for Courier); `dev/tile.sh` stitches them. Headless frame rates are software rendering and mean nothing for phones.
 - Race tuning lives in `src/attractions/dash/track.ts` (`KART`, `RACE`, the circuit) and `rivals.ts` (levels). After changing it run `npx tsx dev/raceprobe.ts` (rivals against each other) and `LEVEL=0|1|2 npx tsx dev/humanish.ts` (stand-in drivers against a level), then the tests. Courier's numbers are in `src/attractions/courier/rules.ts` (`dev/probe.ts`, `dev/botmatch.ts`).
 - When a decision changes behaviour or scope, add an entry to `docs/DECISIONS.md` and update `docs/PROGRESS.md` in the same change.

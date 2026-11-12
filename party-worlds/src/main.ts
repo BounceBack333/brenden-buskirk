@@ -487,6 +487,36 @@ function boot(): void {
   courierHud.onPause = pause;
   raceHud.onPause = pause;
 
+  // A controller can also press the obvious button: A (or Start) takes whichever primary action
+  // is on screen (Race, Next race, Resume…), and Start pauses a race. Menus stay touch-first; this
+  // is so two people on a sofa never have to reach for the keyboard between races.
+  const padWas = new Map<number, boolean>();
+  const padMenu = (): void => {
+    if (typeof navigator.getGamepads !== 'function') return;
+    let pads: (Gamepad | null)[];
+    try {
+      pads = Array.from(navigator.getGamepads());
+    } catch {
+      return;
+    }
+    for (const gp of pads) {
+      if (!gp || !gp.connected) continue;
+      const a = !!gp.buttons[0]?.pressed;
+      const start = !!gp.buttons[9]?.pressed;
+      const down = a || start;
+      const was = padWas.get(gp.index) ?? false;
+      padWas.set(gp.index, down);
+      if (!down || was) continue;
+      const racing = (!!race && !race.paused && race.state.phase !== 'over') || (!!round && !round.paused && round.state.phase !== 'done');
+      if (racing) {
+        if (start) pause();
+        continue;
+      }
+      const primary = $('ui').querySelector<HTMLButtonElement>('.btn.primary:not([disabled]), .choice.primary:not([disabled])');
+      primary?.click();
+    }
+  };
+
   // ───────────────────────────── loop ─────────────────────────────
   const loop = new FixedLoop({
     tick: () => {
@@ -494,6 +524,7 @@ function boot(): void {
       round?.tick();
     },
     frame: (alpha, dt) => {
+      padMenu();
       const size = viewport.size;
       if (active === 'courier' && courierView) {
         const r = round;
@@ -548,6 +579,24 @@ function boot(): void {
   };
   window.addEventListener('pointerdown', unlock, { capture: true });
   window.addEventListener('keydown', unlock, { once: true, capture: true });
+
+  // A phone can take the graphics context away (memory pressure, a long spell in the background).
+  // Say so and start clean rather than leave a frozen picture; the profile is already saved.
+  canvas.addEventListener('webglcontextlost', (e) => {
+    e.preventDefault();
+    pause();
+    loop.stop();
+    audio.suspend();
+    const bootEl = $('boot');
+    const status = document.getElementById('boot-status');
+    if (status) {
+      status.className = 'boot-error';
+      status.textContent = 'The picture was interrupted. Tap to carry on.';
+    }
+    bootEl.classList.remove('gone');
+    bootEl.addEventListener('click', () => window.location.reload(), { once: true });
+  });
+  canvas.addEventListener('webglcontextrestored', () => window.location.reload());
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {

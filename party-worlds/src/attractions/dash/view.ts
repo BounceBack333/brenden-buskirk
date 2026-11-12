@@ -593,14 +593,17 @@ export class RaceView {
     const boost = k.boostTicks > 0 ? 1 : 0;
     const split = this.cams.length > 1;
     const baseFov = split ? 74 : 64;
-    c.fov += (baseFov + boost * 9 + Math.min(6, speed * 0.25) - c.fov) * Math.min(1, dt * 5);
+    const calm = this.settings.reducedMotion; // no swinging round the kart, no speed zoom
+    c.fov += (baseFov + (calm ? 3 : boost * 9 + Math.min(6, speed * 0.25)) - c.fov) * Math.min(1, dt * 5);
     c.camera.fov = c.fov;
     let orbit = 0;
     let dist = 4.0 + boost * 0.7;
     let height = 2.0;
     let lookUp = 1.05;
     let ahead = 2.4;
-    if (s.phase === 'countdown') {
+    if (calm) {
+      c.yaw = s.phase === 'countdown' ? q.h : c.yaw;
+    } else if (s.phase === 'countdown') {
       // meet the driver face to face, then swing in behind for GO
       const t = Math.min(1, s.phaseTick / (RACE.countdownTicks * 0.82));
       const e = t < 0.2 ? 0 : (t - 0.2) / 0.8;

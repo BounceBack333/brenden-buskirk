@@ -37,6 +37,8 @@ export class RaceControls {
   rects: Rect[] = [{ x: 0, y: 0, w: 1, h: 1 }];
   readonly pads: Pad[] = [0, 1].map(() => ({ stick: null, ox: 0, x: 0, driftPtr: null, driftBtn: false, brakeBtn: false, hard: 0, auto: false }));
   enabled = false;
+  /** which local players have used a game controller this session (for wording the hints) */
+  readonly padUsed = [false, false];
   private out: DriveInput[] = [noDrive(), noDrive()];
 
   constructor(private pointers: Pointers, private settings: Settings) {}
@@ -94,6 +96,33 @@ export class RaceControls {
     }
   }
 
+  /**
+   * A game controller for local player `view`, if one is plugged in: stick or d-pad to steer,
+   * A / right bumper / right trigger to drift, B / X / left trigger to brake. Alone, any
+   * controller will do; with two players the first controller is player 1's, the second player 2's.
+   */
+  private gamepad(view: number, split: boolean): { steer: number; drift: boolean; brake: boolean } | null {
+    if (typeof navigator === 'undefined' || typeof navigator.getGamepads !== 'function') return null;
+    let pads: (Gamepad | null)[];
+    try {
+      pads = Array.from(navigator.getGamepads());
+    } catch {
+      return null; // some embedded pages are not allowed to ask
+    }
+    const live = pads.filter((p): p is Gamepad => !!p && p.connected);
+    const gp = split ? live[view] : live.find((p) => p.buttons.some((b) => b.pressed) || Math.abs(p.axes[0] ?? 0) > 0.2) ?? live[0];
+    if (!gp) return null;
+    const pressed = (i: number): boolean => !!gp.buttons[i] && (gp.buttons[i]!.pressed || gp.buttons[i]!.value > 0.4);
+    let x = gp.axes[0] ?? 0;
+    const dead = 0.16;
+    x = Math.abs(x) < dead ? 0 : (x - Math.sign(x) * dead) / (1 - dead);
+    if (pressed(14)) x = -1;
+    if (pressed(15)) x = 1;
+    const out = { steer: Math.max(-1, Math.min(1, x)), drift: pressed(0) || pressed(5) || pressed(7), brake: pressed(1) || pressed(2) || pressed(6) };
+    if (out.steer !== 0 || out.drift || out.brake) this.padUsed[view] = true;
+    return out;
+  }
+
   stickRadius(view: number): number {
     return Math.max(34, (this.rects[view]?.h ?? 400) * 0.13);
   }
@@ -123,6 +152,8 @@ export class RaceControls {
       ? (view === 0 ? keys.has('ShiftLeft') || keys.has('Space') || keys.has('KeyW') : keys.has('ShiftRight') || keys.has('Enter') || keys.has('ArrowUp'))
       : keys.has('Space') || keys.has('ShiftLeft') || keys.has('ShiftRight') || keys.has('KeyJ');
     const keyBrake = split ? (view === 0 ? keys.has('KeyS') : keys.has('ArrowDown')) : keys.has('KeyS') || keys.has('ArrowDown');
+    const gp = this.gamepad(view, split);
+    if (gp && Math.abs(gp.steer) > Math.abs(steer)) steer = gp.steer;
 
     // auto drift: steering hard at speed starts the slide; easing off fires the boost
     let auto = false;
@@ -134,8 +165,8 @@ export class RaceControls {
       auto = pad.auto && s.phase === 'racing';
     }
     o.steer = Math.round(steer * 127);
-    o.drift = pad.driftBtn || pad.driftPtr !== null || keyDrift || auto;
-    o.brake = pad.brakeBtn || keyBrake;
+    o.drift = pad.driftBtn || pad.driftPtr !== null || keyDrift || auto || (!!gp && gp.drift);
+    o.brake = pad.brakeBtn || keyBrake || (!!gp && gp.brake);
     return o;
   }
 }
@@ -410,12 +441,13 @@ export class RaceHud {
       // first-race hints, retired once done; worded for whatever this player is steering with
       const pad = this.controls.pads[i]!;
       if (pad.stick) this.touched[i] = true;
-      const touch = this.touched[i] || this.coarse;
-      const driftKey = split ? (i === 0 ? 'W' : '↑') : 'Space';
+      const onPad = this.controls.padUsed[i]!;
+      const touch = !onPad && (this.touched[i] || this.coarse);
+      const driftKey = onPad ? 'A' : split ? (i === 0 ? 'W' : '↑') : 'Space';
       const auto = settings.autoDrift || (touch && split);
       let hint = '';
       if (s.phase === 'countdown' && !this.learned.raceStart) hint = `It drives itself. Press ${touch ? 'DRIFT' : driftKey} just before GO for a boost.`;
-      else if (s.phase === 'racing' && !this.learned.steer) hint = touch ? `${ICON.hand}Drag left or right to steer` : `Steer with ${split ? (i === 0 ? 'A / D' : '← / →') : 'A / D or ← / →'}`;
+      else if (s.phase === 'racing' && !this.learned.steer) hint = touch ? `${ICON.hand}Drag left or right to steer` : onPad ? 'Steer with the stick' : `Steer with ${split ? (i === 0 ? 'A / D' : '← / →') : 'A / D or ← / →'}`;
       else if (s.phase === 'racing' && !this.learned.drift && s.phaseTick > 240) hint = auto ? 'Steer hard into a corner to slide, ease off to boost' : `Hold ${touch ? 'DRIFT' : driftKey} in a corner, let go to boost`;
       else if (s.phase === 'racing' && !s.plankOpen && !this.learned.plank && k.lap >= 2) hint = 'Bump the glowing peg to drop the plank';
       if (p.hint.dataset.t !== hint) {

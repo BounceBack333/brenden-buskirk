@@ -28,6 +28,7 @@ One entry per attraction. Nothing is built until its entry is complete.
 | Teams | None. Everyone for themselves. |
 | Controls — touch | Drag left/right anywhere in your half to steer (floating stick). Hold **DRIFT** (or a second finger) while turning to slide; release to boost. **BRAKE** slows and then reverses. Split screen, or the Auto-drift setting: steering hard starts the drift and easing off releases it, so one thumb is enough. |
 | Controls — keyboard | Solo: A/D or ←/→ steer, Space/Shift/J drift, S/↓ brake. Split: player 1 A/D steer, W (or Space, Left Shift) drift, S brake; player 2 ←/→ steer, ↑ (or Enter, Right Shift) drift, ↓ brake. Hints name W and ↑: two Shift keys held together misbehave on some keyboards. |
+| Controls — game controller | Stick or d-pad steers, A / right bumper / right trigger drifts, B / X / left trigger brakes. Alone, any controller; in split screen the first is player 1's and the second player 2's. A presses the main button between races; Start pauses. |
 | Timing | Countdown 3 s (camera meets your driver, swings behind). Three laps, about 55–70 s. When the last person finishes the race runs on 2.5 s so rivals close behind get a time. The race is called 25 s after the first finisher; anyone still out is placed by distance. |
 | Start | Pressing DRIFT in the last 0.37 s before GO gives a start boost (a tap is enough). Holding it from much earlier stalls you briefly. |
 | Scoring | Finishing order. Shown: race time (winner), gap (others) or lap reached (unfinished), best lap. Personal best race time is kept per mode and rival level, three-lap races only. |
@@ -51,6 +52,8 @@ One entry per attraction. Nothing is built until its entry is complete.
 - [x] The plank starts blocked, opens when the peg is bumped, and stays open for everyone; falling off it lands in slow soil (tests).
 - [x] Cutting across the lawn does not count as a lap, and no straight line across the infield gets through (tests; an independent reviewer's lawn-cutting driver went from winning by 10 s to not finishing).
 - [x] Rolling back over the start line does not rank you a lap ahead (test).
+- [x] Every registered track is self-consistent and can be raced to the flag by the rivals (tests).
+- [x] Two stand-in game controllers drive a split-screen race and start the next one from the results (automated play-through).
 - [x] Rival levels are ordered and Gentle rivals are clearly slower than Fierce (tests).
 - [x] The faster route is faster only when driven well: stand-in drivers gain about 5 s with the plank at a 150 ms reaction delay and lose about 4–5 s at 250 ms (simulated).
 - [x] A whole race can be started, driven, finished and rematched in a real browser by scripted keys and by scripted touch, solo and split screen (automated play-through).

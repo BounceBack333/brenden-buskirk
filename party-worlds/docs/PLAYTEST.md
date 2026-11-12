@@ -24,7 +24,7 @@ Everything below is there to explain a yes or a no.
 
 | Who | Set-up | Why |
 |---|---|---|
-| The founder and one friend | **Split screen** on a tablet or a laptop (keyboard: A/D to steer and W to drift; ←/→ to steer and ↑ to drift) | The test this build was made for |
+| The founder and one friend | **Split screen** on a tablet or a laptop (two game controllers if you have them; otherwise one keyboard: A/D to steer and W to drift; ←/→ to steer and ↑ to drift) | The test this build was made for |
 | The founder alone, on a phone | Race against Gentle rivals, then Keen | First-touch feel of thumb steering and the drift button; is the phone screen enough |
 | Two friends who do not play games much | Split screen | Whether steering alone is enough to enjoy it |
 | Two friends who do | Split screen, then each solo against Fierce | Whether there is anything to get good at |

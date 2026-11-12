@@ -2,6 +2,18 @@
 
 Newest first. Each entry: what was decided, why, what it costs, and what would change it.
 
+## D-023 · Less scrap, fewer assumptions (2026-11-12)
+A pass with no new play in it: remove waste, and stop the code assuming things that will not stay true.
+**Assumptions removed.**
+- *There is one track.* A race now carries its track id; tracks live in a registry (`track.ts`); medal times, the rivals' cues for the shortcut and the menu's parking spots are track data; world kits are looked up per track (`src/worlds/index.ts`); the minimap fits itself to any centre line; the ramp and the rivals' line no longer assume which way the plank lies. A second circuit is a builder, a kit and one registry line. `dev/fingerprint.ts` printed identical state hashes before and after, so nothing about how a race plays changed.
+- *Somebody will remember the rules.* The simulation purity rule is now a test that reads the simulation sources. The character kit is built and animated in every option combination, and fed rubbish, in a test. Every registered track is checked and raced in a test. 108 tests, up from 79.
+- *Somebody will run the checks.* `npm run check` is one command (type-check, tests, build, size budget) and a GitHub Actions workflow runs it on pull requests that touch `party-worlds/`. This is the one file outside `party-worlds/`: it reads the repository, never touches the portfolio site, deploys nothing, and can be deleted to switch it off.
+- *Everyone has a keyboard to share.* Game controllers drive (stick or d-pad, A to drift, B to brake), one per player in split screen, and A presses the main button between races.
+- *The graphics context stays.* If a phone takes it away the game says so and restarts cleanly instead of freezing.
+**Scrap removed.** Every bundled font was being shipped in two formats (CSS 326 → 196 KB). Unused variables are gone and the compiler now rejects new ones. The old typeface dependency is gone. Settings that only matter to the parked experiment sit under its name.
+**Left alone on purpose.** The stylesheet is still layered (structure, then the night theme): folding it into one pass risks visual regressions for a maintenance gain, so it is mapped at the top of the file and listed as owed. Courier is still bundled rather than loaded on demand, because the single-file preview wants one script. No second track, no ghost laps, no elbows: those are content and craft, and the next input should be people racing.
+**Found on the way.** `main` of this repository is published by GitHub Pages. Merging this pull request would put the game's source and documents under the site's address (not a playable build). See `DEPENDENCIES.md`.
+
 ## D-022 · A game for grown-ups that looks like one (2026-11-11)
 The founder, on seeing the racing build: it feels like a child's game; the characters are babies and dolls; make it something adults enjoy and come back to, "nostalgia plus new age", with adult drivers who can be funny, different, animals, anything, and only one or two kid options.
 **What changed.**
