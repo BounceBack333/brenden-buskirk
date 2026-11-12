@@ -49,7 +49,7 @@ About ten minutes each. Say only: *"This is an early game. Play it however you l
 | Drivers | Who do they pick, and how fast? A grown-up, a pet, or one of the not-people? Any laugh, any "that's you"? Do they build one? Any "this looks like a kids' game" |
 | The score | In split screen, do they play the series out to three? Does the loser start a second? Does anyone quote the scoreboard at the other |
 | Medals | Alone, do they go again for the next medal? Do they notice the gap |
-| Trouble | Rotating the phone, thumbs covering the kart, the split being too small, sound, a palm or a second finger landing on the screen, anyone trying to drive across the lawn |
+| Trouble | A screen that says "Something went wrong" or "The picture was interrupted": photograph it, the small print is the cause. Rotating the phone, thumbs covering the kart, the split being too small, sound, a palm or a second finger landing on the screen, anyone trying to drive across the lawn |
 
 ## Afterwards (three questions, then stop)
 
@@ -67,4 +67,4 @@ About ten minutes each. Say only: *"This is an early game. Play it however you l
 
 ## Record
 
-For each session: date, who (by role, not name), device, build label, races played, results, the tallies above, verbatim quotes. Store notes without names or photos. Results go in `PROGRESS.md` under "Observed with real players" — a heading that does not exist until there is something true to put under it.
+For each session: date, who (by role, not name), device, build label (the last line of Settings, for example `0.1.0 · 1a2b3c4 · 2026-11-12`), races played, results, the tallies above, verbatim quotes. Store notes without names or photos. Results go in `PROGRESS.md` under "Observed with real players" — a heading that does not exist until there is something true to put under it.

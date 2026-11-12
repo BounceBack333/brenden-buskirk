@@ -1,6 +1,8 @@
 # Checks for the game in party-worlds/ only. It never touches, builds or deploys the portfolio
-# site at the repository root, and it publishes nothing: it type-checks, runs the tests, builds,
-# and holds the build to its size budget. Delete this file to switch it off.
+# site at the repository root, and it publishes nothing: it type-checks, runs the tests, compares
+# the race simulation with its recorded fingerprint, builds, holds the build to its size budget,
+# and then starts the built game in the runner's own Chrome to see that it boots and a race
+# begins. Delete this file to switch it off.
 name: Party Worlds checks
 
 on:
@@ -28,14 +30,16 @@ jobs:
       run:
         working-directory: party-worlds
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: party-worlds/package-lock.json
       - run: npm ci
-      - name: Type-check, test, build, size budget
+      - name: Type-check, tests, race fingerprint, build, size budget
         run: npm run check
-      - name: Simulation fingerprint (for comparing before and after a refactor)
-        run: npm run fingerprint
+      - name: Start the built game in a browser
+        run: npm run smoke
+        env:
+          SMOKE_CHANNEL: chrome

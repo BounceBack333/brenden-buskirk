@@ -15,19 +15,23 @@ npm install
 npm run dev          # game at http://127.0.0.1:5173
 ```
 
-Open it on a phone or tablet on the same network with `npm run dev -- --host 0.0.0.0`, then visit `http://<your-computer-ip>:5173`. That is also the way to see it full-screen without any viewer around it; on an iPhone, "Add to Home Screen" then opens it without browser bars.
+Open it on a phone or tablet on the same network with `npm run dev -- --host 0.0.0.0`, then visit `http://<your-computer-ip>:5173`. That is also the way to see it full-screen without any viewer around it; "Add to Home Screen" then gives it an icon and opens it without browser bars (a web manifest and icons are included; nobody has tried this on a device yet).
+
+Every build has a label (version, commit, day built) on the last line of Settings. Quote it in play-test notes and bug reports.
 
 | Command | What it does |
 |---|---|
 | `npm run dev` | Development server with hot reload |
-| `npm test` | 108 automated tests: race rules, tracks, medals and series, the character kit, the simulation purity rule, Courier rules, private-room server |
-| `npm run check` | Everything a change must pass: type-check, tests, build, size budget. CI runs exactly this |
+| `npm test` | 124 automated tests: race rules, tracks, medals and series, the character kit, the simulation purity rule, saved data, the game loop, Courier rules, private-room server |
+| `npm run check` | Everything a change must pass: type-check, tests, race fingerprint, build, size budget. CI runs exactly this |
+| `npm run smoke` | Starts the built game in a headless browser, begins a race and a Courier round, fails on any page error (after a build; CI runs it too) |
 | `npm run size` | Built file sizes against the budget (after a build) |
-| `npm run fingerprint` | State hashes of nine bot races: identical before and after a refactor that should not change play |
+| `npm run fingerprint` | Compares nine bot races with the recorded ones in `dev/fingerprint.txt`; fails if a race plays differently. `npm run fingerprint -- --update` records a change that was meant |
 | `npm run typecheck` | Strict TypeScript check |
 | `npm run build` | Production build into `dist/` (static files; host anywhere) |
 | `npm run server` | Private-room server for Courier on port 8787 (`PORT`, `ALLOWED_ORIGINS`, `LAUNCHES` env vars) |
 | `node scripts/build-single-file.mjs out.html --page` | One self-contained HTML file (after `npm run build`) |
+| `node dev/make-icons.mjs` | Redraws the home-screen icons after `public/icon.svg` changes (needs Playwright, see below) |
 
 ### Play modes
 - **Race** — you against three rivals. Rivals are bots and are labelled; your second character drives the quickest one. Pick how hard they race: Gentle, Keen or Fierce.
@@ -93,7 +97,7 @@ npx tsx dev/raceprobe.ts                                                        
 node dev/measure-audio.mjs                                                                 # every sound, rendered offline
 ```
 
-The `dev/*.mjs` scripts need Playwright with a Chromium browser (`npm i -D playwright`); it is not a dependency of the game. `node dev/raceplay.mjs … --pad` drives with stand-in game controllers, and `node dev/context-loss.mjs` takes the graphics context away mid-race.
+The `dev/*.mjs` play-through scripts need Playwright with a Chromium browser (`npm i -D playwright`); it is not a dependency of the game. The smoke test alone works without it, driving a Chrome that is already installed: `SMOKE_CHANNEL=chrome npm run smoke`. `node dev/raceplay.mjs … --pad` drives with stand-in game controllers, and `node dev/recovery.mjs` breaks the game mid-race two ways (the graphics context is taken away; the simulation starts throwing) and checks that it says so and restarts.
 
 `--slow` runs game time slower for the scripted driver only: the headless browser draws in software and acknowledges input about once a frame, so without it the script reacts far later than a person would. Courier's checks (`dev/playthrough.mjs`, `dev/online-test.mjs`, `dev/touch-test.mjs`, `dev/botmatch.ts`) still work.
 

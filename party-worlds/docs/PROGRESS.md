@@ -1,6 +1,6 @@
 # Progress and acceptance record
 
-Last updated: 2026-11-12 (scrap and future-proofing pass).
+Last updated: 2026-11-12 (second hardening pass, D-024).
 
 ## Status words
 
@@ -15,6 +15,22 @@ Last updated: 2026-11-12 (scrap and future-proofing pass).
 
 One recording of Catapult Courier was made by the founder and reviewed by an advisor; that review is the reason for the change of direction (D-016). Apart from that, nothing in this project has been played by a person, and nothing has run on a physical phone that we have observed. There are no player reactions, retention figures, revenue figures or device frame rates in this repository, because none exist.
 
+## Milestone: things that must not break in someone's hands (D-024)
+
+Nothing here changes how the game plays; the race fingerprint is unchanged and is now enforced.
+
+| Area | Status | Evidence |
+|---|---|---|
+| Saved data is read defensively | Implemented and tested | `tests/profile.test.ts` (7): nothing, rubbish, wrong kinds field by field, out-of-range volumes, bad records, old casts, junk and duplicate characters; reading is idempotent. A build was started in a headless browser on a deliberately broken save: zero page errors, bad fields at their defaults, good ones kept |
+| A game that keeps failing stops and says so | Implemented and tested (the counting); automation only (the screen) | `tests/loop.test.ts` (9): tick rate at 30, 60, 120 and 144 Hz displays, no catch-up after a long gap, one bad frame survived, a persistent failure reported exactly once, an every-other-frame failure caught too. `dev/recovery.mjs` makes the simulation throw mid-race in a headless browser: the screen appears with the cause and the build, and a tap starts the game again |
+| Lost graphics context | Implemented, automation only | Same script, same screen. Not seen on a real phone |
+| Play cannot change by accident | Implemented and tested | `npm run check` compares nine bot races with `dev/fingerprint.txt`. A 1 % change to one handling number was caught (and reverted). The GitHub runner and this machine print the same nine hashes |
+| The built game is started by the checks | Implemented and tested | `npm run smoke` passes on this machine against the production build: it starts, a race begins and all four karts move, Settings opens, a Courier round begins, zero page errors. On GitHub it runs in the runner's Chrome after `npm run check`: see the pull request's checks |
+| Build label | Implemented, automation only | Last line of Settings and on the recovery screen, for example `0.1.0 · 0a991fe+ · 2026-11-12` |
+| Home-screen icons and web manifest | Implemented, untested | Built, served and parsed locally. **Never installed on a phone**; needs the build hosted (`DEPENDENCIES.md` #2) |
+
+**Total:** 124 of 124 tests pass (32 race and track, 6 medals and series, 10 character kit, 15 purity, 7 saved data, 9 game loop, 26 Courier, 19 room server); type-check clean; fingerprint matches; build 915 KB JS + 192 KB CSS (261 KB + 119 KB gzipped), as `npm run size` prints them.
+
 ## Milestone: less scrap, fewer assumptions (D-023)
 
 Nothing here changes how the game plays; `npm run fingerprint` printed the same nine state hashes before and after.
@@ -25,14 +41,14 @@ Nothing here changes how the game plays; `npm run fingerprint` printed the same 
 | The purity rule is enforced | Implemented and tested | `tests/purity.test.ts` reads the seven simulation sources and fails on any platform-dependent maths, clock, DOM or rendering import |
 | The character kit is tested | Implemented and tested | `tests/characters.test.ts`: all 26 cast members through all 14 actions; every kind of driver in every hat; every hairstyle with every hat, beard and glasses at both ages; random specs; rubbish input. No exception, no non-finite number, triangle budget held |
 | One command, and CI | Implemented and tested | `npm run check`; the same steps passed from a clean checkout here, and passed on GitHub Actions (first run: 36 s) |
-| Size budget | Implemented and tested | `scripts/check-size.mjs`: JS 260 KB and CSS 119 KB gzipped, against budgets of 300 and 160 |
-| Font payload | Reduced | One format per weight instead of two: CSS 326 → 196 KB (gzipped 220 → 122 KB) |
+| Size budget | Implemented and tested | `scripts/check-size.mjs`: JS 261 KB and CSS 119 KB gzipped, against budgets of 300 and 160 |
+| Font payload | Reduced | One format per weight instead of two: CSS 326 → 196 kB, gzipped 220 → 122 kB (the build tool's figures, in thousands of bytes) |
 | Game controllers | Implemented, automation only | A split-screen race driven by two stand-in controllers finished cleanly and the A button started the next race; hints read "Steer with the stick" and "Hold A in a corner". **No real controller has been plugged in** |
-| Lost graphics context | Implemented, automation only | `dev/context-loss.mjs` takes the context away mid-race: the game pauses, stops its loop and shows "The picture was interrupted. Tap to carry on." Not seen on a real phone |
+| Lost graphics context | Implemented, automation only | `dev/recovery.mjs` (was `context-loss.mjs`) takes the context away mid-race: the game pauses, stops its loop and shows "The picture was interrupted. Tap to carry on." Not seen on a real phone |
 | Reduced motion in the race | Implemented, untested | Removes the countdown and finish orbits and the speed zoom, as well as shake and roll |
 | Compiler rejects unused code | Done | `noUnusedLocals` and `noUnusedParameters` are on; nine leftovers removed |
 
-**Total:** 108 of 108 tests pass; type-check clean; build 911 KB JS + 196 KB CSS.
+**Total at that point:** 108 of 108 tests (32 race and track, 6 medals and series, 10 character kit, 15 purity, 26 Courier, 19 room server); type-check clean; build 913 KB JS + 191 KB CSS (261 KB + 119 KB gzipped), as `npm run size` prints them.
 
 ## Milestone: the grown-up pass (D-022)
 

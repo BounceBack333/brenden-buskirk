@@ -3,6 +3,7 @@
  * (private windows, embedded previews). Nothing here ever leaves the device.
  */
 import type { CharacterSpec } from '../kit/contracts';
+import { sanitizeSpec } from '../characters/spec';
 
 export interface Settings {
   master: number;
@@ -31,7 +32,7 @@ export interface Profile {
   customCharacters: CharacterSpec[];
   /** ids of the characters in seats 0 and 1 */
   seats: [string, string];
-  /** best duet score per arena */
+  /** personal bests by key: race times in ticks, a medal rank per track, Courier scores per arena */
   best: Record<string, number>;
   /** which contextual hints have been understood (performed once) */
   learned: Record<string, boolean>;
@@ -64,26 +65,92 @@ export function defaultProfile(): Profile {
   };
 }
 
-export function loadProfile(): Profile {
+/** how many characters of their own a player can keep */
+export const MAX_CUSTOM = 24;
+const MAX_RECORDS = 200;
+
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+const level = (v: unknown, fallback: number): number =>
+  typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : fallback;
+const flag = (v: unknown, fallback: boolean): boolean => (typeof v === 'boolean' ? v : fallback);
+const count = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
+
+/** Settings from anything: each field is kept only if it is the right kind of value. */
+export function sanitizeSettings(raw: unknown, base: Settings = defaultSettings()): Settings {
+  const o = isRecord(raw) ? raw : {};
+  return {
+    master: level(o.master, base.master),
+    sfx: level(o.sfx, base.sfx),
+    music: level(o.music, base.music),
+    reducedMotion: flag(o.reducedMotion, base.reducedMotion),
+    aimAssist: flag(o.aimAssist, base.aimAssist),
+    umbrellaToggle: flag(o.umbrellaToggle, base.umbrellaToggle),
+    leftHanded: flag(o.leftHanded, base.leftHanded),
+    haptics: flag(o.haptics, base.haptics),
+    autoDrift: flag(o.autoDrift, base.autoDrift),
+    rivals: count(o.rivals),
+  };
+}
+
+/**
+ * A profile from whatever was in storage. Saved data outlives the build that wrote it, and a
+ * browser can hand back anything, so nothing is trusted: a field that is missing or the wrong
+ * kind falls back to its default by itself and the rest of the save is kept.
+ */
+export function parseProfile(raw: string | null | undefined): Profile {
   const base = defaultProfile();
+  if (!raw) return base;
+  let data: unknown;
   try {
-    const raw = window.localStorage.getItem(KEY);
-    if (!raw) return base;
-    const data = JSON.parse(raw) as Partial<Profile>;
-    if (!data || typeof data !== 'object') return base;
-    return {
-      version: 1,
-      castVersion: CAST_VERSION,
-      settings: { ...base.settings, ...(typeof data.settings === 'object' && data.settings ? data.settings : {}) },
-      customCharacters: Array.isArray(data.customCharacters) ? data.customCharacters.slice(0, 24) : [],
-      // seats chosen from an earlier cast are dropped once, so nobody is left driving last year's default
-      seats: data.castVersion === CAST_VERSION && Array.isArray(data.seats) && data.seats.length === 2 ? [String(data.seats[0]), String(data.seats[1])] : ['', ''],
-      best: data.best && typeof data.best === 'object' ? data.best : {},
-      learned: data.learned && typeof data.learned === 'object' ? data.learned : {},
-      roundsPlayed: Number.isFinite(data.roundsPlayed) ? Number(data.roundsPlayed) : 0,
-    };
+    data = JSON.parse(raw);
   } catch {
     return base;
+  }
+  if (!isRecord(data)) return base;
+
+  const customCharacters: CharacterSpec[] = [];
+  const ids = new Set<string>();
+  for (const c of Array.isArray(data.customCharacters) ? data.customCharacters : []) {
+    if (!isRecord(c) || customCharacters.length >= MAX_CUSTOM) continue;
+    const spec = sanitizeSpec(c);
+    if (ids.has(spec.id)) continue;
+    ids.add(spec.id);
+    customCharacters.push(spec);
+  }
+
+  const best: Record<string, number> = {};
+  if (isRecord(data.best)) {
+    for (const [k, v] of Object.entries(data.best).slice(0, MAX_RECORDS)) {
+      if (typeof v === 'number' && Number.isFinite(v) && v > 0) best[k] = v;
+    }
+  }
+  const learned: Record<string, boolean> = {};
+  if (isRecord(data.learned)) {
+    for (const [k, v] of Object.entries(data.learned).slice(0, MAX_RECORDS)) {
+      if (v === true) learned[k] = true;
+    }
+  }
+
+  // seats chosen from an earlier cast are dropped once, so nobody is left driving last year's default
+  const seats = data.seats;
+  const keepSeats = data.castVersion === CAST_VERSION && Array.isArray(seats) && seats.length === 2 && seats.every((x) => typeof x === 'string');
+  return {
+    version: 1,
+    castVersion: CAST_VERSION,
+    settings: sanitizeSettings(data.settings, base.settings),
+    customCharacters,
+    seats: keepSeats ? [seats[0] as string, seats[1] as string] : ['', ''],
+    best,
+    learned,
+    roundsPlayed: count(data.roundsPlayed),
+  };
+}
+
+export function loadProfile(): Profile {
+  try {
+    return parseProfile(window.localStorage.getItem(KEY));
+  } catch {
+    return defaultProfile(); // storage unavailable (private window, embedded preview)
   }
 }
 

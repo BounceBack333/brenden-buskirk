@@ -518,3 +518,4 @@ input[type='range'] { accent-color: var(--coral); }
 .results .total small { white-space: nowrap; }
 
 .boot-error { color: #ffb3cf; }
+.build { margin: calc(var(--u) * 3) 0 0; font-size: calc(var(--u) * 2.4); color: var(--muted); opacity: 0.75; letter-spacing: 0.02em; user-select: text; -webkit-user-select: text; }

@@ -67,6 +67,7 @@ function boot(): void {
   const canvas = $('gl') as HTMLCanvasElement;
   const viewport = new Viewport(stageEl);
   const profile = loadProfile();
+  profile.settings.rivals = Math.min(RIVAL_LEVELS.length - 1, profile.settings.rivals);
   // sound is optional: if Web Audio cannot start, the game plays silently
   let audio: AudioKit;
   try {
@@ -79,7 +80,8 @@ function boot(): void {
   const params = new URLSearchParams(window.location.search);
 
   // ── cast: seats 0 and 1 are yours; two more of the cast fill the grid ──
-  const everyone = (): CharacterSpec[] => [...profile.customCharacters.map(sanitizeSpec), ...PRESET_CHARACTERS];
+  // (saved characters are cleaned when the profile is read and again whenever one is edited)
+  const everyone = (): CharacterSpec[] => [...profile.customCharacters, ...PRESET_CHARACTERS];
   const find = (id: string): CharacterSpec | undefined => everyone().find((c: CharacterSpec) => c.id === id);
   const firstOf = (species: string): CharacterSpec =>
     PRESET_CHARACTERS.find((c: CharacterSpec) => c.species === species) ?? PRESET_CHARACTERS[0]!;
@@ -545,6 +547,7 @@ function boot(): void {
         }
       }
     },
+    fault: (error) => halt('Something went wrong. Tap to start again.', error),
   });
 
   viewport.onChange((size) => {
@@ -580,21 +583,34 @@ function boot(): void {
   window.addEventListener('pointerdown', unlock, { capture: true });
   window.addEventListener('keydown', unlock, { once: true, capture: true });
 
-  // A phone can take the graphics context away (memory pressure, a long spell in the background).
-  // Say so and start clean rather than leave a frozen picture; the profile is already saved.
-  canvas.addEventListener('webglcontextlost', (e) => {
-    e.preventDefault();
-    pause();
+  // Stop cleanly and say so, rather than leave a frozen picture. The profile is already saved,
+  // so starting again loses nothing but the race in progress. The cause, when there is one, is
+  // shown small: on a phone there is no console to read it from.
+  function halt(message: string, cause?: unknown): void {
     loop.stop();
-    audio.suspend();
+    // whatever broke the game may break pausing or silencing it too: the screen must still appear
+    for (const quiet of [pause, () => audio.suspend()]) {
+      try {
+        quiet();
+      } catch {
+        /* carry on to the message */
+      }
+    }
     const bootEl = $('boot');
     const status = document.getElementById('boot-status');
     if (status) {
+      const why = cause === undefined ? '' : String(cause instanceof Error ? `${cause.name}: ${cause.message}` : cause).slice(0, 160);
       status.className = 'boot-error';
-      status.textContent = 'The picture was interrupted. Tap to carry on.';
+      status.textContent = `${message}\n${why ? `${why}\n` : ''}Build ${__BUILD__}`;
     }
     bootEl.classList.remove('gone');
     bootEl.addEventListener('click', () => window.location.reload(), { once: true });
+  }
+
+  // A phone can take the graphics context away (memory pressure, a long spell in the background).
+  canvas.addEventListener('webglcontextlost', (e) => {
+    e.preventDefault();
+    halt('The picture was interrupted. Tap to carry on.');
   });
   canvas.addEventListener('webglcontextrestored', () => window.location.reload());
 
@@ -622,7 +638,7 @@ function boot(): void {
     get round() { return round; },
     get race() { return race; },
     get room() { return room; },
-    raceView, raceControls, loop, profile, viewport, stage, api, track,
+    raceView, raceControls, loop, profile, viewport, stage, api, track, build: __BUILD__,
   };
   requestAnimationFrame(() => requestAnimationFrame(() => {
     $('boot').classList.add('gone');

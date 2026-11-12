@@ -2,6 +2,19 @@
 
 Newest first. Each entry: what was decided, why, what it costs, and what would change it.
 
+## D-024 · Things that must not break in someone's hands (2026-11-12)
+A second pass with no new play in it, aimed at the first time this runs on a real phone with nobody watching a console.
+**What changed.**
+- *A save can contain anything.* Saved data outlives the build that wrote it. The profile is now read field by field (`parseProfile`): a field that is missing or the wrong kind falls back to its own default and the rest of the save is kept; volumes are held between 0 and 1; saved characters are cleaned, de-duplicated and capped. Before this, whatever was in storage under `settings` was passed straight to the sound engine and the menus.
+- *A game that keeps failing says so.* The loop now catches what a tick or a frame throws. An occasional bad frame is survived, as it always was. A game that keeps failing stops and shows a screen with the cause and the build, and a tap starts it again; a lost graphics context uses the same screen. The first version counted only failures in a row, passed its unit tests, and never tripped in a real browser: at 60 Hz a failed tick was being skipped on alternate frames. It now keeps a leaky count and tries the failed tick again. `dev/recovery.mjs` breaks the game both ways in a headless browser and checks the screen and the restart.
+- *Play does not change by accident.* The race fingerprint is a recorded baseline (`dev/fingerprint.txt`) and `npm run check`, and so CI, fails if a race plays differently. Changing play on purpose means updating that file in the same commit, which makes the change visible in review. The GitHub runner printed the same nine hashes as the machine this was written on: the first time "identical on every machine" was checked on two.
+- *Somebody has to start the game.* The checks never opened a browser, so a build that failed to boot would have passed them. `npm run smoke` serves the production build, opens it in a headless browser, starts a race and a Courier round, and fails on any page error. CI runs it in the runner's own Chrome through `playwright-core`, a development dependency that downloads no browser.
+- *Which build was that?* Every build carries a label (version, commit, day; a "+" if it was built from uncommitted changes), shown at the foot of Settings and on the recovery screen. The observation plan asked for one and there was none.
+- *A place on the home screen.* A web manifest and icons drawn from `public/icon.svg`; the old coral favicon from before the redesign is gone. Launched from a phone's home screen the game should run without browser bars, which matters most on iPhone, where browsers have not offered full screen to ordinary pages (the button hides itself where it is not offered). Untested: it needs the build hosted, which is the founder's decision (`DEPENDENCIES.md` #2).
+**Cost.** The three icon PNGs are the first binary files in the project (about 220 KB in the repository; fetched only by a phone that installs the game; outside the script and style budget). They are generated, by `dev/make-icons.mjs`.
+**Left alone on purpose.** No offline cache: a cache that can serve yesterday's build is the wrong risk while builds change daily. Text is still English and written inline, so the game cannot be translated without a pass over the interface code; listed as owed. Courier is still bundled with the race.
+**What would change it.** A recovery screen seen on a real device: the cause line is there to be photographed and sent back.
+
 ## D-023 · Less scrap, fewer assumptions (2026-11-12)
 A pass with no new play in it: remove waste, and stop the code assuming things that will not stay true.
 **Assumptions removed.**
@@ -10,7 +23,7 @@ A pass with no new play in it: remove waste, and stop the code assuming things t
 - *Somebody will run the checks.* `npm run check` is one command (type-check, tests, build, size budget) and a GitHub Actions workflow runs it on pull requests that touch `party-worlds/`. This is the one file outside `party-worlds/`: it reads the repository, never touches the portfolio site, deploys nothing, and can be deleted to switch it off.
 - *Everyone has a keyboard to share.* Game controllers drive (stick or d-pad, A to drift, B to brake), one per player in split screen, and A presses the main button between races.
 - *The graphics context stays.* If a phone takes it away the game says so and restarts cleanly instead of freezing.
-**Scrap removed.** Every bundled font was being shipped in two formats (CSS 326 → 196 KB). Unused variables are gone and the compiler now rejects new ones. The old typeface dependency is gone. Settings that only matter to the parked experiment sit under its name.
+**Scrap removed.** Every bundled font was being shipped in two formats (CSS 326 → 196 kB as the build tool counts it). Unused variables are gone and the compiler now rejects new ones. The old typeface dependency is gone. Settings that only matter to the parked experiment sit under its name.
 **Left alone on purpose.** The stylesheet is still layered (structure, then the night theme): folding it into one pass risks visual regressions for a maintenance gain, so it is mapped at the top of the file and listed as owed. Courier is still bundled rather than loaded on demand, because the single-file preview wants one script. No second track, no ghost laps, no elbows: those are content and craft, and the next input should be people racing.
 **Found on the way.** `main` of this repository is published by GitHub Pages. Merging this pull request would put the game's source and documents under the site's address (not a playable build). See `DEPENDENCIES.md`.
 

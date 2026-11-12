@@ -17,9 +17,11 @@ Original social racing game (racing has been the core since D-016; Catapult Cour
 
 ## Working here
 
-- `npm run dev`, `npm test`, `npm run typecheck`, `npm run build`, `npm run server`. Before pushing: `npm run check` (type-check, tests, build, size budget; CI runs the same). For a refactor that must not change play, `npm run fingerprint` before and after.
+- `npm run dev`, `npm test`, `npm run typecheck`, `npm run build`, `npm run server`. Before pushing: `npm run check` (type-check, tests, race fingerprint, build, size budget), then `npm run smoke` (the built game starts in a headless browser and a race begins). CI runs both.
+- **A change that alters how a race plays fails the fingerprint.** If it was meant to (tuning, a rule, a track edit), run `npm run fingerprint -- --update`, commit `dev/fingerprint.txt` with the change and say why in `docs/DECISIONS.md`. If it was not meant to, find out what changed play.
+- Saved data is read by `parseProfile` in `src/core/profile.ts`. A new saved field needs its default, its check there and a line in `tests/profile.test.ts`; never trust what storage hands back.
 - Tracks are data: see "Adding a track" in `README.md`. Nothing outside `track.ts` and `src/worlds/index.ts` should name a track.
-- Look at what you build: `node dev/raceplay.mjs <url> solo|split <outDir> --slow=0.25` drives a race and saves screenshots (`dev/playthrough.mjs` does the same for Courier); `dev/tile.sh` stitches them. Headless frame rates are software rendering and mean nothing for phones.
+- Look at what you build: `node dev/raceplay.mjs <url> solo|split <outDir> --slow=0.25` drives a race and saves screenshots (`dev/playthrough.mjs` does the same for Courier); `dev/tile.sh` stitches them; `node dev/recovery.mjs` breaks the game on purpose and checks it recovers. Headless frame rates are software rendering and mean nothing for phones.
 - Race tuning lives in `src/attractions/dash/track.ts` (`KART`, `RACE`, the circuit) and `rivals.ts` (levels). After changing it run `npx tsx dev/raceprobe.ts` (rivals against each other) and `LEVEL=0|1|2 npx tsx dev/humanish.ts` (stand-in drivers against a level), then the tests. Courier's numbers are in `src/attractions/courier/rules.ts` (`dev/probe.ts`, `dev/botmatch.ts`).
 - When a decision changes behaviour or scope, add an entry to `docs/DECISIONS.md` and update `docs/PROGRESS.md` in the same change.
 - New attraction: complete its entry in `docs/ATTRACTIONS.md` (players, controls, scoring, ties, accessibility, network authority, disconnects, acceptance criteria) before writing code.

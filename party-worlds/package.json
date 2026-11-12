@@ -11,7 +11,8 @@
     "test": "vitest run",
     "server": "tsx server/main.ts",
     "size": "node scripts/check-size.mjs",
-    "check": "tsc --noEmit && vitest run && vite build && node scripts/check-size.mjs",
+    "check": "tsc --noEmit && vitest run && tsx dev/fingerprint.ts && vite build && node scripts/check-size.mjs",
+    "smoke": "node dev/smoke.mjs",
     "fingerprint": "tsx dev/fingerprint.ts"
   },
   "dependencies": {
@@ -23,6 +24,7 @@
     "@types/node": "^26.6.6",
     "@types/three": "^0.187.0",
     "@types/ws": "^8.18.2",
+    "playwright-core": "1.63.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",

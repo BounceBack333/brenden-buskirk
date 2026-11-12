@@ -6,6 +6,7 @@ import { PRESET_CHARACTERS, SPEC_OPTIONS, describeSpec, randomSpec, sanitizeSpec
 import type { FieldOption } from '../characters/spec';
 import { POINTS, starsFor } from '../attractions/courier/rules';
 import type { CourierState, LaunchResult } from '../attractions/courier/sim';
+import { MAX_CUSTOM } from '../core/profile';
 import type { Profile, Settings } from '../core/profile';
 import type { AudioKit, CharacterAction, CharacterSpec, Species } from '../kit/contracts';
 import { esc } from './hud';
@@ -452,7 +453,7 @@ export class Screens {
     const at = list.findIndex((c) => c.id === clean.id);
     if (at >= 0) list[at] = clean;
     else list.unshift(clean);
-    if (list.length > 24) list.length = 24;
+    if (list.length > MAX_CUSTOM) list.length = MAX_CUSTOM;
     a.setSeatCharacter(seat, clean);
     a.save();
   }
@@ -573,6 +574,7 @@ export class Screens {
         <div class="field" style="margin:calc(var(--u)*2.4) 0 0"><span class="flabel">Parked experiment · Catapult Courier</span></div>
         ${sw('aimAssist', 'Aim assist', 'Shows the whole flight path and the landing spot. Marked on the results.')}
         ${sw('umbrellaToggle', 'Tap umbrella', 'Tap to open and tap to close, instead of holding.')}
+        <p class="build">Build ${esc(__BUILD__)}</p>
       </div>`;
     this.root.append(sheet);
     const close = (): void => { a.audio.play('ui_back'); a.save(); sheet.remove(); onClose(); };
