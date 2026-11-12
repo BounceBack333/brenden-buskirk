@@ -38,5 +38,5 @@ Short list. Each item says what it blocks and who can unblock it.
 - All text is English and written inline in the interface code. Translating the game needs a pass that moves it into one table first.
 - No offline cache: the game needs its host each time it is opened (D-024).
 - The parked Courier mode ships in the same script as the race instead of being loaded when asked for.
-- The check workflow uses GitHub Actions minutes (it was about half a minute a run before it also started the game in a browser; expect a minute or two). On a private repository that comes out of the plan's included minutes.
+- The check workflow uses GitHub Actions minutes (74 s for the first run that also started the game in a browser; about half a minute before that). On a private repository that comes out of the plan's included minutes.
 - No analytics, accounts, commerce, moderation or crash reporting exist. None were needed to find out whether the core is fun.
