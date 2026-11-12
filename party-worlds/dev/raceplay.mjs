@@ -216,7 +216,7 @@ const t0 = Date.now();
 const log = { mode, touch: touchMode, pad: padMode, portrait, viewport, slow, fps: [], events: [] };
 let last = null;
 let started = false;
-while (Date.now() - t0 < 900000) {
+while (Date.now() - t0 < 1800000) { // half an hour: a three-lap race at full quality in software rendering takes about fifteen minutes
   const st = await read();
   if (!st) { await page.waitForTimeout(50); continue; }
   last = st;
