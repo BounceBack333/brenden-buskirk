@@ -5,11 +5,7 @@
  * parked in their karts. Catapult Courier (the birthday-table attraction) is kept as a parked
  * experiment and loaded only when chosen.
  */
-import '@fontsource/barlow/latin-500.css';
-import '@fontsource/barlow/latin-600.css';
-import '@fontsource/barlow-condensed/latin-600.css';
-import '@fontsource/barlow-condensed/latin-700.css';
-import '@fontsource/barlow-condensed/latin-800-italic.css';
+import './ui/fonts.css';
 import './ui/styles.css';
 
 import { createAudioKit } from './audio';

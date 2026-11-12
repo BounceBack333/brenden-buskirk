@@ -15,8 +15,7 @@
  *
  * window.__ready turns true after the first rendered frame; window.__probe() reports anchors.
  */
-import '@fontsource/barlow/latin-500.css';
-import '@fontsource/barlow/latin-600.css';
+import '../src/ui/fonts.css';
 import * as THREE from 'three';
 import { PRESET_CHARACTERS, buildCharacter, describeSpec, randomSpec } from '../src/characters';
 import type { CharacterAction, CharacterRig, CharacterSpec, Expression, MotionContext, Species } from '../src/kit/contracts';

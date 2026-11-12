@@ -9,7 +9,10 @@
     "preview": "vite preview --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "server": "tsx server/main.ts"
+    "server": "tsx server/main.ts",
+    "size": "node scripts/check-size.mjs",
+    "check": "tsc --noEmit && vitest run && vite build && node scripts/check-size.mjs",
+    "fingerprint": "tsx dev/fingerprint.ts"
   },
   "dependencies": {
     "@fontsource/barlow": "^5.3.0",
@@ -25,5 +28,8 @@
     "vite": "^8.3.8",
     "vitest": "^5.1.0",
     "ws": "^8.22.2"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

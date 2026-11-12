@@ -1,0 +1,41 @@
+# Checks for the game in party-worlds/ only. It never touches, builds or deploys the portfolio
+# site at the repository root, and it publishes nothing: it type-checks, runs the tests, builds,
+# and holds the build to its size budget. Delete this file to switch it off.
+name: Party Worlds checks
+
+on:
+  pull_request:
+    paths:
+      - 'party-worlds/**'
+      - '.github/workflows/party-worlds.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'party-worlds/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: party-worlds-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: party-worlds
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: party-worlds/package-lock.json
+      - run: npm ci
+      - name: Type-check, test, build, size budget
+        run: npm run check
+      - name: Simulation fingerprint (for comparing before and after a refactor)
+        run: npm run fingerprint
