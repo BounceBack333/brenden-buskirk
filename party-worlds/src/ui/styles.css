@@ -563,10 +563,12 @@ input[type='range'] { accent-color: var(--coral); }
 .race-feed { position: absolute; left: 50%; top: calc(var(--pad-y) + var(--u) * 9.5); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 0.6); pointer-events: none; }
 .race-feed .line { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; font-size: calc(var(--u) * 3); color: #fff; background: rgba(6, 7, 20, 0.72); border-left: calc(var(--u) * 0.6) solid #ff3b3b; padding: calc(var(--u) * 0.5) calc(var(--u) * 1.8); white-space: nowrap; animation: feed-in 0.25s ease; }
 @keyframes feed-in { from { opacity: 0; transform: translateY(calc(var(--u) * -1.5)); } }
-.race-rows.combat .race-row { grid-template-columns: calc(var(--u) * 5) calc(var(--u) * 6.6) 1fr calc(var(--u) * 20) calc(var(--u) * 18) calc(var(--u) * 13); }
+.race-rows.combat .race-row { grid-template-columns: calc(var(--u) * 5) calc(var(--u) * 6.6) 1fr calc(var(--u) * 19) calc(var(--u) * 17) calc(var(--u) * 21); }
 .race-row .wk { text-align: right; font-family: var(--display); font-weight: 800; font-size: calc(var(--u) * 4.6); color: #ffb52e; font-variant-numeric: tabular-nums; }
 .race-row .wk small { margin-left: calc(var(--u) * 1); font-size: calc(var(--u) * 2.8); font-weight: 600; color: #ff7b7b; }
-.race-row.head .wk { color: var(--cyan); font-size: inherit; font-weight: inherit; }
+.race-row.head .wk { color: var(--cyan); font-size: calc(var(--u) * 4.4); font-weight: 700; }
+/* two armed panes side by side: the hint moves up out of the way of the MINE button */
+.race-pane.split.combat .race-hint { bottom: auto; top: calc(var(--pad-y) + var(--u) * 19); }
 /* the play sheet has two option rows now: tighter cards so the parked row still fits a phone */
 .sheet .choices.two .choice { min-height: calc(var(--u) * 27); padding: calc(var(--u) * 2.4) calc(var(--u) * 3); }
 .rivals-row { margin-top: calc(var(--u) * 1.8); }
