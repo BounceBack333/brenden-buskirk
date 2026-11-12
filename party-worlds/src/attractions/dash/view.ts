@@ -9,6 +9,8 @@ import type { AudioKit, CharacterRig, CharacterSpec, MotionContext } from '../..
 import type { Settings } from '../../core/profile';
 import { buildKart, buildNightSky, buildRaceWorld } from '../../worlds';
 import type { KartModel, RaceWorld } from '../../worlds';
+import { COMBAT } from './combat';
+import { CombatFx } from './combatfx';
 import { KART, RACE } from './track';
 import type { Track } from './track';
 import { SURFACE, forwardSpeed } from './sim';
@@ -106,8 +108,13 @@ export class RaceView {
   /** told about things worth a banner: (local view index or -1 for all, headline, detail) */
   onBanner: ((view: number, l1: string, l2: string) => void) | null = null;
   onBuzz: ((ms: number | number[]) => void) | null = null;
+  /** told who wrecked whom (seat, and the seat credited or -1), for the HUD's running list */
+  onWreck: ((seat: number, by: number) => void) | null = null;
 
   private world: RaceWorld;
+  private fx: CombatFx;
+  private armed = false;
+  private smokeTurn = 0;
   private karts: KartModel[] = [];
   private rigs: CharacterRig[] = [];
   private specs: CharacterSpec[];
@@ -152,7 +159,8 @@ export class RaceView {
     scene.add(moon);
 
     this.world = buildRaceWorld(track);
-    scene.add(this.world.root, this.sparks.mesh);
+    this.fx = new CombatFx(track);
+    scene.add(this.world.root, this.sparks.mesh, this.fx.root);
     this.specs = cast.slice(0, 4);
     for (let i = 0; i < 4; i++) {
       const spec = this.specs[i]!;
@@ -160,8 +168,7 @@ export class RaceView {
       const rig = buildCharacter(spec);
       rig.setAction('drive');
       rig.root.scale.setScalar(driverScale(spec));
-      rig.root.scale.setScalar(driverScale(spec));
-    kart.seat.add(rig.root);
+      kart.seat.add(rig.root);
       scene.add(kart.root);
       this.karts.push(kart);
       this.rigs.push(rig);
@@ -181,6 +188,7 @@ export class RaceView {
     this.scene.remove(this.karts[seat]!.root);
     this.karts[seat]!.dispose();
     this.karts[seat] = kart;
+    kart.setArmed(this.armed);
     this.scene.add(kart.root);
     const rig = buildCharacter(spec);
     rig.setAction('drive');
@@ -219,7 +227,23 @@ export class RaceView {
     this.track = track;
     this.world = buildRaceWorld(track);
     this.scene.add(this.world.root);
+    this.fx.setTrack(track);
     if (this.lobby) this.placeLobby();
+  }
+
+  /** Guns on or off the karts, crates and the repair strip in or out of the yard. */
+  private arm(on: boolean): void {
+    this.armed = on;
+    this.fx.setArmed(on);
+    for (const kart of this.karts) {
+      kart.setArmed(on);
+      kart.setWrecked(false);
+    }
+  }
+
+  /** The menu shows the karts as the next race will have them. */
+  showWeapons(): void {
+    if (this.lobby) this.arm(this.settings.weapons);
   }
 
   enterLobby(): void {
@@ -231,6 +255,7 @@ export class RaceView {
       rig.setExpression('happy');
     }
     for (const kart of this.karts) kart.root.visible = true; // a kart caught mid-blink must not stay hidden
+    this.arm(this.settings.weapons);
     this.audio.setEngine(null);
     this.audio.setSkid(null);
   }
@@ -251,6 +276,7 @@ export class RaceView {
     this.humans = humans.slice(0, 2);
     this.names = names;
     this.world.resetPlank();
+    this.arm(s.combat);
     this.cams = this.humans.map((seat) => ({
       camera: new THREE.PerspectiveCamera(64, 1, 0.2, 500), seat, yaw: s.karts[seat]!.heading, fov: 64, shake: 0, finishT: 0,
     }));
@@ -374,6 +400,131 @@ export class RaceView {
         a.setEngine(null);
         a.setSkid(null);
         break;
+
+      // ── combat ──
+      case 'hot':
+        a.play('weapons_hot');
+        this.onBanner?.(-1, 'Weapons hot', 'Guns and mines are live');
+        break;
+      case 'shot': {
+        const kart = this.karts[e.seat]!;
+        const k = s.karts[e.seat]!;
+        kart.fire();
+        kart.muzzle(this.v);
+        if (e.hit >= 0) {
+          const t = this.pose[e.hit]!;
+          this.fx.tracer(this.v.x, this.v.y, this.v.z, t.x, t.y + 0.55, t.z);
+          this.sparks.spawn(t.x, t.y + 0.6, t.z, Math.sin(this.time * 91) * 2, 2.5, Math.cos(this.time * 77) * 2, 0.22, 0.13, '#ffe2a0', 9);
+        } else {
+          this.fx.tracer(this.v.x, this.v.y, this.v.z, this.v.x + Math.cos(k.heading) * COMBAT.range, this.v.y, this.v.z + Math.sin(k.heading) * COMBAT.range);
+        }
+        if (local(e.seat)) {
+          a.play('gun', { intensity: 0.9 });
+          this.cam(e.seat).shake = Math.max(this.cam(e.seat).shake, 0.07); // recoil
+          if (e.hit >= 0) a.play('gun_hit', { intensity: 0.45, pitch: 1.2 });
+        } else if (e.hit >= 0 && local(e.hit)) {
+          a.play('gun', { intensity: 0.5, pitch: 0.85 });
+          a.play('gun_hit', { intensity: 1 });
+          this.cam(e.hit).shake = Math.max(this.cam(e.hit).shake, 0.22);
+          this.onBuzz?.(6);
+        } else if (this.near(k.x, k.z) < 30) {
+          a.play('gun', { intensity: 0.2, pitch: 0.9 });
+        }
+        break;
+      }
+      case 'mine_drop':
+        if (local(e.seat)) a.play('mine_drop');
+        break;
+      case 'mine_hit': {
+        this.boom(e.x, e.z, false);
+        const d = this.near(e.x, e.z);
+        if (d < 60) a.play('explosion', { intensity: local(e.seat) ? 1 : Math.max(0.15, 0.7 - d / 60) });
+        if (local(e.seat)) {
+          this.cam(e.seat).shake = 1;
+          this.onBuzz?.([30, 30, 40]);
+          this.onBanner?.(this.viewOf(e.seat), 'Mine!', e.owner === e.seat ? 'Your own' : `${this.names[e.owner] ?? 'Somebody'} left that for you`);
+        } else if (local(e.owner)) {
+          this.onBanner?.(this.viewOf(e.owner), 'Mine hit!', `${this.names[e.seat] ?? 'Somebody'} found it`);
+        }
+        break;
+      }
+      case 'crate':
+        if (local(e.seat)) {
+          a.play('crate');
+          this.onBanner?.(this.viewOf(e.seat), 'Mines loaded', '');
+        }
+        break;
+      case 'repair':
+        if (local(e.seat)) {
+          a.play('repair');
+          this.onBanner?.(this.viewOf(e.seat), 'Repaired', `+${Math.round(e.amount)} armour`);
+        }
+        break;
+      case 'ram': {
+        const k = s.karts[e.seat]!;
+        this.burst(k.x, 0.5, k.z, 8, '#ffcf8a', 4, 0.16);
+        for (const seat of [e.seat, e.by]) {
+          if (!local(seat)) continue;
+          a.play('ram', { intensity: Math.min(1, e.damage / COMBAT.ramMax) });
+          this.cam(seat).shake = Math.max(this.cam(seat).shake, 0.5);
+          this.onBuzz?.(25);
+        }
+        break;
+      }
+      case 'wreck': {
+        const k = s.karts[e.seat]!;
+        this.boom(k.x, k.z, true);
+        this.karts[e.seat]!.setWrecked(true);
+        this.rigs[e.seat]!.setExpression('dizzy');
+        const d = this.near(k.x, k.z);
+        if (d < 80) a.play('explosion', { intensity: local(e.seat) ? 1 : Math.max(0.25, 0.85 - d / 80), pitch: 0.8 });
+        this.onWreck?.(e.seat, e.by);
+        if (local(e.seat)) {
+          this.cam(e.seat).shake = 1.2;
+          this.onBuzz?.([60, 40, 80]);
+          this.onBanner?.(this.viewOf(e.seat), 'Wrecked!', e.by >= 0 ? `${this.names[e.by] ?? 'Somebody'} got you` : 'Nobody to blame but you');
+        }
+        if (e.by >= 0 && local(e.by)) {
+          a.play('star');
+          this.onBanner?.(this.viewOf(e.by), 'Wreck!', `You took out ${this.names[e.seat] ?? 'somebody'}`);
+        }
+        break;
+      }
+      case 'respawn':
+        this.karts[e.seat]!.setWrecked(false);
+        this.rigs[e.seat]!.setExpression('determined');
+        if (local(e.seat)) {
+          a.play('respawn');
+          this.onBanner?.(this.viewOf(e.seat), 'Back in it', 'Shielded for a moment');
+        }
+        break;
+    }
+  }
+
+  /** How far a spot is from the nearest local driver (for how loud something should be). */
+  private near(x: number, z: number): number {
+    let best = Infinity;
+    for (const seat of this.humans) {
+      const q = this.pose[seat];
+      if (!q) continue;
+      best = Math.min(best, Math.hypot(q.x - x, q.z - z));
+    }
+    return best;
+  }
+
+  /** A blast: a flash, hot fragments, and smoke that hangs for a moment. */
+  private boom(x: number, z: number, big: boolean): void {
+    this.fx.flash(x, 0.9, z, big ? 4.4 : 2.8);
+    const hot = ['#fff1b8', '#ffb347', '#ff6a2e'];
+    const n = big ? 26 : 14;
+    for (let i = 0; i < n; i++) {
+      const a = i * 2.399 + this.time * 5;
+      const sp = (big ? 7 : 5) * (0.35 + ((i * 37) % 10) / 14);
+      this.sparks.spawn(x, 0.5, z, Math.cos(a) * sp, 3 + ((i * 13) % 7) * 0.8, Math.sin(a) * sp, 0.5 + (i % 4) * 0.12, 0.16 + (i % 3) * 0.07, hot[i % 3]!, 11);
+    }
+    for (let i = 0; i < (big ? 10 : 5); i++) {
+      const a = i * 1.7;
+      this.sparks.spawn(x + Math.cos(a) * 0.6, 0.7, z + Math.sin(a) * 0.6, Math.cos(a) * 0.8, 1.6 + (i % 3) * 0.5, Math.sin(a) * 0.8, 1.1 + (i % 4) * 0.2, 0.8 + (i % 3) * 0.25, i % 2 ? '#4b4b57' : '#34343d', -0.6);
     }
   }
 
@@ -415,6 +566,7 @@ export class RaceView {
     else this.frameRace(s, alpha, dt);
     this.world.update(dt, this.time);
     this.sparks.update(dt);
+    this.fx.update(this.lobby ? null : s, dt, this.time);
 
     const r = this.renderer;
     r.setScissorTest(true);
@@ -499,7 +651,10 @@ export class RaceView {
     const n = s.karts.length;
     this.sparkClock -= dt;
     const emit = this.sparkClock <= 0;
-    if (emit) this.sparkClock = 0.03;
+    if (emit) {
+      this.sparkClock = 0.03;
+      this.smokeTurn++;
+    }
     for (let i = 0; i < n; i++) {
       const k = s.karts[i]!;
       const p = this.prev[i]!;
@@ -516,7 +671,8 @@ export class RaceView {
       kart.setBoost(boost);
       kart.setGhost(k.blinkTicks > 0);
       // the tub leans out of a corner and squats under a boost
-      const lean = k.drifting ? k.driftDir * 0.16 : k.steer * 0.07 * Math.min(1, vf / 10);
+      // (a wreck sits heeled over on its springs)
+      const lean = k.wreckTicks > 0 ? 0.3 : k.drifting ? k.driftDir * 0.16 : k.steer * 0.07 * Math.min(1, vf / 10);
       kart.body.rotation.x += (lean - kart.body.rotation.x) * Math.min(1, dt * 10);
       kart.body.rotation.z += ((boost * 0.07 - (k.y > 0.3 ? 0.12 : 0)) - kart.body.rotation.z) * Math.min(1, dt * 8);
       kart.update(dt, vf);
@@ -542,9 +698,17 @@ export class RaceView {
         if (Math.abs(along) < 1.6 && Math.abs(side) < 3) ctx.lookYaw = side > 0 ? 0.7 : -0.7;
       }
       if (!k.finished) {
-        rig.setExpression(k.stunTicks > 0 ? 'dizzy' : boost > 0 ? 'thrilled' : k.drifting ? 'determined' : k.surface === SURFACE.soil ? 'oops' : 'happy');
+        rig.setExpression(k.stunTicks > 0 || k.wreckTicks > 0 ? 'dizzy' : boost > 0 ? 'thrilled' : k.drifting ? 'determined' : k.surface === SURFACE.soil ? 'oops' : s.combat ? 'determined' : 'happy');
       }
       rig.update(dt, ctx);
+
+      // a battered kart smokes; a wreck pours it out
+      if (s.combat && emit && !k.finished && (k.wreckTicks > 0 || (k.armor < 40 && (this.smokeTurn + i) % (k.armor < 20 ? 2 : 4) === 0))) {
+        kart.bonnet(this.v);
+        const heavy = k.wreckTicks > 0;
+        this.sparks.spawn(this.v.x, this.v.y, this.v.z, Math.sin(this.time * 13 + i) * 0.5, heavy ? 2.6 : 1.8, Math.cos(this.time * 11 + i) * 0.5, heavy ? 1.1 : 0.7, heavy ? 0.75 : 0.42, heavy ? '#33333b' : '#5a5a66', -0.5);
+        if (heavy && this.smokeTurn % 3 === 0) this.sparks.spawn(this.v.x, this.v.y, this.v.z, Math.sin(this.time * 29) * 2, 3.5, Math.cos(this.time * 31) * 2, 0.4, 0.14, '#ff8a3a', 8);
+      }
 
       // sparks, dust
       if (emit && vf > 4) {
@@ -597,10 +761,13 @@ export class RaceView {
     c.fov += (baseFov + (calm ? 3 : boost * 9 + Math.min(6, speed * 0.25)) - c.fov) * Math.min(1, dt * 5);
     c.camera.fov = c.fov;
     let orbit = 0;
-    let dist = 4.0 + boost * 0.7;
-    let height = 2.0;
-    let lookUp = 1.05;
-    let ahead = 2.4;
+    // an armed race is watched from a little higher and further back: your own guns, whoever is
+    // in front of them and what is lying in the road all need to be in the picture
+    const armed = s.combat ? 1 : 0;
+    let dist = 4.0 + boost * 0.7 + armed * 0.7;
+    let height = 2.0 + armed * 0.75;
+    let lookUp = 1.05 + armed * 0.2;
+    let ahead = 2.4 + armed * 1.2;
     if (calm) {
       c.yaw = s.phase === 'countdown' ? q.h : c.yaw;
     } else if (s.phase === 'countdown') {
@@ -618,9 +785,9 @@ export class RaceView {
       const e = Math.min(1, c.finishT / 1.4);
       const ease = e * e * (3 - 2 * e);
       orbit = Math.PI * 0.86 * ease;
-      dist = 4.0 - ease * 0.9;
-      height = 2.0 - ease * 0.55;
-      ahead = 2.4 * (1 - ease);
+      dist = 4.0 + armed * 0.7 - ease * (0.9 + armed * 0.7);
+      height = 2.0 + armed * 0.75 - ease * (0.55 + armed * 0.75);
+      ahead = (2.4 + armed * 1.2) * (1 - ease);
     }
     c.shake *= Math.exp(-dt * 7);
     const sh = this.settings.reducedMotion ? 0 : c.shake;
@@ -658,6 +825,8 @@ export class RaceView {
   dispose(): void {
     for (const rig of this.rigs) rig.dispose();
     for (const kart of this.karts) kart.dispose();
+    this.scene.remove(this.fx.root);
+    this.fx.dispose();
     this.scene.traverse((o) => {
       const m = o as THREE.Mesh;
       if (m.isMesh && m.geometry) m.geometry.dispose();

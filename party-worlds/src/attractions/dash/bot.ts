@@ -1,11 +1,13 @@
 /**
  * Rival drivers for solo racing. They drive through the same DriveInput as a person, with the
  * same kart, and only see public race state. What separates them is skill: how cleanly they
- * hold a line, whether they drift for boosts, and how often they get it wrong.
+ * hold a line, whether they drift for boosts, and how often they get it wrong. In a combat race
+ * they use the same guns and mines as everyone, the sharper ones a little sooner.
  * They are always labelled as bots.
  */
 import { Rng, clamp } from '../../core/dmath';
 import { KART } from './track';
+import { canBeHit, gunTarget, weaponsHot } from './combat';
 import { forwardSpeed, noDrive, trackOf } from './sim';
 import type { DriveInput, RaceState } from './sim';
 
@@ -27,6 +29,9 @@ export class Rival {
   private usePlank = false;
   private startPress = -1;
   private pressAt = 0;
+  /** how long somebody has been in the sights */
+  private sights = 0;
+  private nextMine = 0;
 
   constructor(opts: RivalOptions) {
     this.rng = new Rng(opts.seed);
@@ -40,6 +45,8 @@ export class Rival {
     o.steer = 0;
     o.drift = false;
     o.brake = false;
+    o.fire = false;
+    o.drop = false;
     const k = s.karts[seat];
     if (!k || s.phase === 'over') return o;
     if (s.phase === 'countdown') {
@@ -75,7 +82,8 @@ export class Rival {
     if (wantOpen) {
       tx = pl.prop.x;
       tz = pl.prop.z;
-    } else if (this.usePlank && s.plankOpen && nearFork && k.surface !== 2) {
+    } else if (this.usePlank && !(s.combat && k.armor < 45) && s.plankOpen && nearFork && k.surface !== 2) {
+      // (a battered kart goes the long way instead, for the repair strip)
       // aim along the plank, a little ahead, whichever way it lies
       const px = pl.bx - pl.ax;
       const pz = pl.bz - pl.az;
@@ -97,11 +105,43 @@ export class Rival {
       const lane = clamp(this.lane * 0.55 + inside + this.wobble, -(p.hw - 1.6), p.hw - 1.6);
       tx = p.x - p.tz * lane;
       tz = p.z + p.tx * lane;
+      // out of mines: swing over for a crate that is coming up
+      if (s.combat && k.mines === 0 && this.skill > 0.3 && track.combat) {
+        const hx = Math.cos(k.heading);
+        const hz = Math.sin(k.heading);
+        for (let c = 0; c < track.combat.crates.length; c++) {
+          if (s.tick < s.crateReady[c]!) continue;
+          const crate = track.combat.crates[c]!;
+          const cx = crate.x - k.x;
+          const cz = crate.z - k.z;
+          const along = cx * hx + cz * hz;
+          if (along > 3 && along < 20 && Math.abs(cx * hz - cz * hx) < 4.5) {
+            tx = crate.x;
+            tz = crate.z;
+            break;
+          }
+        }
+      }
     }
 
     // steer at the target
     const fx = Math.cos(k.heading);
     const fz = Math.sin(k.heading);
+    // a mine dead ahead: the sharper rivals go round it, on whichever side is nearer
+    if (s.combat && this.skill > 0.4 && !wantOpen) {
+      for (const mine of s.mines) {
+        const mx = mine.x - k.x;
+        const mz = mine.z - k.z;
+        const along = mx * fx + mz * fz;
+        if (along < 1 || along > 20) continue;
+        const side = fx * mz - fz * mx; // positive = the mine is to the right of the nose
+        if (Math.abs(side) > 2) continue;
+        const shift = side >= 0 ? -3 : 3;
+        tx = mine.x - fz * shift;
+        tz = mine.z + fx * shift;
+        break;
+      }
+    }
     const dx = tx - k.x;
     const dz = tz - k.z;
     const err = Math.atan2(fx * dz - fz * dx, fx * dx + fz * dz);
@@ -129,6 +169,28 @@ export class Rival {
     // a weaker rival lifts for corners it does not trust itself in
     if (!k.drifting && vf > 11 && (Math.abs(err) > 0.9 || (tight && this.skill < 0.5 && this.rng.next() < 0.5 - this.skill))) o.brake = true;
     o.steer = Math.round(steer * 127);
+
+    if (s.combat && weaponsHot(s) && k.wreckTicks === 0) {
+      // guns: squeeze once somebody has sat in the sights for a moment (the sharper, the sooner)
+      this.sights = gunTarget(s, track, seat) >= 0 ? this.sights + 1 : 0;
+      o.fire = k.ammo > 0 && this.sights > Math.round(16 - 13 * this.skill);
+      // a mine for whoever is sitting on the tail
+      if (k.mines > 0 && s.tick >= this.nextMine) {
+        for (let j = 0; j < s.karts.length; j++) {
+          const other = s.karts[j]!;
+          if (j === seat || !canBeHit(other)) continue;
+          const ox = other.x - k.x;
+          const oz = other.z - k.z;
+          const d2 = ox * ox + oz * oz;
+          if (d2 > 100 || d2 < 4) continue;
+          if (ox * fx + oz * fz < -0.8 * Math.sqrt(d2)) {
+            o.drop = true;
+            this.nextMine = s.tick + 75;
+            break;
+          }
+        }
+      }
+    }
     return o;
   }
 }

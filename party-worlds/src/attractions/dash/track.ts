@@ -101,11 +101,23 @@ export interface Track {
   };
   /** race times, in seconds, for a standard race here (RACE.laps laps): what a medal costs */
   medals: { gold: number; silver: number; bronze: number };
+  /** the same for an armed race, where being shot at and wrecked costs time */
+  combatMedals: { gold: number; silver: number; bronze: number };
   /** where the menu parks the drivers, and where it looks at them from */
   lobby: {
     spots: { x: number; z: number; heading: number }[];
     camera: { x: number; y: number; z: number };
     look: { x: number; y: number; z: number };
+  };
+  /**
+   * What the combat layer needs from a circuit (see combat.ts). Without it a combat race here
+   * still has guns, mines carried from the start and ramming, but no refills and no repairs.
+   */
+  combat?: {
+    /** mine crates, on the road but off the usual line */
+    crates: { x: number; z: number }[];
+    /** drive through for armour: put it on the long way round, so the shortcut costs something */
+    repair: Zone;
   };
   /** the flowerbed the plank crosses (ellipse): very slow going */
   bed: { x: number; z: number; rx: number; rz: number };
@@ -253,6 +265,14 @@ function buildBackyard(): Track {
   const ball: Circle = { x: 49.2, z: 15, r: 2.4 };
   const circles: Circle[] = [pot, ball, ...chairLegs];
 
+  // Mine crates sit to one side of the usual line: on the outside of the home straight, on the
+  // inside after the hairpin, and on the outside of the sweeper round the pot.
+  const beside = (index: number, lane: number): { x: number; z: number } => {
+    const p = samples[index % samples.length]!;
+    return { x: p.x - p.tz * lane, z: p.z + p.tx * lane };
+  };
+  const crates = [beside(30, 2.2), beside(100, -2.2), beside(238, 2.2)];
+
   const grid = [
     { x: -9.5, z: 28.5, heading: 0 }, { x: -12.2, z: 31.5, heading: 0 },
     { x: -14.9, z: 28.5, heading: 0 }, { x: -17.6, z: 31.5, heading: 0 },
@@ -273,12 +293,16 @@ function buildBackyard(): Track {
     // from stand-in drivers (dev/humanish.ts), not people: a steady first-timer lands near
     // bronze, drifting well reaches silver, and gold needs the plank
     medals: { gold: 55, silver: 58.5, bronze: 63 },
+    // armed, the same stand-in drivers take about four seconds longer (dev/combatprobe.ts)
+    combatMedals: { gold: 59, silver: 63, bronze: 68 },
     lobby: {
       // the two chosen drivers nose-out by the finish line; the other two wait further back
       spots: [{ x: -7.4, z: 28.4, heading: 0.5 }, { x: -9.2, z: 31.9, heading: 0.25 }, { x: -16, z: 27.6, heading: 0 }, { x: -18.5, z: 31.6, heading: 0 }],
       camera: { x: -0.9, y: 2.15, z: 36.3 },
       look: { x: -8.3, y: 0.95, z: 30.2 },
     },
+    // the repair strip is at the far side of the flowerbed bend: the plank skips it
+    combat: { crates, repair: { x0: -20, x1: -9, z0: -28, z1: -17 } },
     bed: { x: -14.5, z: -7, rx: 16.5, rz: 9.6 },
     dressing: { hose, pot, ball, ladder, chairLegs, bricks, workLight: { x: 70, z: 15 } },
   };

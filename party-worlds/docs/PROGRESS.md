@@ -1,6 +1,6 @@
 # Progress and acceptance record
 
-Last updated: 2026-11-12 (second hardening pass, D-024).
+Last updated: 2026-11-12 (armed racing, D-025).
 
 ## Status words
 
@@ -14,6 +14,25 @@ Last updated: 2026-11-12 (second hardening pass, D-024).
 | **Blocked** | Cannot proceed without the named dependency |
 
 One recording of Catapult Courier was made by the founder and reviewed by an advisor; that review is the reason for the change of direction (D-016). Apart from that, nothing in this project has been played by a person, and nothing has run on a physical phone that we have observed. There are no player reactions, retention figures, revenue figures or device frame rates in this repository, because none exist.
+
+## Milestone: armed racing (D-025)
+
+**Asked for:** "more like death race than Mario kart".
+
+| Area | Status | Evidence |
+|---|---|---|
+| Combat rules: armour, guns, mines, crates, ramming, wall damage, wrecks, the repair strip | Implemented and tested | `tests/combat.test.ts` (26): guns locked at the start, hit only what is ahead, in range and not behind the pot; magazine and reload; mines arm, bite, expire; crates and repairs; ram and wall damage; a wreck stops, is credited, and comes back shielded; a finished kart is out of it; three whole bot races add up; same inputs give the same race |
+| The plain race is unchanged, and still there | Implemented and tested | The nine recorded plain fingerprints are identical after the change; a test plays a plain race with the trigger held and gets the same hash; "Clean" on the play sheet |
+| Rivals fight with the same kit | Implemented and tested (they do); Simulated (how much) | Whole-race tests. `dev/combatprobe.ts`, 20 races a level: about 3 / 3.5 / 5 wrecks a race across four karts at Gentle / Keen / Fierce, the stand-in wrecked about once a race, races 3 to 6 s longer than plain |
+| Controls: FIRE, MINE, Auto fire | Implemented, automation only | Keyboard (solo F and E; shared keyboard Space/E and Enter/right Shift), touch buttons, controller (right trigger, Y). Auto fire defaults on for touch |
+| HUD: armour and gun bars, brackets on the target, armour under rivals' names, wreck list, mines and crates on the minimap | Implemented, automation only | Reviewed at 1280×720 in frames frozen on a shot, a wreck, a mine going off and a respawn (`dev/combat-shots.mjs`). First version had a fault found this way: tracers and flashes expired before a slow device drew one frame; each is now drawn at least once |
+| Look: guns, a spiked ram and plates on the karts; tracers, blasts, smoke, burning wrecks; a higher camera when armed | Implemented, **seen by me only** | Same frames |
+| Sound: guns, hits, explosions, mines, crates, repair, the weapons-live alarm | Implemented, **measured but never heard** | `dev/measure-audio.mjs` renders all ten offline: none silent, none clipping (peaks 0.04 to 0.42; the gun is the quietest of the loud ones on purpose, it repeats ten times a second) |
+| Results and stakes | Implemented, automation only | A Wrecks column (caused, and times wrecked); armed and plain races keep separate bests and medals |
+| The checks start an armed race | Implemented and tested | `npm run smoke`: an armed race goes live and somebody opens fire; a Clean race has no weapons |
+| Scripted play-throughs on this build | Not yet run | — |
+
+**Total:** 152 of 152 tests pass (32 race and track, 26 combat, 6 medals and series, 10 character kit, 17 purity, 7 saved data, 9 game loop, 26 Courier, 19 room server); type-check clean; 18 fingerprints match; build 941 KB JS + 197 KB CSS (270 KB + 120 KB gzipped), inside the budget.
 
 ## Milestone: things that must not break in someone's hands (D-024)
 
@@ -30,7 +49,7 @@ Nothing here changes how the game plays; the race fingerprint is unchanged and i
 | Build label | Implemented, automation only | Last line of Settings and on the recovery screen, for example `0.1.0 · 0a991fe+ · 2026-11-12` |
 | Home-screen icons and web manifest | Implemented, untested | Built, served and parsed locally. **Never installed on a phone**; needs the build hosted (`DEPENDENCIES.md` #2) |
 
-**Total:** 124 of 124 tests pass (32 race and track, 6 medals and series, 10 character kit, 15 purity, 7 saved data, 9 game loop, 26 Courier, 19 room server); type-check clean; fingerprint matches; build 915 KB JS + 192 KB CSS (261 KB + 119 KB gzipped), as `npm run size` prints them.
+**Total at that point:** 124 of 124 tests (32 race and track, 6 medals and series, 10 character kit, 15 purity, 7 saved data, 9 game loop, 26 Courier, 19 room server); type-check clean; fingerprint matches; build 915 KB JS + 192 KB CSS (261 KB + 119 KB gzipped), as `npm run size` prints them.
 
 ## Milestone: less scrap, fewer assumptions (D-023)
 

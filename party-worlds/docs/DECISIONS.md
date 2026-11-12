@@ -2,6 +2,25 @@
 
 Newest first. Each entry: what was decided, why, what it costs, and what would change it.
 
+## D-025 · Armed: more Death Race than Mario Kart (2026-11-12)
+The founder, on the racing build: "let's make it more like death race than Mario kart".
+**Read as:** a combat racer. The race is still what you win, but the karts are armed and can be wrecked. The rules are our own; nothing is taken from any film or game beyond the genre.
+**What a kart carries** (identical for everyone, people and rivals; nothing chosen, bought, unlocked or random):
+- *Armour*, 100. At nothing the kart is a wreck: 2.5 s stopped, then back on the road where it had got to with full armour and about two seconds of shield. Nobody is eliminated.
+- *Twin guns.* Locked for the first 5 s after GO. Hold FIRE: ten rounds a second, 2 armour a round, 24 units of range, straight ahead within about five degrees. The big pot and the tennis ball stop a shot. Twenty rounds, refilling by themselves once you stop shooting.
+- *Mines*, up to two, from three crates beside the racing line (a crate comes back after 15 s). A mine arms after 0.6 s, lasts 20 s, takes 35 armour and spins whoever drives over it, its owner included.
+- *Ramming.* A hard hit costs the kart that is hit up to 22 and the rammer 30 % of that. A wall hit hard enough to spin you costs 10.
+- *The repair strip*, on the far side of the flowerbed bend: 45 armour back, once per pass. The plank skips it, so the short way now costs something.
+- *Credit.* Whoever last hurt a kart in the previous 5 s gets the wreck, even if a wall finished the job.
+**Controls added:** FIRE (hold) and MINE (press). On a touch screen the guns start out firing by themselves whenever a rival is in the sights ("Auto fire" in Settings; always on when two share a touch screen), so a thumb still only steers and drifts. Brackets mark whoever the guns would hit and turn red while rounds land.
+**Rivals** use the same kit through the same inputs. The sharper ones squeeze sooner, steer round mines and swing over for a crate; a battered one skips the plank for the repair strip. Still no rubber band.
+**The plain race is kept** as "Clean" on the play sheet, and it is provably the same race: the nine recorded plain fingerprints did not move. Nine armed ones were recorded beside them. Armed and plain races keep separate best times and medals; armed medal times are four to five seconds slower.
+**Where the numbers came from:** `dev/combatprobe.ts`, a stand-in driver against each rival level, twenty races each. Across the four karts there were about 3, 3.5 and 5 wrecks a race at Gentle, Keen and Fierce; the stand-in was wrecked about once a race; a race took three to six seconds longer than a plain one. Simulated. Nobody has played it.
+**Lines drawn.** Cars against cars only: there are no bystanders and nothing to run over. Nobody is hurt: a wrecked driver is dizzy and back in three seconds. Equal kit: weapons are never a purchase, an unlock or a side effect of how a kart looks.
+**What this overrides.** The advisor's racing brief asked for one manoeuvre and simple controls. This adds two inputs and a second thing to manage, at the founder's direction. Auto fire and the Clean race are the mitigations.
+**Cost.** More on screen (armour, guns, brackets, a list of wrecks). Two people on one keyboard have five keys each. The leader is shot at from behind, which works as a catch-up; mines are the leader's answer.
+**What would change it.** People playing it. Whether being wrecked is funny or infuriating, whether guns that fire themselves feel like yours, and whether anyone lays a mine on purpose are all unknown (`PLAYTEST.md`).
+
 ## D-024 · Things that must not break in someone's hands (2026-11-12)
 A second pass with no new play in it, aimed at the first time this runs on a real phone with nobody watching a console.
 **What changed.**

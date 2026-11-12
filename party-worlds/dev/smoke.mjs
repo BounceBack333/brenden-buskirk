@@ -125,6 +125,23 @@ try {
       );
       return `tick ${await page.evaluate(() => window.__pw.race.state.tick)}`;
     });
+    await step('an armed race goes live and somebody opens fire', async (page) => {
+      await page.click('[data-act="play"]');
+      await page.click('[data-weapons="1"]');
+      await page.click('[data-race="solo"]');
+      await page.waitForFunction(() => {
+        const s = window.__pw.race?.state;
+        return !!s && s.combat && s.karts.some((k) => k.ammo < 20 || k.armor < 100);
+      });
+      return `tick ${await page.evaluate(() => window.__pw.race.state.tick)}`;
+    });
+    await step('a clean race has no weapons', async (page) => {
+      await page.click('[data-act="play"]');
+      await page.click('[data-weapons="0"]');
+      await page.click('[data-race="solo"]');
+      await page.waitForFunction(() => window.__pw.race?.state.phase === 'racing');
+      if (await page.evaluate(() => window.__pw.race.state.combat)) throw new Error('the race is armed');
+    });
     await step('settings open and show the build', async (page) => {
       await page.click('[data-act="settings"]');
       await page.waitForSelector('.sheet .build');

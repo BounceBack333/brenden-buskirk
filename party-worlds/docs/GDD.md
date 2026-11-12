@@ -4,7 +4,7 @@ Working title: **BounceBack Party Worlds**. Status words used throughout are def
 
 ## 1. Identity
 
-**You and your friends, as tin-toy racers on a track hidden in an ordinary place — and the place remembers what you did to it. Made for adults: the karts are toys, the grudges are real.**
+**You and your friends, as armed tin-toy racers on a track hidden in an ordinary place — and the place remembers what you did to it. Made for adults: the karts are toys, the guns are loaded, the grudges are real.**
 
 Described without other games: you pick a small, expressive version of yourself or your pet, sit it in a toy kart, and race three laps of a patio at night against your friends. The garden hose is a banked wall, a scaffold plank is a shortcut, a lost tennis ball is a boulder. Someone knocks the peg out from under the plank and it stays down for everybody.
 
@@ -14,7 +14,7 @@ Described without other games: you pick a small, expressive version of yourself 
 
 Three promises, in priority order when they conflict:
 1. **It's us.** Drivers are recognisable grown-ups (or gloriously not people at all), and the game brings their faces to the screen. Looks never change how anyone drives.
-2. **I beat you fairly.** One kart, one handling model, one set of rules for everyone on the track. Nothing bought, nothing hidden, no rubber band.
+2. **I beat you fairly.** One kart, one handling model, one set of weapons and one set of rules for everyone on the track. Nothing bought, nothing hidden, no rubber band.
 3. **I can see why.** Every result can be explained by pointing at something that happened: a boost held too long, a plank missed, a peg someone else paid for.
 
 ## 2. Central loop
@@ -31,6 +31,18 @@ What a race gives you to be better at:
 - **Every lap.** Road or plank.
 - **Once.** Pay to open the plank, or wait for someone else to.
 - **Each other.** Tow behind a kart, shove one wide, sit in the plank's mouth.
+
+### Armed (D-025)
+
+The founder asked for "more like death race than Mario kart". Since then a race is armed unless you choose Clean, and there is a second thing to manage: **armour**.
+
+- **Guns.** Hold FIRE (or let them fire themselves) and whoever is straight ahead and in range loses armour. Aiming is steering. Twenty rounds, then a wait.
+- **Mines.** Two at most, from crates beside the racing line. Leave one where somebody has to drive: the chicane, the plank.
+- **Ramming.** A hard hit hurts the kart that takes it far more than the one that gives it.
+- **A wreck** costs about four seconds: stopped, then back on the road with full armour and a moment of shield. Nobody is out of the race.
+- **The repair strip** is on the long way round the flowerbed. The plank is quicker and skips it. Battered, which way do you go?
+
+Everyone carries exactly the same kit, rivals included. It is cars against cars: no bystanders, nobody hurt, a wrecked driver is dizzy for three seconds. The results add a Wrecks column, so there are two things to brag about.
 
 ## 3. Memorable moments → requirements
 

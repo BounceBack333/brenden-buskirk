@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 const root = join(import.meta.dirname, '..', 'src');
 const attractions = join(root, 'attractions');
-const SIM_FILES = ['sim.ts', 'rules.ts', 'track.ts', 'rivals.ts', 'stakes.ts'];
+const SIM_FILES = ['sim.ts', 'combat.ts', 'rules.ts', 'track.ts', 'rivals.ts', 'stakes.ts'];
 
 function simSources(): string[] {
   const out = [join(root, 'core', 'dmath.ts')];

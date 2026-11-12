@@ -190,6 +190,7 @@ function boot(): void {
       // with two people the two bots are the level's quickest and slowest, so the pack spreads
       skills: m === 'split' ? [level.skills[0], level.skills[2]] : [...level.skills],
       pace: m === 'split' ? [level.pace[0], level.pace[2]] : [...level.pace],
+      combat: profile.settings.weapons,
     });
     // (the simulation has already run on for a moment after the last person finished)
     race.onDone = (s) => window.setTimeout(() => finishRace(s), 700);
@@ -211,9 +212,13 @@ function boot(): void {
         ? seat === winner.seat ? seconds(k.finishTick - RACE.countdownTicks) : `+${seconds(k.finishTick - winner.k.finishTick)}`
         : `lap ${Math.min(s.laps, Math.max(1, k.lap))} of ${s.laps}`,
       best: k.bestLapTicks ? seconds(k.bestLapTicks) : '—',
+      wrecks: s.combat ? String(k.kills) : '',
+      wrecked: s.combat ? k.wrecks : 0,
     }));
-    // personal best: your fastest finished race in this mode (lower is better)
-    const key = `${track.id}:${raceMode}:${rivalLevel(raceLevel).id}:time`;
+    // personal best: your fastest finished race in this mode (lower is better); armed and plain
+    // races are different races and keep separate bests
+    const armed = s.combat ? ':armed' : '';
+    const key = `${track.id}:${raceMode}:${rivalLevel(raceLevel).id}${armed}:time`;
     const mine = setup.humans.map((seat) => s.karts[seat]!).filter((k) => k.finished).map((k) => k.finishTick - RACE.countdownTicks);
     const prev = profile.best[key] ?? 0;
     const now = mine.length ? Math.min(...mine) : 0;
@@ -243,13 +248,13 @@ function boot(): void {
       headline = `${names[ahead]} beats ${names[ahead === 0 ? 1 : 0]}`;
       again = over ? 'New series' : series.wins[0] === series.wins[1] && series.wins[0] === series.target - 1 ? 'Decider' : 'Next race';
     } else if (s.laps === RACE.laps) {
-      const medals = medalsOf(track);
+      const medals = medalsOf(track, s.combat);
       const medal = now > 0 ? medalFor(now, medals) : null;
       const up = nextMedal(now, medals);
-      const bestMedal = profile.best[`${track.id}:medal`] ?? 0; // 3 gold, 2 silver, 1 bronze
+      const bestMedal = profile.best[`${track.id}${armed}:medal`] ?? 0; // 3 gold, 2 silver, 1 bronze
       const rank = medal ? (medal.id === 'gold' ? 3 : medal.id === 'silver' ? 2 : 1) : 0;
       if (rank > bestMedal) {
-        profile.best[`${track.id}:medal`] = rank;
+        profile.best[`${track.id}${armed}:medal`] = rank;
         saveProfile(profile);
       }
       const bits: string[] = [];
@@ -270,10 +275,16 @@ function boot(): void {
     screens.raceResults({
       rows,
       headline,
-      note: opener ? `${opener} knocked the peg out and opened the plank for everyone.` : 'Nobody opened the plank shortcut this time.',
+      note: (() => {
+        const plank = opener ? `${opener} knocked the peg out and opened the plank for everyone.` : 'Nobody opened the plank shortcut this time.';
+        if (!s.combat) return plank;
+        const total = s.karts.reduce((n, k) => n + k.wrecks, 0);
+        return `${total === 0 ? 'Nobody was wrecked.' : total === 1 ? 'One wreck.' : `${total} wrecks.`} ${plank}`;
+      })(),
       best: best ? seconds(best) : '—',
       newBest,
-      rivals: `${rivalLevel(raceLevel).name} rivals`,
+      combat: s.combat,
+      rivals: `${rivalLevel(raceLevel).name} rivals · ${s.combat ? 'armed' : 'no weapons'}`,
       stepUp: youWon && raceMode === 'solo' && raceLevel < RIVAL_LEVELS.length - 1 ? rivalLevel(raceLevel + 1).name : '',
       stakes,
       again,
@@ -414,6 +425,7 @@ function boot(): void {
     cast: (seat) => cast[seat],
     portrait: (spec) => studio.face(spec),
     applySettings,
+    showWeapons: () => raceView.showWeapons(),
     setSeatCharacter: (seat, spec) => {
       cast[seat] = spec;
       profile.seats[seat] = spec.id;

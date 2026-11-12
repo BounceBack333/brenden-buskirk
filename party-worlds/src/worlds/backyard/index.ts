@@ -587,6 +587,16 @@ export interface KartModel {
   setGhost(on: boolean): void;
   /** world positions of the rear wheels, for sparks */
   rearWheel(side: -1 | 1, out: THREE.Vector3): THREE.Vector3;
+  /** bolt on (or take off) the guns, the ram and the side plates */
+  setArmed(on: boolean): void;
+  /** one round leaves one of the barrels: a muzzle flash */
+  fire(): void;
+  /** world position between the two muzzles, for tracers */
+  muzzle(out: THREE.Vector3): THREE.Vector3;
+  /** world position of the bonnet, for smoke */
+  bonnet(out: THREE.Vector3): THREE.Vector3;
+  /** a wreck sits burning with its lamps out until it is put back */
+  setWrecked(on: boolean): void;
   update(dt: number, speed: number): void;
   /** free this kart's own geometry and one-off materials (shared kit materials are left alone) */
   dispose(): void;
@@ -664,10 +674,86 @@ export function buildKart(color: string, accent: string): KartModel {
   seat.position.set(-0.14, 0.24, 0);
   body.add(seat);
 
+  // ── the combat kit: bolted on for an armed race, left off for a plain one ──
+  const armed = new THREE.Group();
+  armed.visible = false;
+  body.add(armed);
+  const gunmetal = mat.metal('#3b404d');
+  const plate = mat.clay('#262830', { roughness: 0.75 });
+  const GUN_Y = 0.6;
+  const GUN_Z = 0.22;
+  const MUZZLE_X = 1.3;
+  const guns: THREE.BufferGeometry[] = [];
+  for (const z of [-GUN_Z, GUN_Z]) {
+    guns.push(
+      new RoundedBoxGeometry(0.42, 0.15, 0.17, 2, 0.04).translate(0.62, GUN_Y, z), // breech
+      new THREE.CylinderGeometry(0.045, 0.045, 0.62, 8).rotateZ(Math.PI / 2).translate(0.98, GUN_Y, z), // barrel
+      new THREE.CylinderGeometry(0.065, 0.065, 0.12, 8).rotateZ(Math.PI / 2).translate(1.24, GUN_Y, z), // flash hider
+    );
+  }
+  armed.add(new THREE.Mesh(mergeGeometries(guns.map((g) => g.toNonIndexed()), false)!, gunmetal));
+  const armour: THREE.BufferGeometry[] = [
+    // a ram across the nose, with teeth
+    new RoundedBoxGeometry(0.14, 0.3, 1.24, 2, 0.04).translate(1.16, 0.3, 0),
+    ...[-0.42, 0, 0.42].map((z) => new THREE.ConeGeometry(0.1, 0.26, 4).rotateZ(-Math.PI / 2).translate(1.33, 0.3, z)),
+    // plates down each side and over the tail
+    ...[-0.52, 0.52].map((z) => new RoundedBoxGeometry(1.25, 0.3, 0.06, 2, 0.02).translate(0, 0.4, z)),
+    new RoundedBoxGeometry(0.08, 0.36, 0.86, 2, 0.02).translate(-1.0, 0.5, 0),
+  ];
+  armed.add(new THREE.Mesh(mergeGeometries(armour.map((g) => g.toNonIndexed()), false)!, plate));
+  // rivets and a hazard band, so the plates read as bolted-on at speed
+  const band = mergeGeometries([-0.555, 0.555].map((z) => new THREE.BoxGeometry(0.5, 0.07, 0.012).translate(0.1, 0.4, z)), false)!;
+  armed.add(new THREE.Mesh(band, new THREE.MeshBasicMaterial({ color: '#ffb52e', toneMapped: false })));
+  const flashMat = new THREE.MeshBasicMaterial({ color: '#ffd98a', transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false });
+  const flashes: THREE.Mesh[] = [];
+  for (const z of [-GUN_Z, GUN_Z]) {
+    const f = new THREE.Mesh(new THREE.ConeGeometry(0.26, 0.95, 6).rotateZ(-Math.PI / 2).translate(0.47, 0, 0), flashMat);
+    f.position.set(MUZZLE_X, GUN_Y, z);
+    f.visible = false;
+    armed.add(f);
+    flashes.push(f);
+  }
+  // a wreck burns: flames over the bonnet
+  const fireMat = new THREE.MeshBasicMaterial({ color: '#ff7a2e', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false });
+  const fires: THREE.Mesh[] = [];
+  for (const [x, z] of [[0.55, 0.12], [0.2, -0.2], [-0.6, 0.1]] as const) {
+    const f = new THREE.Mesh(new THREE.ConeGeometry(0.26, 0.9, 7).translate(0, 0.45, 0), fireMat);
+    f.position.set(x, 0.5, z);
+    f.visible = false;
+    body.add(f);
+    fires.push(f);
+  }
+
   let boost = 0;
   let flick = 0;
+  let flashT = 0;
+  let flashFresh = false;
+  let barrel = 0;
+  let wrecked = false;
   return {
     root, seat, body,
+    setArmed(on: boolean): void {
+      armed.visible = on;
+    },
+    fire(): void {
+      barrel = 1 - barrel;
+      flashT = 0.05;
+      flashFresh = true; // drawn at least once, however slow the frame rate
+      flashes[barrel]!.visible = true;
+      flashes[1 - barrel]!.visible = false;
+      flashes[barrel]!.rotation.x = flick;
+    },
+    muzzle(out: THREE.Vector3): THREE.Vector3 {
+      return root.localToWorld(out.set(MUZZLE_X, GUN_Y, 0));
+    },
+    bonnet(out: THREE.Vector3): THREE.Vector3 {
+      return root.localToWorld(out.set(0.5, 0.7, 0));
+    },
+    setWrecked(on: boolean): void {
+      wrecked = on;
+      beam.visible = !on;
+      for (const f of fires) f.visible = on;
+    },
     setSteer(steer: number): void {
       for (const f of fronts) f.rotation.y = -steer * 0.5;
     },
@@ -689,6 +775,17 @@ export function buildKart(color: string, accent: string): KartModel {
         f.scale.set(s, 0.7 + 0.3 * boost, 0.7 + 0.3 * boost);
       }
       beam.material.opacity = 0.3 + 0.06 * Math.sin(flick * 0.2);
+      if (flashT > 0) {
+        if (flashFresh) flashFresh = false;
+        else flashT -= dt;
+        if (flashT <= 0) for (const f of flashes) f.visible = false;
+      }
+      if (wrecked) {
+        fires.forEach((f, n) => {
+          const k = 0.75 + 0.3 * Math.sin(flick * 0.55 + n * 2.1);
+          f.scale.set(k, 0.7 + 0.5 * Math.abs(Math.sin(flick * 0.4 + n)), k);
+        });
+      }
     },
     dispose(): void {
       root.traverse((o) => {

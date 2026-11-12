@@ -19,6 +19,8 @@ describe('saved profile', () => {
     p.settings.music = 0.25;
     p.settings.autoDrift = true;
     p.settings.rivals = 2;
+    p.settings.weapons = false;
+    p.settings.autoFire = !p.settings.autoFire;
     p.seats = ['bruno', 'waffles'];
     p.best['backyard:solo:keen:time'] = 3301;
     p.best['backyard:medal'] = 2;
@@ -33,7 +35,7 @@ describe('saved profile', () => {
   it('drops a field of the wrong kind and keeps the rest', () => {
     const p = parseProfile(JSON.stringify({
       castVersion: CAST_VERSION,
-      settings: { master: 'loud', sfx: null, music: 0.4, reducedMotion: 'yes', autoDrift: true, rivals: '2', extra: 1 },
+      settings: { master: 'loud', sfx: null, music: 0.4, reducedMotion: 'yes', autoDrift: true, rivals: '2', weapons: 0, autoFire: 'on', extra: 1 },
       seats: ['rex', 'zadie'],
       best: 'none',
       learned: [true],
@@ -46,6 +48,8 @@ describe('saved profile', () => {
     expect(p.settings.reducedMotion).toBe(fresh.settings.reducedMotion);
     expect(p.settings.autoDrift).toBe(true);
     expect(p.settings.rivals).toBe(0);
+    expect(p.settings.weapons).toBe(fresh.settings.weapons);
+    expect(p.settings.autoFire).toBe(fresh.settings.autoFire);
     expect(p.settings).not.toHaveProperty('extra');
     expect(p.seats).toEqual(['rex', 'zadie']);
     expect(p.best).toEqual({});

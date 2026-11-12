@@ -65,6 +65,8 @@ await shot('home');
 await click('[data-act="play"]');
 await page.waitForTimeout(350);
 await shot('play-sheet');
+// --clean: the plain race, no weapons (the setting is remembered, so say which every time)
+await click(`[data-weapons="${flags.has('--clean') ? 0 : 1}"]`);
 await click(`[data-race="${mode}"]`);
 await page.waitForTimeout(250);
 
@@ -88,19 +90,22 @@ const read = () => page.evaluate(() => {
   const s = r.state;
   return {
     tick: s.tick, phase: s.phase, phaseTick: s.phaseTick, laps: s.laps, plankOpen: s.plankOpen,
+    combat: s.combat, minesOut: s.mines.length,
     humans: r.setup.humans,
     fps: Math.round(1000 / Math.max(1, window.__pw.loop.frameMs)),
     karts: s.karts.map((k) => ({
       x: k.x, z: k.z, h: k.heading, vx: k.vx, vz: k.vz, idx: k.idx, lap: k.lap, drifting: k.drifting, driftDir: k.driftDir,
       steer: k.steer, charge: k.charge, boost: k.boostTicks, surface: k.surface, finished: k.finished, place: k.place, y: k.y, stun: k.stunTicks,
+      armor: k.armor, ammo: k.ammo, mines: k.mines, wreck: k.wreckTicks, wrecks: k.wrecks, kills: k.kills,
     })),
   };
 });
 
 // ── input back-ends ──
+// (f = fire, m = mine: only an armed race listens to them)
 const KEYS = mode === 'split'
-  ? [{ l: 'KeyA', r: 'KeyD', d: 'ShiftLeft' }, { l: 'ArrowLeft', r: 'ArrowRight', d: 'ShiftRight' }]
-  : [{ l: 'KeyA', r: 'KeyD', d: 'Space' }];
+  ? [{ l: 'KeyA', r: 'KeyD', d: 'ShiftLeft', f: 'Space', m: 'KeyE' }, { l: 'ArrowLeft', r: 'ArrowRight', d: 'ArrowUp', f: 'Enter', m: 'ShiftRight' }]
+  : [{ l: 'KeyA', r: 'KeyD', d: 'Space', f: 'KeyF', m: 'KeyE' }];
 const held = new Set();
 const key = async (code, on) => {
   if (on === held.has(code)) return;
@@ -168,16 +173,18 @@ const centres = () => (mode === 'split'
   ? [{ x: stageW * 0.25, y: stageH * 0.62 }, { x: stageW * 0.75, y: stageH * 0.62 }]
   : [{ x: stageW * 0.3, y: stageH * 0.62 }]);
 
-const padSet = (view, steer, drift) => page.evaluate(([v, x, d]) => {
+const padSet = (view, steer, drift, fire = false, mine = false) => page.evaluate(([v, x, d, f, m]) => {
   const p = window.__fakePads[v];
   p.axes[0] = x;
-  p.buttons[0].pressed = d;
-  p.buttons[0].value = d ? 1 : 0;
-}, [view, steer, drift]);
+  const set = (i, on) => { p.buttons[i].pressed = on; p.buttons[i].value = on ? 1 : 0; };
+  set(0, d);
+  set(7, f); // right trigger
+  set(3, m); // Y
+}, [view, steer, drift, fire, mine]);
 
 async function apply(view, cmd) {
   if (padMode) {
-    await padSet(view, cmd.steer, cmd.drift);
+    await padSet(view, cmd.steer, cmd.drift, !!cmd.fire, !!cmd.mine);
     return;
   }
   if (!touchMode) {
@@ -185,6 +192,8 @@ async function apply(view, cmd) {
     await key(K.l, cmd.steer < -0.28);
     await key(K.r, cmd.steer > 0.28);
     await key(K.d, cmd.drift);
+    await key(K.f, !!cmd.fire);
+    await key(K.m, !!cmd.mine);
     return;
   }
   const c = centres()[view];
@@ -233,6 +242,12 @@ while (Date.now() - t0 < 900000) {
       continue;
     }
     allDone = false;
+    // an armed race: squeeze the trigger in bursts once the guns are live, and leave a mine
+    // whenever there is one to leave (by touch the guns fire by themselves)
+    if (st.combat && st.phaseTick > 300 && cmd.k.wreck === 0) {
+      cmd.fire = cmd.k.ammo > 0 && st.tick % 120 < 80;
+      cmd.mine = cmd.k.mines > 0 && st.tick % 150 < 30;
+    }
     await apply(v, cmd);
     if (process.env.DEBUG && v === 0 && st.phaseTick < 400) console.log(st.tick, 'cmd', cmd.steer.toFixed(2), cmd.drift ? 'D' : '-', 'kart steer', cmd.k.steer.toFixed(2), 'drifting', cmd.k.drifting, 'idx', cmd.k.idx, 'x', cmd.k.x.toFixed(1), 'z', cmd.k.z.toFixed(1), 'h', cmd.k.h.toFixed(2), 'surf', cmd.k.surface);
   }
@@ -249,6 +264,10 @@ while (Date.now() - t0 < 900000) {
   await once('hairpin', me.idx > N * 0.2 && me.idx < N * 0.26 && me.lap === 1);
   await once('lap-2', me.lap === 2 && st.phaseTick > 0 && me.idx > 6);
   await once('final-lap', me.lap === st.laps && me.idx > 4);
+  await once('weapons-hot', st.combat && st.phaseTick > 300 && st.phaseTick < 420);
+  await once('mine-on-road', st.combat && st.minesOut > 0);
+  await once('battered', st.combat && me.armor < 45 && me.wreck === 0);
+  await once('wrecked', st.combat && me.wreck > 0);
   await once('finished', me.finished);
   if (allDone) await page.waitForTimeout(60);
   else await page.waitForTimeout(12);
@@ -262,7 +281,7 @@ await page.waitForTimeout(700);
 await shot('results');
 const results = await page.evaluate(() => {
   const s = window.__pw.race?.state;
-  return s ? { phase: s.phase, tick: s.tick, plankOpen: s.plankOpen, plankOpener: s.plankOpener, karts: s.karts.map((k) => ({ place: k.place, finished: k.finished, finishTick: k.finishTick, best: k.bestLapTicks, lap: k.lap })) } : null;
+  return s ? { phase: s.phase, tick: s.tick, plankOpen: s.plankOpen, plankOpener: s.plankOpener, combat: s.combat, karts: s.karts.map((k) => ({ place: k.place, finished: k.finished, finishTick: k.finishTick, best: k.bestLapTicks, lap: k.lap, wrecks: k.wrecks, kills: k.kills })) } : null;
 });
 log.results = results;
 log.text = await page.evaluate(() => document.querySelector('#ui')?.innerText ?? '');
@@ -297,6 +316,9 @@ console.log(JSON.stringify({
   finished: results?.karts.map((k) => `${k.place}${k.finished ? '' : '*'}`).join(','),
   raceSeconds: results ? +(results.tick / 60).toFixed(1) : null,
   plankOpen: results?.plankOpen,
+  armed: results?.combat ?? false,
+  wrecked: results?.karts.map((k) => k.wrecks).join(''),
+  wrecksCaused: results?.karts.map((k) => k.kills).join(''),
   medianFps: fpsSorted[Math.floor(fpsSorted.length / 2)] ?? null,
   wallSeconds: log.wallSeconds, shots: shotN, errors: errors.length,
 }));

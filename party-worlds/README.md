@@ -2,7 +2,7 @@
 
 **Our people and pets, inside impossible little worlds.**
 
-A racing game for adults: you and your friends (or a bear in a jacket, a frog in a cowboy hat, your dog) as tin-toy racers in places hidden in ordinary objects. The playable prototype is **Backyard Dash**: three laps of a patio at night. Karts drive themselves, you steer; hold DRIFT through a corner and let go for a boost; take the road or risk the plank across the flowerbed, once somebody has knocked the peg out from under it.
+A combat racing game for adults: you and your friends (or a bear in a jacket, a frog in a cowboy hat, your dog) as armed tin-toy racers in places hidden in ordinary objects. The playable prototype is **Backyard Dash**: three laps of a patio at night. Karts drive themselves, you steer; hold DRIFT through a corner and let go for a boost; shoot whoever is in front of you and leave mines for whoever is behind; take the road past the repair strip or risk the plank across the flowerbed, once somebody has knocked the peg out from under it. Run out of armour and you are a wreck for a few seconds.
 
 This is a **web build** (TypeScript + Three.js). It is not a native iOS app. Nobody has play-tested it yet. See `docs/PROGRESS.md` for exactly what is and is not proven.
 
@@ -22,11 +22,11 @@ Every build has a label (version, commit, day built) on the last line of Setting
 | Command | What it does |
 |---|---|
 | `npm run dev` | Development server with hot reload |
-| `npm test` | 124 automated tests: race rules, tracks, medals and series, the character kit, the simulation purity rule, saved data, the game loop, Courier rules, private-room server |
+| `npm test` | 152 automated tests: race rules, combat rules, tracks, medals and series, the character kit, the simulation purity rule, saved data, the game loop, Courier rules, private-room server |
 | `npm run check` | Everything a change must pass: type-check, tests, race fingerprint, build, size budget. CI runs exactly this |
-| `npm run smoke` | Starts the built game in a headless browser, begins a race and a Courier round, fails on any page error (after a build; CI runs it too) |
+| `npm run smoke` | Starts the built game in a headless browser, begins an armed race, a clean one and a Courier round, fails on any page error (after a build; CI runs it too) |
 | `npm run size` | Built file sizes against the budget (after a build) |
-| `npm run fingerprint` | Compares nine bot races with the recorded ones in `dev/fingerprint.txt`; fails if a race plays differently. `npm run fingerprint -- --update` records a change that was meant |
+| `npm run fingerprint` | Compares eighteen bot races (nine plain, nine armed) with the recorded ones in `dev/fingerprint.txt`; fails if a race plays differently. `npm run fingerprint -- --update` records a change that was meant |
 | `npm run typecheck` | Strict TypeScript check |
 | `npm run build` | Production build into `dist/` (static files; host anywhere) |
 | `npm run server` | Private-room server for Courier on port 8787 (`PORT`, `ALLOWED_ORIGINS`, `LAUNCHES` env vars) |
@@ -37,6 +37,7 @@ Every build has a label (version, commit, day built) on the last line of Setting
 - **Race** — you against three rivals. Rivals are bots and are labelled; your second character drives the quickest one. Pick how hard they race: Gentle, Keen or Fierce.
 - **Split screen** — two people on one device, left and right halves, plus two bot rivals. Best on a tablet or a laptop. It is a first-to-three series: the score carries across rematches.
 - **Alone** there are bronze, silver and gold times to beat (three-lap races).
+- **Armed or Clean** — races are armed (guns, mines, armour, wrecks) unless you pick Clean on the play sheet, which is the plain race exactly as it was. Each keeps its own best times and medals.
 - **Parked: Catapult Courier** — with a bot partner, same screen, or an online room (needs `npm run server`).
 
 ### Controls
@@ -46,8 +47,10 @@ Every build has a label (version, commit, day built) on the last line of Setting
 | Drift, then boost | Hold DRIFT (or a second finger) while turning; let go | Space, Shift or J |
 | Start boost | Press DRIFT just before GO | same |
 | Brake / reverse | BRAKE | S or ↓ |
-| Split screen | Each half is its own stick; steering hard starts the drift by itself | Player 1: A / D steer, W drift, S brake · Player 2: ← / → steer, ↑ drift, ↓ brake |
-| Game controller | — | Stick or d-pad to steer, A (or right bumper / trigger) to drift, B to brake. One controller per player in split screen. A also presses the main button between races; Start pauses |
+| Fire (armed races) | The guns fire by themselves when a rival is in your sights; switch "Auto fire" off in Settings for a FIRE button | F (or W, ↑, Enter) |
+| Drop a mine (armed races) | MINE | E |
+| Split screen | Each half is its own stick; steering hard starts the drift by itself, and the guns fire by themselves | Player 1: A / D steer, W drift, S brake, Space fire, E mine · Player 2: ← / → steer, ↑ drift, ↓ brake, Enter fire, right Shift mine |
+| Game controller | — | Stick or d-pad to steer, A (or right bumper) to drift, B to brake; armed, right trigger or X fires and Y drops a mine. One controller per player in split screen. A also presses the main button between races; Start pauses |
 
 `?laps=1` on the URL shortens a race for quick checks (personal bests are only kept for three-lap races). The game lowers its own picture quality if the device cannot hold about 50 frames per second; `?hq` turns that off (useful for screenshots on slow machines).
 
@@ -95,6 +98,8 @@ sh dev/race-evidence.sh                                                         
 LEVEL=1 npx tsx dev/humanish.ts                                                            # stand-in drivers against a rival level
 npx tsx dev/raceprobe.ts                                                                   # rivals race each other: lap times, boosts, bumps
 node dev/measure-audio.mjs                                                                 # every sound, rendered offline
+LEVEL=1 npx tsx dev/combatprobe.ts                                                         # how violent an armed race is: wrecks, hits, mines, repairs
+node dev/combat-shots.mjs                                                                  # freeze on a shot, a wreck, a mine and a respawn, to look at the effects
 ```
 
 The `dev/*.mjs` play-through scripts need Playwright with a Chromium browser (`npm i -D playwright`); it is not a dependency of the game. The smoke test alone works without it, driving a Chrome that is already installed: `SMOKE_CHANNEL=chrome npm run smoke`. `node dev/raceplay.mjs … --pad` drives with stand-in game controllers, and `node dev/recovery.mjs` breaks the game mid-race two ways (the graphics context is taken away; the simulation starts throwing) and checks that it says so and restarts.

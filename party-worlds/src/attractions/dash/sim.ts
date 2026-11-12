@@ -12,6 +12,8 @@
  * everyone for the rest of the race.
  */
 import { clamp, dcos, dsin, hashNumbers } from '../../core/dmath';
+import { COMBAT, damage, ram, stepCombat } from './combat';
+import type { Mine } from './combat';
 import { DEFAULT_TRACK, DT, KART, RACE, segDist2, trackById } from './track';
 import type { Capsule, Circle, Track } from './track';
 
@@ -20,10 +22,14 @@ export interface DriveInput {
   steer: number;
   drift: boolean;
   brake: boolean;
+  /** combat races: hold to shoot straight ahead */
+  fire?: boolean;
+  /** combat races: press to leave a mine behind */
+  drop?: boolean;
 }
 
 export function noDrive(): DriveInput {
-  return { steer: 0, drift: false, brake: false };
+  return { steer: 0, drift: false, brake: false, fire: false, drop: false };
 }
 
 export const SURFACE = { road: 0, grass: 1, soil: 2, plank: 3 } as const;
@@ -74,6 +80,27 @@ export interface Kart {
    * Rival bots ease off by a stated amount per difficulty; it is never changed mid-race.
    */
   pace: number;
+  // ── combat races only (see combat.ts); at rest otherwise ──
+  /** 0…COMBAT.armor; at 0 the kart is a wreck */
+  armor: number;
+  /** rounds left in the magazine */
+  ammo: number;
+  gunTicks: number;
+  /** ticks since the last round was fired */
+  idleTicks: number;
+  /** mines carried */
+  mines: number;
+  prevDrop: boolean;
+  /** > 0 while wrecked and waiting to be put back */
+  wreckTicks: number;
+  /** times this kart has been wrecked */
+  wrecks: number;
+  /** wrecks this kart caused */
+  kills: number;
+  /** the seat that last hurt it (-1 none), and when */
+  hitBy: number;
+  hitTick: number;
+  repairTick: number;
 }
 
 export type RaceEvent =
@@ -91,7 +118,18 @@ export type RaceEvent =
   | { type: 'lap'; seat: number; lap: number; ticks: number }
   | { type: 'finish'; seat: number; place: number }
   | { type: 'reset'; seat: number }
-  | { type: 'over' };
+  | { type: 'over' }
+  // combat races
+  | { type: 'hot' }
+  | { type: 'shot'; seat: number; hit: number }
+  | { type: 'mine_drop'; seat: number; id: number }
+  | { type: 'mine_hit'; seat: number; owner: number; id: number; x: number; z: number }
+  | { type: 'mine_gone'; id: number }
+  | { type: 'crate'; seat: number; index: number }
+  | { type: 'repair'; seat: number; amount: number }
+  | { type: 'ram'; seat: number; by: number; damage: number }
+  | { type: 'wreck'; seat: number; by: number }
+  | { type: 'respawn'; seat: number };
 
 export type RacePhase = 'countdown' | 'racing' | 'over';
 
@@ -111,6 +149,13 @@ export interface RaceState {
   homeTick: number;
   /** seats whose finish ends the race (the humans); empty = everyone */
   required: number[];
+  /** armed karts: guns, mines, armour and wrecks (combat.ts). False plays the plain race. */
+  combat: boolean;
+  /** mines lying on the track */
+  mines: Mine[];
+  mineSeq: number;
+  /** the tick each of the track's crates is next available */
+  crateReady: number[];
   events: RaceEvent[];
 }
 
@@ -122,6 +167,8 @@ export interface RaceConfig {
   track?: string;
   /** per-seat throttle for rival bots (see Kart.pace); missing seats get 1 */
   pace?: number[];
+  /** armed karts (combat.ts); off when missing */
+  combat?: boolean;
 }
 
 export function trackOf(s: RaceState): Track {
@@ -156,23 +203,36 @@ export function createRace(config: RaceConfig = {}): RaceState {
       finished: false, finishTick: 0, place: i + 1, lapStartTick: 0, bestLapTicks: 0,
       stuckTicks: 0, wrongTicks: 0, blinkTicks: 0, prevDrift: false, driftHeldTicks: 0, startPressTick: -999, jumped: false, behind: false,
       pace: clamp(config.pace?.[i] ?? 1, 0.5, 1),
+      armor: COMBAT.armor, ammo: COMBAT.magazine, gunTicks: 0, idleTicks: 0, mines: 0, prevDrop: false,
+      wreckTicks: 0, wrecks: 0, kills: 0, hitBy: -1, hitTick: 0, repairTick: -COMBAT.repairCooldownTicks,
     });
   }
   return {
     trackId: track.id,
     tick: 0, phase: 'countdown', phaseTick: 0, laps: Math.max(1, Math.floor(config.laps ?? RACE.laps)),
     karts, plankOpen: false, plankOpener: -1, firstFinishTick: 0, homeTick: 0,
-    required: (config.required ?? []).filter((s) => s >= 0 && s < n), events: [],
+    required: (config.required ?? []).filter((s) => s >= 0 && s < n),
+    combat: config.combat === true, mines: [], mineSeq: 0, crateReady: (track.combat?.crates ?? []).map(() => 0),
+    events: [],
   };
 }
 
 export function cloneRace(s: RaceState): RaceState {
-  return { ...s, karts: s.karts.map((k) => ({ ...k })), required: s.required.slice(), events: [] };
+  return {
+    ...s, karts: s.karts.map((k) => ({ ...k })), required: s.required.slice(),
+    mines: s.mines.map((m) => ({ ...m })), crateReady: s.crateReady.slice(), events: [],
+  };
 }
 
 export function hashRace(s: RaceState): number {
   const v: number[] = [s.tick, s.phaseTick, s.plankOpen ? 1 : 0, s.plankOpener];
   for (const k of s.karts) v.push(k.x, k.z, k.heading, k.vx, k.vz, k.y, k.charge, k.boostTicks, k.idx, k.lap, k.cpMask, k.place, k.finishTick);
+  if (s.combat) {
+    // (only for combat races, so a plain race hashes exactly as it always has)
+    for (const k of s.karts) v.push(k.armor, k.ammo, k.mines, k.wreckTicks, k.wrecks, k.kills);
+    for (const m of s.mines) v.push(m.id, m.x, m.z, m.owner);
+    for (const c of s.crateReady) v.push(c);
+  }
   return hashNumbers(v);
 }
 
@@ -230,6 +290,7 @@ export function stepRace(s: RaceState, inputs: readonly DriveInput[]): void {
 
   for (let i = 0; i < s.karts.length; i++) drive(s, track, i, inputs[i] ?? NO_INPUT);
   collideKarts(s);
+  if (s.combat) stepCombat(s, track, inputs);
   for (let i = 0; i < s.karts.length; i++) follow(s, track, i);
   rank(s);
 
@@ -260,6 +321,10 @@ const NO_INPUT: DriveInput = { steer: 0, drift: false, brake: false };
 function drive(s: RaceState, track: Track, seat: number, inp: DriveInput): void {
   const k = s.karts[seat]!;
   if (k.blinkTicks > 0) k.blinkTicks--;
+  if (k.wreckTicks > 0) {
+    wrecked(s, track, seat);
+    return;
+  }
   const coasting = k.finished; // after the flag the kart rolls on by itself
   const steerIn = coasting ? 0 : clamp(Math.round(inp.steer), -127, 127) / 127;
   const driftIn = !coasting && inp.drift;
@@ -389,7 +454,39 @@ function drive(s: RaceState, track: Track, seat: number, inp: DriveInput): void 
     }
   }
 
-  // ── walls ──
+  walls(s, track, k, seat, fx, fz);
+}
+
+/** A wreck: no driver input, it slides to a stop, and after a moment it is put back on the road. */
+function wrecked(s: RaceState, track: Track, seat: number): void {
+  const k = s.karts[seat]!;
+  k.wreckTicks--;
+  if (k.wreckTicks === 0) {
+    putBack(track, k);
+    k.armor = COMBAT.armor;
+    k.ammo = COMBAT.magazine;
+    k.blinkTicks = COMBAT.shieldTicks;
+    s.events.push({ type: 'respawn', seat });
+    return;
+  }
+  k.vx -= k.vx * 3 * DT;
+  k.vz -= k.vz * 3 * DT;
+  k.x += k.vx * DT;
+  k.z += k.vz * DT;
+  if (k.y > 0 || k.vy > 0) {
+    k.y += k.vy * DT;
+    k.vy -= KART.gravity * DT;
+    if (k.y <= 0) {
+      k.y = 0;
+      k.vy = 0;
+      k.jumped = false;
+    }
+  }
+  walls(s, track, k, seat, dcos(k.heading), dsin(k.heading));
+}
+
+/** Solid things, the plank's prop and the edge of the yard. */
+function walls(s: RaceState, track: Track, k: Kart, seat: number, fx: number, fz: number): void {
   for (const c of track.circles) hitCircle(s, k, seat, c, fx, fz);
   for (const c of track.capsules) hitCapsule(s, k, seat, c, fx, fz);
   const pl = track.plank;
@@ -425,7 +522,10 @@ function bounce(s: RaceState, k: Kart, seat: number, nx: number, nz: number, pen
     k.vz *= 0.94;
     const impact = -vn;
     if (impact > 2.5) s.events.push({ type: 'bump', seat, strength: clamp(impact / 12, 0.1, 1) });
-    if (impact > KART.stunSpeed && k.stunTicks === 0 && k.blinkTicks === 0) k.stunTicks = KART.stunTicks;
+    if (impact > KART.stunSpeed && k.stunTicks === 0 && k.blinkTicks === 0) {
+      k.stunTicks = KART.stunTicks;
+      if (s.combat) damage(s, seat, COMBAT.wallDamage, -1);
+    }
   }
   // nose the kart along the wall so scraping recovers by itself
   const tx = -nz;
@@ -475,6 +575,7 @@ function collideKarts(s: RaceState): void {
       b.x += nx * push; b.z += nz * push;
       const vr = (b.vx - a.vx) * nx + (b.vz - a.vz) * nz;
       if (vr < 0) {
+        if (s.combat) ram(s, i, j, -vr, nx, nz);
         const j2 = (-(1 + KART.kartBounce) * vr) / 2;
         a.vx -= j2 * nx; a.vz -= j2 * nz;
         b.vx += j2 * nx; b.vz += j2 * nz;
@@ -593,6 +694,12 @@ function follow(s: RaceState, track: Track, seat: number): void {
 
   // wrong way / stuck → put the kart back on the road
   if (k.finished) return;
+  if (k.wreckTicks > 0) {
+    // a wreck is put back by its own clock
+    k.stuckTicks = 0;
+    k.wrongTicks = 0;
+    return;
+  }
   const facing = fx * p.tx + fz * p.tz;
   k.wrongTicks = facing < -0.35 && vf > 2 ? k.wrongTicks + 1 : Math.max(0, k.wrongTicks - 2);
   const slow = Math.abs(vf) < 1.2 && k.stunTicks === 0;
@@ -607,6 +714,17 @@ function follow(s: RaceState, track: Track, seat: number): void {
     k.stuckTicks = 0; k.wrongTicks = 0; k.blinkTicks = 70;
     s.events.push({ type: 'reset', seat });
   }
+}
+
+/** Stand a kart on the centre line where it had got to, stopped and pointing the right way. */
+function putBack(track: Track, k: Kart): void {
+  const p = track.samples[k.idx]!;
+  k.x = p.x;
+  k.z = p.z;
+  k.heading = headingOf(p.tx, p.tz);
+  k.vx = 0; k.vz = 0; k.y = 0; k.vy = 0;
+  k.drifting = false; k.driftDir = 0; k.charge = 0; k.boostTicks = 0; k.stunTicks = 0; k.stallTicks = 0;
+  k.stuckTicks = 0; k.wrongTicks = 0; k.jumped = false;
 }
 
 /** Heading angle for a unit direction, without atan2 (bisection on dcos/dsin is overkill: use quadrant + asin series). */

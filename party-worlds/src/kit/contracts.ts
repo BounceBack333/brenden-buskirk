@@ -239,7 +239,8 @@ export type SfxName =
   | 'rim' | 'catch' | 'catch_perfect' | 'miss_splat'
   | 'dive' | 'skid' | 'footstep'
   | 'score_tick' | 'star' | 'fanfare' | 'whoops'
-  | 'boost' | 'boost_big' | 'charge' | 'bump' | 'kart_bump' | 'land' | 'lap' | 'final_lap' | 'plank';
+  | 'boost' | 'boost_big' | 'charge' | 'bump' | 'kart_bump' | 'land' | 'lap' | 'final_lap' | 'plank'
+  | 'gun' | 'gun_hit' | 'gun_empty' | 'explosion' | 'mine_drop' | 'crate' | 'repair' | 'weapons_hot' | 'ram' | 'respawn';
 
 export type MusicMode = 'off' | 'menu' | 'play' | 'tense' | 'win' | 'race';
 

@@ -21,6 +21,10 @@ export interface Settings {
   autoDrift: boolean;
   /** racing: how hard the rival bots drive (index into RIVAL_LEVELS) */
   rivals: number;
+  /** racing: armed karts (guns, mines, armour, wrecks). Off is the plain race. */
+  weapons: boolean;
+  /** racing: the guns fire by themselves whenever a rival is in the sights */
+  autoFire: boolean;
 }
 
 export interface Profile {
@@ -46,9 +50,12 @@ export const CAST_VERSION = 2;
 export function defaultSettings(): Settings {
   const prefersReduced =
     typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  // thumbs have enough to do: on a touch screen the guns start out firing by themselves
+  const thumbs = typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
   return {
     master: 0.9, sfx: 1, music: 0.6,
     reducedMotion: prefersReduced, aimAssist: false, umbrellaToggle: false, leftHanded: false, haptics: true, autoDrift: false, rivals: 0,
+    weapons: true, autoFire: thumbs,
   };
 }
 
@@ -89,6 +96,8 @@ export function sanitizeSettings(raw: unknown, base: Settings = defaultSettings(
     haptics: flag(o.haptics, base.haptics),
     autoDrift: flag(o.autoDrift, base.autoDrift),
     rivals: count(o.rivals),
+    weapons: flag(o.weapons, base.weapons),
+    autoFire: flag(o.autoFire, base.autoFire),
   };
 }
 

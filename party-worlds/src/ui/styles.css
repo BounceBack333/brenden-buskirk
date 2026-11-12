@@ -519,3 +519,66 @@ input[type='range'] { accent-color: var(--coral); }
 
 .boot-error { color: #ffb3cf; }
 .build { margin: calc(var(--u) * 3) 0 0; font-size: calc(var(--u) * 2.4); color: var(--muted); opacity: 0.75; letter-spacing: 0.02em; user-select: text; -webkit-user-select: text; }
+
+/* ── combat races: armour, guns, mines, the wreck list ── */
+.race-kit { position: absolute; left: calc(var(--u) * 20); bottom: calc(var(--u) * 20); width: calc(var(--u) * 30); display: none; flex-direction: column; gap: calc(var(--u) * 1); }
+.race-pane.combat .race-kit { display: flex; }
+.race-kit span { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; font-size: calc(var(--u) * 2.4); color: #fff; text-shadow: 0 0 calc(var(--u) * 1.4) rgba(0, 0, 0, 0.9); }
+.race-kit i { display: block; height: calc(var(--u) * 2.6); background: rgba(6, 7, 20, 0.72); border: calc(var(--u) * 0.3) solid rgba(255, 255, 255, 0.75); border-radius: calc(var(--u) * 0.6); overflow: hidden; transform: skewX(-12deg); }
+.race-kit .ammo i { height: calc(var(--u) * 1.5); }
+.race-kit b { display: block; height: 100%; background: #3dff9a; box-shadow: 0 0 calc(var(--u) * 1.6) rgba(61, 255, 154, 0.7); }
+.race-kit .armor.low b { background: #ffb52e; box-shadow: 0 0 calc(var(--u) * 1.6) rgba(255, 181, 46, 0.7); }
+.race-kit .armor.critical b { background: #ff3b3b; box-shadow: 0 0 calc(var(--u) * 1.6) rgba(255, 59, 59, 0.8); }
+.race-kit .armor.critical span { color: #ff8f8f; animation: blink 0.5s steps(2) infinite; }
+.race-kit .ammo b { background: #ffd98a; box-shadow: none; }
+.race-kit .ammo.locked { opacity: 0.55; }
+.race-kit .ammo.empty span { color: #ffb52e; }
+@keyframes blink { 50% { opacity: 0.35; } }
+.race-pane.split .race-kit { left: calc(var(--u) * 16); bottom: calc(var(--u) * 17); width: calc(var(--u) * 22); }
+.race-pane.lefty .race-kit { left: auto; right: calc(var(--u) * 20); }
+.race-pane.split.lefty .race-kit { right: calc(var(--u) * 16); }
+/* being hit: the edge of the view flares red; a wreck holds it */
+.race-pane::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 calc(var(--u) * 14) calc(var(--u) * 3) rgba(255, 40, 40, 0.75); opacity: 0; transition: opacity 0.25s; pointer-events: none; }
+.race-pane.hurt::after { opacity: 0.7; transition: none; }
+.race-pane.wrecked::after { opacity: 1; }
+.race-btn.fire, .race-btn.mine { display: none; }
+.race-pane.combat .race-btn.fire, .race-pane.combat .race-btn.mine { display: grid; }
+.race-btn.fire { right: calc(var(--u) * 31); bottom: calc(var(--u) * 23); width: calc(var(--u) * 17); height: calc(var(--u) * 17); font-size: calc(var(--u) * 3.6); background: radial-gradient(circle at 35% 30%, #ffd98a, #ff8a2e 60%, #c2500f); box-shadow: 0 0 calc(var(--u) * 3) rgba(255, 138, 46, 0.5), inset 0 0 0 calc(var(--u) * 0.5) rgba(255, 255, 255, 0.55); }
+.race-btn.mine { right: calc(var(--u) * 33); bottom: calc(var(--u) * 5); width: calc(var(--u) * 15); height: calc(var(--u) * 15); font-size: calc(var(--u) * 3); background: var(--glass); box-shadow: inset 0 0 0 calc(var(--u) * 0.5) rgba(255, 80, 80, 0.85), 0 0 calc(var(--u) * 2.4) rgba(255, 60, 60, 0.4); }
+.race-btn.mine b { position: absolute; right: calc(var(--u) * -0.6); top: calc(var(--u) * -0.6); min-width: calc(var(--u) * 5.4); padding: 0 calc(var(--u) * 0.8); border-radius: calc(var(--u) * 3); background: #ff3b3b; font-size: calc(var(--u) * 2.8); font-style: normal; line-height: calc(var(--u) * 5.4); }
+.race-btn.mine b:empty { display: none; }
+.race-btn.mine.empty, .race-btn.fire.locked, .race-btn.mine.locked { opacity: 0.4; }
+/* guns that fire by themselves need no button */
+.race-pane.combat .race-btn.fire.auto { display: none; }
+.race-pane.split .race-btn.fire { right: calc(var(--u) * 24); bottom: calc(var(--u) * 20); width: calc(var(--u) * 13); height: calc(var(--u) * 13); font-size: calc(var(--u) * 2.8); }
+.race-pane.split .race-btn.mine { right: calc(var(--u) * 26); bottom: calc(var(--u) * 5); width: calc(var(--u) * 12); height: calc(var(--u) * 12); font-size: calc(var(--u) * 2.5); }
+.race-pane.lefty .race-btn.fire { right: auto; left: calc(var(--u) * 31); }
+.race-pane.lefty .race-btn.mine { right: auto; left: calc(var(--u) * 33); }
+.race-pane.split.lefty .race-btn.fire { left: calc(var(--u) * 24); }
+.race-pane.split.lefty .race-btn.mine { left: calc(var(--u) * 26); }
+.race-tag u { display: block; height: calc(var(--u) * 0.7); margin: calc(var(--u) * 0.5) 0 calc(var(--u) * 0.1); background: rgba(255, 255, 255, 0.22); border-radius: calc(var(--u) * 0.4); overflow: hidden; text-decoration: none; }
+.race-tag s { display: block; height: 100%; background: #3dff9a; text-decoration: none; }
+.race-tag s.low { background: #ff5b4a; }
+.race-tag s.gone { background: transparent; }
+.race-feed { position: absolute; left: 50%; top: calc(var(--pad-y) + var(--u) * 9.5); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 0.6); pointer-events: none; }
+.race-feed .line { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; font-size: calc(var(--u) * 3); color: #fff; background: rgba(6, 7, 20, 0.72); border-left: calc(var(--u) * 0.6) solid #ff3b3b; padding: calc(var(--u) * 0.5) calc(var(--u) * 1.8); white-space: nowrap; animation: feed-in 0.25s ease; }
+@keyframes feed-in { from { opacity: 0; transform: translateY(calc(var(--u) * -1.5)); } }
+.race-rows.combat .race-row { grid-template-columns: calc(var(--u) * 5) calc(var(--u) * 6.6) 1fr calc(var(--u) * 20) calc(var(--u) * 18) calc(var(--u) * 13); }
+.race-row .wk { text-align: right; font-family: var(--display); font-weight: 800; font-size: calc(var(--u) * 4.6); color: #ffb52e; font-variant-numeric: tabular-nums; }
+.race-row .wk small { margin-left: calc(var(--u) * 1); font-size: calc(var(--u) * 2.8); font-weight: 600; color: #ff7b7b; }
+.race-row.head .wk { color: var(--cyan); font-size: inherit; font-weight: inherit; }
+/* the play sheet has two option rows now: tighter cards so the parked row still fits a phone */
+.sheet .choices.two .choice { min-height: calc(var(--u) * 27); padding: calc(var(--u) * 2.4) calc(var(--u) * 3); }
+.rivals-row { margin-top: calc(var(--u) * 1.8); }
+.rivals-row .lbl { min-width: calc(var(--u) * 15); }
+.parked { margin-top: calc(var(--u) * 2); padding-top: calc(var(--u) * 1.6); }
+/* the sights: four corner brackets round the rival your guns would hit */
+.race-lock { position: absolute; display: none; transform: translate(-50%, -50%); pointer-events: none; }
+.race-lock i { position: absolute; width: 28%; height: 28%; border: calc(var(--u) * 0.6) solid #fff; filter: drop-shadow(0 0 calc(var(--u) * 0.8) rgba(0, 0, 0, 0.9)); }
+.race-lock i:nth-child(1) { left: 0; top: 0; border-right: 0; border-bottom: 0; }
+.race-lock i:nth-child(2) { right: 0; top: 0; border-left: 0; border-bottom: 0; }
+.race-lock i:nth-child(3) { left: 0; bottom: 0; border-right: 0; border-top: 0; }
+.race-lock i:nth-child(4) { right: 0; bottom: 0; border-left: 0; border-top: 0; }
+.race-lock.firing i { border-color: #ff3b3b; }
+.race-lock.firing { animation: lock-kick 0.1s steps(2) infinite; }
+@keyframes lock-kick { 50% { transform: translate(-50%, -50%) scale(0.9); } }

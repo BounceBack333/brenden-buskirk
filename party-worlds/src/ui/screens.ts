@@ -27,6 +27,10 @@ export interface RaceRow {
   you: string;
   time: string;
   best: string;
+  /** armed races: how many rivals this driver wrecked ('' in a plain race) */
+  wrecks: string;
+  /** armed races: how many times this driver was wrecked */
+  wrecked: number;
 }
 
 export interface RaceResultsInfo {
@@ -37,6 +41,8 @@ export interface RaceResultsInfo {
   newBest: boolean;
   /** which rivals this was against, e.g. "Gentle rivals" */
   rivals: string;
+  /** an armed race: the rows carry wreck counts */
+  combat: boolean;
   /** name of the next rival level when the player has earned the suggestion, else '' */
   stepUp: string;
   /** the thing being played for: a head-to-head score, or a medal */
@@ -65,6 +71,8 @@ export interface AppApi {
   quitToHome(): void;
   demo(seat: 0 | 1, kind: 'wave' | 'cheer' | 'run' | 'fly' | 'spin'): void;
   applySettings(): void;
+  /** the karts in the menu are shown armed or not, to match the weapons setting */
+  showWeapons(): void;
   buildLabel: string;
   online: OnlineApi;
 }
@@ -162,7 +170,7 @@ export class Screens {
         <div class="wordmark">
           <div class="small">BounceBack</div>
           <div class="big">Party Worlds</div>
-          <div class="promise">Tiny karts. Real grudges. One more race.</div>
+          <div class="promise">Tiny karts. Loaded guns. One more race.</div>
         </div>
         <div class="home-menu">
           <button class="btn primary big" data-act="play">${ICON.play}Race</button>
@@ -194,7 +202,7 @@ export class Screens {
       <div class="sheet card" role="dialog" aria-label="Play together">
         <div class="sheet-head">
           <div><h2>Backyard Dash</h2>
-          <p>Three laps of the patio after dark. Drift for boosts, sit in a rival's wake, and decide who pays to open the shortcut.</p></div>
+          <p class="pitch">${Screens.pitch(a.profile.settings.weapons)}</p></div>
           <button class="icon-btn" data-act="close" aria-label="Close">${ICON.close}</button>
         </div>
         <div class="choices two">
@@ -209,6 +217,11 @@ export class Screens {
           <span class="lbl">Rivals</span>
           <div class="seg" role="group" aria-label="Rival difficulty">${RIVAL_LEVELS.map((l, i) => `<button data-rivals="${i}" aria-pressed="${i === a.profile.settings.rivals}">${l.name}</button>`).join('')}</div>
           <span class="muted blurb">${esc(rivalLevel(a.profile.settings.rivals).blurb)}</span>
+        </div>
+        <div class="rivals-row">
+          <span class="lbl">Weapons</span>
+          <div class="seg" role="group" aria-label="Weapons"><button data-weapons="1" aria-pressed="${a.profile.settings.weapons}">Armed</button><button data-weapons="0" aria-pressed="${!a.profile.settings.weapons}">Clean</button></div>
+          <span class="muted blurb arms">${Screens.arms(a.profile.settings.weapons)}</span>
         </div>
         <div class="parked">
           <span class="muted">Parked experiment · Catapult Courier:</span>
@@ -227,6 +240,16 @@ export class Screens {
       sheet.querySelectorAll('[data-rivals]').forEach((b) => b.setAttribute('aria-pressed', String(b === el)));
       (sheet.querySelector('.blurb') as HTMLElement).textContent = rivalLevel(a.profile.settings.rivals).blurb;
     }, sheet);
+    this.on('[data-weapons]', (el) => {
+      this.tap();
+      const on = el.dataset.weapons === '1';
+      a.profile.settings.weapons = on;
+      a.save();
+      a.showWeapons();
+      sheet.querySelectorAll('[data-weapons]').forEach((b) => b.setAttribute('aria-pressed', String(b === el)));
+      (sheet.querySelector('.arms') as HTMLElement).textContent = Screens.arms(on);
+      (sheet.querySelector('.pitch') as HTMLElement).textContent = Screens.pitch(on);
+    }, sheet);
     this.on('[data-race]', (el) => {
       a.audio.play('ui_confirm');
       a.startRace(el.dataset.race as RaceMode);
@@ -239,6 +262,16 @@ export class Screens {
   }
 
   /** Race results: finishing order, times, and what happened to the shortcut. */
+  private static pitch(armed: boolean): string {
+    return armed
+      ? 'Three laps of the patio after dark, armed. Shoot what is in front of you, mine what is behind you, and get round before your armour runs out.'
+      : "Three laps of the patio after dark. Drift for boosts, sit in a rival's wake, and decide who pays to open the shortcut.";
+  }
+
+  private static arms(armed: boolean): string {
+    return armed ? 'Guns, mines and armour for everyone, rivals included. A wreck costs a few seconds.' : 'No weapons: a straight race.';
+  }
+
   raceResults(info: RaceResultsInfo): void {
     const a = this.api;
     const rows = info.rows.map((r) => `
@@ -248,6 +281,7 @@ export class Screens {
         <span class="nm">${esc(r.name)}${r.bot ? ' <span class="tag bot">bot</span>' : ''}${r.you ? ` <span class="tag soft">${esc(r.you)}</span>` : ''}</span>
         <span class="tm">${esc(r.time)}</span>
         <span class="bl">${esc(r.best)}</span>
+        ${info.combat ? `<span class="wk">${esc(r.wrecks)}<small>${r.wrecked ? `−${r.wrecked}` : ''}</small></span>` : ''}
       </div>`).join('');
     const st = info.stakes;
     const pipsOf = (n: number, target: number): string => Array.from({ length: target }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
@@ -271,7 +305,7 @@ export class Screens {
             ${st && st.kind === 'series' ? '' : `<div style="text-align:right"><div class="total" style="font-size:calc(var(--u)*7)">${esc(info.best)}<small>${info.newBest ? 'new best race!' : 'your best race'}</small></div></div>`}
           </div>
           ${stakes}
-          <div class="race-rows"><div class="race-row head"><span class="pl"></span><span class="dot"></span><span class="nm">Driver</span><span class="tm">Race</span><span class="bl">Best lap</span></div>${rows}</div>
+          <div class="race-rows${info.combat ? ' combat' : ''}"><div class="race-row head"><span class="pl"></span><span class="dot"></span><span class="nm">Driver</span><span class="tm">Race</span><span class="bl">Best lap</span>${info.combat ? '<span class="wk">Wrecks</span>' : ''}</div>${rows}</div>
           <div class="sheet-actions">
             <button class="btn" data-act="home">${ICON.home}Home</button>
             ${info.stepUp ? `<button class="btn" data-act="stepup">Try ${esc(info.stepUp)} rivals</button>` : `<button class="btn" data-act="chars">${ICON.people}Characters</button>`}
@@ -568,6 +602,7 @@ export class Screens {
           <button class="icon-btn" data-act="close" aria-label="Close">${ICON.close}</button></div>
         ${range('master', 'Volume')}${range('music', 'Music')}${range('sfx', 'Sound effects')}
         ${sw('autoDrift', 'Auto drift', 'Steering hard starts the slide by itself, for one-thumb play. Always on when two share a touch screen.')}
+        ${sw('autoFire', 'Auto fire', 'In an armed race the guns shoot by themselves when a rival is in your sights. Always on when two share a touch screen.')}
         ${sw('leftHanded', 'Left-handed', 'Puts DRIFT and BRAKE on the left.')}
         ${sw('reducedMotion', 'Reduced motion', 'No camera shake, roll, orbit or speed zoom.')}
         ${sw('haptics', 'Vibration', 'Light taps on supported devices.')}

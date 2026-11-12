@@ -14,7 +14,7 @@ export interface AudioKitOptions {
 }
 
 /** Sounds that may be dropped when a lot is already playing. */
-const LOW_PRIORITY: ReadonlySet<SfxName> = new Set<SfxName>(['footstep', 'skid', 'score_tick']);
+const LOW_PRIORITY: ReadonlySet<SfxName> = new Set<SfxName>(['footstep', 'skid', 'score_tick', 'gun', 'gun_hit']);
 const MAX_VOICES = 44;
 
 // ───────────────────────────── music ─────────────────────────────
@@ -322,6 +322,52 @@ export function createAudioKit(opts: AudioKitOptions = {}): AudioKit {
         eng.pluck(midi(81), 0, 0.2, 0.16, 1);
         eng.pluck(midi(81), 0.12, 0.2, 0.16, 1);
         eng.pluck(midi(88), 0.24, 0.6, 0.18, 1);
+        break;
+      // ── combat ──
+      case 'gun':
+        // a dry mechanical crack: more staple gun than cannon
+        eng.burst({ dur: 0.05, gain: 0.2 + 0.3 * i, filter: 'highpass', f0: 1500 * p, q: 0.8, pan, attack: 0.001 });
+        eng.tone({ type: 'square', f0: 190 * p, f1: 80, dur: 0.05, gain: 0.05 + 0.1 * i, pan, lowpass: 1400 });
+        break;
+      case 'gun_hit':
+        eng.burst({ dur: 0.03, gain: 0.18 + 0.2 * i, f0: 4200 * p, q: 6, pan, attack: 0.001 });
+        eng.tone({ type: 'triangle', f0: 1100 * p, f1: 520, dur: 0.05, gain: 0.08 + 0.08 * i, pan });
+        break;
+      case 'gun_empty':
+        eng.tone({ type: 'square', f0: 900, f1: 700, dur: 0.03, gain: 0.07, lowpass: 2400 });
+        break;
+      case 'explosion':
+        eng.tone({ f0: 130, f1: 34, dur: 0.55, gain: 0.25 + 0.4 * i, pan });
+        eng.burst({ dur: 0.6, gain: 0.25 + 0.4 * i, filter: 'lowpass', f0: 1400, f1: 180, pan, attack: 0.002 });
+        eng.burst({ dur: 0.07, gain: 0.2 + 0.3 * i, filter: 'highpass', f0: 2400, q: 0.7, pan, attack: 0.001 });
+        break;
+      case 'mine_drop':
+        eng.tone({ type: 'square', f0: 330, dur: 0.05, gain: 0.1, lowpass: 1800 });
+        eng.tone({ type: 'square', f0: 220, dur: 0.07, gain: 0.1, lowpass: 1800, at: 0.07 });
+        break;
+      case 'crate':
+        eng.burst({ dur: 0.05, gain: 0.3, f0: 900, q: 2, attack: 0.001 });
+        eng.pluck(midi(69), 0.04, 0.18, 0.13, 0.9);
+        eng.pluck(midi(76), 0.12, 0.3, 0.13, 0.9);
+        break;
+      case 'repair':
+        for (let n = 0; n < 3; n++) eng.burst({ dur: 0.03, gain: 0.22, f0: 2600 + n * 500, q: 5, attack: 0.001, at: n * 0.06 });
+        eng.pluck(midi(72), 0.2, 0.2, 0.12, 0.8);
+        eng.pluck(midi(79), 0.29, 0.45, 0.13, 0.9);
+        break;
+      case 'weapons_hot':
+        for (let n = 0; n < 2; n++) {
+          eng.tone({ type: 'sawtooth', f0: 440, f1: 660, dur: 0.14, gain: 0.13, lowpass: 2600, at: n * 0.2 });
+        }
+        eng.burst({ dur: 0.25, gain: 0.2, f0: 500, f1: 3000, q: 0.8, attack: 0.05, at: 0.38 });
+        break;
+      case 'ram':
+        eng.tone({ f0: 95, f1: 42, dur: 0.2, gain: 0.3 + 0.3 * i, pan });
+        eng.burst({ dur: 0.09, gain: 0.3 + 0.3 * i, f0: 1300, q: 1.6, pan, attack: 0.001 });
+        break;
+      case 'respawn':
+        eng.tone({ type: 'triangle', f0: 220, f1: 880, dur: 0.3, gain: 0.14 });
+        eng.pluck(midi(81), 0.26, 0.4, 0.12, 1);
         break;
       case 'plank':
         eng.tone({ f0: 180, f1: 90, dur: 0.12, gain: 0.4 });

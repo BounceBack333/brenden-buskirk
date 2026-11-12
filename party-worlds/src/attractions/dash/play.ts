@@ -5,6 +5,8 @@
  * Controls: the kart accelerates by itself. Drag left/right anywhere in your view to steer.
  * Hold DRIFT while turning to slide; let go to boost. A second finger also drifts. With
  * "auto drift" (the default when two people share a screen) steering hard starts the slide.
+ * In a combat race FIRE shoots straight ahead (or, with "auto fire", the guns shoot by
+ * themselves when a rival is in the sights) and MINE leaves one behind.
  */
 import type { Pointers, Ptr } from '../../core/pointers';
 import type { Settings } from '../../core/profile';
@@ -12,6 +14,7 @@ import type { StageSize } from '../../core/viewport';
 import { esc } from '../../ui/hud';
 import { ICON } from '../../ui/icons';
 import { Rival } from './bot';
+import { COMBAT, gunTarget, weaponsHot } from './combat';
 import { KART, RACE } from './track';
 import type { Track } from './track';
 import { createRace, forwardSpeed, noDrive, stepRace, trackOf } from './sim';
@@ -27,6 +30,8 @@ interface Pad {
   driftPtr: Ptr | null;
   driftBtn: boolean;
   brakeBtn: boolean;
+  fireBtn: boolean;
+  mineBtn: boolean;
   hard: number;
   auto: boolean;
 }
@@ -35,7 +40,7 @@ export class RaceControls {
   /** seats driven from this device, in view order */
   humans: number[] = [0];
   rects: Rect[] = [{ x: 0, y: 0, w: 1, h: 1 }];
-  readonly pads: Pad[] = [0, 1].map(() => ({ stick: null, ox: 0, x: 0, driftPtr: null, driftBtn: false, brakeBtn: false, hard: 0, auto: false }));
+  readonly pads: Pad[] = [0, 1].map(() => ({ stick: null, ox: 0, x: 0, driftPtr: null, driftBtn: false, brakeBtn: false, fireBtn: false, mineBtn: false, hard: 0, auto: false }));
   enabled = false;
   /** which local players have used a game controller this session (for wording the hints) */
   readonly padUsed = [false, false];
@@ -70,7 +75,7 @@ export class RaceControls {
 
   reset(): void {
     for (const pad of this.pads) {
-      pad.stick = null; pad.driftPtr = null; pad.driftBtn = false; pad.brakeBtn = false; pad.hard = 0; pad.auto = false;
+      pad.stick = null; pad.driftPtr = null; pad.driftBtn = false; pad.brakeBtn = false; pad.fireBtn = false; pad.mineBtn = false; pad.hard = 0; pad.auto = false;
     }
   }
 
@@ -98,10 +103,11 @@ export class RaceControls {
 
   /**
    * A game controller for local player `view`, if one is plugged in: stick or d-pad to steer,
-   * A / right bumper / right trigger to drift, B / X / left trigger to brake. Alone, any
+   * A / right bumper / right trigger to drift, B / X / left trigger to brake. In a combat race
+   * the right trigger and X fire instead, and Y or the left bumper drops a mine. Alone, any
    * controller will do; with two players the first controller is player 1's, the second player 2's.
    */
-  private gamepad(view: number, split: boolean): { steer: number; drift: boolean; brake: boolean } | null {
+  private gamepad(view: number, split: boolean, combat: boolean): { steer: number; drift: boolean; brake: boolean; fire: boolean; drop: boolean } | null {
     if (typeof navigator === 'undefined' || typeof navigator.getGamepads !== 'function') return null;
     let pads: (Gamepad | null)[];
     try {
@@ -118,8 +124,10 @@ export class RaceControls {
     x = Math.abs(x) < dead ? 0 : (x - Math.sign(x) * dead) / (1 - dead);
     if (pressed(14)) x = -1;
     if (pressed(15)) x = 1;
-    const out = { steer: Math.max(-1, Math.min(1, x)), drift: pressed(0) || pressed(5) || pressed(7), brake: pressed(1) || pressed(2) || pressed(6) };
-    if (out.steer !== 0 || out.drift || out.brake) this.padUsed[view] = true;
+    const out = combat
+      ? { steer: Math.max(-1, Math.min(1, x)), drift: pressed(0) || pressed(5), brake: pressed(1) || pressed(6), fire: pressed(7) || pressed(2), drop: pressed(3) || pressed(4) }
+      : { steer: Math.max(-1, Math.min(1, x)), drift: pressed(0) || pressed(5) || pressed(7), brake: pressed(1) || pressed(2) || pressed(6), fire: false, drop: false };
+    if (out.steer !== 0 || out.drift || out.brake || out.fire || out.drop) this.padUsed[view] = true;
     return out;
   }
 
@@ -148,11 +156,15 @@ export class RaceControls {
     const right = split ? (view === 0 ? keys.has('KeyD') : keys.has('ArrowRight')) : keys.has('KeyD') || keys.has('ArrowRight');
     if (left) steer = -1;
     if (right) steer = 1;
+    const combat = s.combat;
+    // sharing a keyboard in a combat race, the spare drift keys become the trigger and the mine
     const keyDrift = split
-      ? (view === 0 ? keys.has('ShiftLeft') || keys.has('Space') || keys.has('KeyW') : keys.has('ShiftRight') || keys.has('Enter') || keys.has('ArrowUp'))
+      ? (view === 0
+        ? keys.has('ShiftLeft') || keys.has('KeyW') || (!combat && keys.has('Space'))
+        : keys.has('ArrowUp') || (!combat && (keys.has('ShiftRight') || keys.has('Enter'))))
       : keys.has('Space') || keys.has('ShiftLeft') || keys.has('ShiftRight') || keys.has('KeyJ');
     const keyBrake = split ? (view === 0 ? keys.has('KeyS') : keys.has('ArrowDown')) : keys.has('KeyS') || keys.has('ArrowDown');
-    const gp = this.gamepad(view, split);
+    const gp = this.gamepad(view, split, combat);
     if (gp && Math.abs(gp.steer) > Math.abs(steer)) steer = gp.steer;
 
     // auto drift: steering hard at speed starts the slide; easing off fires the boost
@@ -167,7 +179,26 @@ export class RaceControls {
     o.steer = Math.round(steer * 127);
     o.drift = pad.driftBtn || pad.driftPtr !== null || keyDrift || auto || (!!gp && gp.drift);
     o.brake = pad.brakeBtn || keyBrake || (!!gp && gp.brake);
+    o.fire = false;
+    o.drop = false;
+    if (combat) {
+      const keyFire = split
+        ? (view === 0 ? keys.has('Space') || keys.has('KeyF') : keys.has('Enter') || keys.has('ControlRight') || keys.has('Slash') || keys.has('Numpad0'))
+        : keys.has('KeyF') || keys.has('KeyK') || keys.has('KeyW') || keys.has('ArrowUp') || keys.has('Enter');
+      const keyDrop = split
+        ? (view === 0 ? keys.has('KeyE') || keys.has('KeyQ') : keys.has('ShiftRight') || keys.has('Period') || keys.has('NumpadDecimal'))
+        : keys.has('KeyE') || keys.has('KeyM') || keys.has('KeyQ');
+      // auto fire: the guns shoot whenever they would hit (always, for two sharing a touch screen)
+      const autoFire = this.autoFire(view);
+      o.fire = pad.fireBtn || keyFire || (!!gp && gp.fire) || (autoFire && weaponsHot(s) && gunTarget(s, trackOf(s), this.humans[view]!) >= 0);
+      o.drop = pad.mineBtn || keyDrop || (!!gp && gp.drop);
+    }
     return o;
+  }
+
+  /** Whether local player `view`'s guns fire by themselves. */
+  autoFire(view: number): boolean {
+    return this.settings.autoFire || (this.humans.length > 1 && this.pads[view]!.stick !== null);
   }
 }
 
@@ -194,16 +225,30 @@ interface Pane {
   face: HTMLElement;
   drift: HTMLButtonElement;
   brake: HTMLButtonElement;
+  fire: HTMLButtonElement;
+  mine: HTMLButtonElement;
+  /** armour and ammunition, beside the portrait (combat races) */
+  kit: HTMLElement;
+  armor: HTMLElement;
+  ammo: HTMLElement;
+  /** brackets round whoever is in the sights */
+  lock: HTMLElement;
   hint: HTMLElement;
   tags: HTMLElement[];
+  tagBars: (HTMLElement | null)[];
   bannerUntil: number;
   lastPlace: number;
+  lastArmor: number;
+  lastMines: number;
+  hurtUntil: number;
 }
 
 export class RaceHud {
   onPause: (() => void) | null = null;
   private panes: Pane[] = [];
   private clock: HTMLElement;
+  private feed: HTMLElement;
+  private feedLines: { el: HTMLElement; until: number }[] = [];
   private map: HTMLCanvasElement;
   private mapBase: HTMLCanvasElement;
   private names: string[] = [];
@@ -236,7 +281,8 @@ export class RaceHud {
     const pause = el('button', 'icon-btn pause-btn', ICON.pause);
     pause.setAttribute('aria-label', 'Pause');
     pause.addEventListener('click', () => this.onPause?.());
-    root.append(this.clock, this.map, pause);
+    this.feed = el('div', 'race-feed');
+    root.append(this.clock, this.feed, this.map, pause);
     for (let i = 0; i < 2; i++) this.panes.push(this.makePane(i));
   }
 
@@ -251,6 +297,10 @@ export class RaceHud {
     const wrong = el('div', 'race-wrong', 'Wrong way');
     const drift = el('button', 'race-btn drift touchable', 'DRIFT');
     const brake = el('button', 'race-btn brake touchable', 'BRAKE');
+    const fire = el('button', 'race-btn fire touchable', 'FIRE');
+    const mine = el('button', 'race-btn mine touchable', 'MINE<b></b>');
+    const kit = el('div', 'race-kit', '<div class="armor"><span>Armour</span><i><b></b></i></div><div class="ammo"><span>Guns</span><i><b></b></i></div>');
+    const lock = el('div', 'race-lock', '<i></i><i></i><i></i><i></i>');
     const hint = el('div', 'hint race-hint');
     const tags = [0, 1, 2, 3].map(() => el('div', 'race-tag'));
     const hold = (btn: HTMLElement, set: (v: boolean) => void): void => {
@@ -267,9 +317,15 @@ export class RaceHud {
     };
     hold(drift, (v) => (this.controls.pads[i]!.driftBtn = v));
     hold(brake, (v) => (this.controls.pads[i]!.brakeBtn = v));
-    p.append(face, place, lap, meter, banner, count, wrong, hint, ...tags, brake, drift);
+    hold(fire, (v) => (this.controls.pads[i]!.fireBtn = v));
+    hold(mine, (v) => (this.controls.pads[i]!.mineBtn = v));
+    p.append(lock, face, place, kit, lap, meter, banner, count, wrong, hint, ...tags, brake, fire, mine, drift);
     this.root.append(p);
-    return { root: p, place, face, lap, meter, fill: meter.querySelector('i') as HTMLElement, banner, count, wrong, drift, brake, hint, tags, bannerUntil: 0, lastPlace: 0 };
+    return {
+      root: p, place, face, lap, meter, fill: meter.querySelector('i') as HTMLElement, banner, count, wrong, drift, brake, fire, mine,
+      kit, armor: kit.querySelector('.armor') as HTMLElement, ammo: kit.querySelector('.ammo') as HTMLElement, lock,
+      hint, tags, tagBars: [null, null, null, null], bannerUntil: 0, lastPlace: 0, lastArmor: COMBAT.armor, lastMines: 0, hurtUntil: 0,
+    };
   }
 
   private track: Track | null = null;
@@ -336,9 +392,14 @@ export class RaceHud {
     this.bots = bots;
     this.faces = faces;
     this.drove = false;
+    for (const line of this.feedLines) line.el.remove();
+    this.feedLines = [];
     this.panes.forEach((p, i) => {
       p.bannerUntil = 0;
       p.lastPlace = 0;
+      p.lastArmor = COMBAT.armor;
+      p.lastMines = 0;
+      p.hurtUntil = 0;
       p.banner.classList.remove('show');
       for (const tag of p.tags) tag.dataset.k = '';
       const seat = humans[i];
@@ -348,6 +409,15 @@ export class RaceHud {
 
   show(on: boolean): void {
     this.root.hidden = !on;
+  }
+
+  /** One line for the running list: who wrecked whom. */
+  wreck(seat: number, by: number): void {
+    const who = (n: number): string => `<b style="color:${esc(this.colors[n] ?? '#fff')}">${esc(this.names[n] ?? '?')}</b>`;
+    const line = el('div', 'line', by >= 0 ? `${who(by)} wrecked ${who(seat)}` : `${who(seat)} wrecked`);
+    this.feed.prepend(line);
+    this.feedLines.unshift({ el: line, until: performance.now() + 4500 });
+    while (this.feedLines.length > 3) this.feedLines.pop()!.el.remove();
   }
 
   banner(view: number, l1: string, l2: string, ms = 1900): void {
@@ -384,6 +454,30 @@ export class RaceHud {
       ctx.lineTo(bx, by);
       ctx.stroke();
     }
+    if (tr && s.combat) {
+      // where to mend, where to reload, and what is lying in the road
+      if (tr.combat) {
+        const r = tr.combat.repair;
+        const [rx, ry] = this.mapXY((r.x0 + r.x1) / 2, (r.z0 + r.z1) / 2);
+        ctx.fillStyle = '#3dff9a';
+        ctx.fillRect(rx - 4, ry - 1.5, 8, 3);
+        ctx.fillRect(rx - 1.5, ry - 4, 3, 8);
+        ctx.fillStyle = '#ffb52e';
+        tr.combat.crates.forEach((c, n) => {
+          if (s.tick < (s.crateReady[n] ?? 0)) return;
+          const [cx, cy] = this.mapXY(c.x, c.z);
+          ctx.fillRect(cx - 2.5, cy - 2.5, 5, 5);
+        });
+      }
+      ctx.fillStyle = '#ff3b3b';
+      for (const m of s.mines) {
+        const [mx, my] = this.mapXY(m.x, m.z);
+        ctx.beginPath();
+        ctx.arc(mx, my, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    while (this.feedLines.length && now > this.feedLines[this.feedLines.length - 1]!.until) this.feedLines.pop()!.el.remove();
     for (let i = s.karts.length - 1; i >= 0; i--) {
       const k = s.karts[i]!;
       const [x, y] = this.mapXY(k.x, k.z);
@@ -435,20 +529,69 @@ export class RaceHud {
         p.bannerUntil = 0;
         p.banner.classList.remove('show');
       }
+      const unit0 = Math.min(size.width, size.height) / 100;
       const lefty = settings.leftHanded;
       // both buttons live on one side so the other thumb has its whole side of the screen to steer in
       p.root.classList.toggle('lefty', lefty);
+      // ── combat: armour, guns, mines ──
+      p.root.classList.toggle('combat', s.combat);
+      if (s.combat) {
+        const hot = weaponsHot(s);
+        const a01 = Math.max(0, k.armor / COMBAT.armor);
+        (p.armor.querySelector('b') as HTMLElement).style.width = `${a01 * 100}%`;
+        p.armor.className = `armor${a01 <= 0.2 ? ' critical' : a01 <= 0.4 ? ' low' : ''}`;
+        (p.ammo.querySelector('b') as HTMLElement).style.width = `${(k.ammo / COMBAT.magazine) * 100}%`;
+        p.ammo.className = `ammo${!hot ? ' locked' : k.ammo === 0 ? ' empty' : ''}`;
+        (p.ammo.querySelector('span') as HTMLElement).textContent = !hot ? 'Guns locked' : k.ammo === 0 ? 'Reloading' : 'Guns';
+        if (k.armor < p.lastArmor - 0.01) p.hurtUntil = now + 220;
+        p.root.classList.toggle('hurt', now < p.hurtUntil);
+        p.root.classList.toggle('wrecked', k.wreckTicks > 0);
+        if (k.mines !== p.lastMines || p.mine.dataset.n === undefined) {
+          p.mine.dataset.n = String(k.mines);
+          (p.mine.querySelector('b') as HTMLElement).textContent = k.mines > 0 ? `×${k.mines}` : '';
+          p.mine.classList.toggle('empty', k.mines === 0);
+        }
+        p.fire.classList.toggle('auto', this.controls.autoFire(i));
+        p.fire.classList.toggle('locked', !hot);
+        p.mine.classList.toggle('locked', !hot);
+        // the sights: brackets on the rival the guns would hit, red while rounds are landing
+        const target = hot && tr && k.wreckTicks === 0 && !k.finished ? gunTarget(s, tr, seat) : -1;
+        let locked = false;
+        if (target >= 0) {
+          view.kartPosition(target, this.pos);
+          view.project(i, this.pos.x, this.pos.y + 0.7, this.pos.z, this.proj);
+          if (this.proj.visible) {
+            const side = Math.max(unit0 * 5, Math.min(unit0 * 26, (unit0 * 150) / Math.max(1, this.proj.dist)));
+            p.lock.style.left = `${this.proj.x - rect.x}px`;
+            p.lock.style.top = `${this.proj.y - rect.y}px`;
+            p.lock.style.width = `${side}px`;
+            p.lock.style.height = `${side}px`;
+            p.lock.classList.toggle('firing', k.idleTicks < COMBAT.shotTicks * 2);
+            locked = true;
+          }
+        }
+        p.lock.style.display = locked ? 'block' : 'none';
+      } else {
+        p.root.classList.remove('hurt', 'wrecked');
+        p.lock.style.display = 'none';
+      }
       // first-race hints, retired once done; worded for whatever this player is steering with
       const pad = this.controls.pads[i]!;
       if (pad.stick) this.touched[i] = true;
       const onPad = this.controls.padUsed[i]!;
       const touch = !onPad && (this.touched[i] || this.coarse);
       const driftKey = onPad ? 'A' : split ? (i === 0 ? 'W' : '↑') : 'Space';
+      const fireKey = onPad ? 'the right trigger' : split ? (i === 0 ? 'Space' : 'Enter') : 'F';
+      const mineKey = onPad ? 'Y' : split ? (i === 0 ? 'E' : 'right Shift') : 'E';
       const auto = settings.autoDrift || (touch && split);
+      const autoGuns = this.controls.autoFire(i) || (touch && split);
       let hint = '';
       if (s.phase === 'countdown' && !this.learned.raceStart) hint = `It drives itself. Press ${touch ? 'DRIFT' : driftKey} just before GO for a boost.`;
       else if (s.phase === 'racing' && !this.learned.steer) hint = touch ? `${ICON.hand}Drag left or right to steer` : onPad ? 'Steer with the stick' : `Steer with ${split ? (i === 0 ? 'A / D' : '← / →') : 'A / D or ← / →'}`;
       else if (s.phase === 'racing' && !this.learned.drift && s.phaseTick > 240) hint = auto ? 'Steer hard into a corner to slide, ease off to boost' : `Hold ${touch ? 'DRIFT' : driftKey} in a corner, let go to boost`;
+      else if (s.combat && weaponsHot(s) && !this.learned.guns) hint = autoGuns ? 'Line a rival up in front of you: your guns do the rest' : `Hold ${touch ? 'FIRE' : fireKey} to shoot whoever is in front of you`;
+      else if (s.combat && weaponsHot(s) && k.mines > 0 && !this.learned.mines) hint = `${touch ? 'MINE' : `Press ${mineKey}:`} leaves a mine behind you`;
+      else if (s.combat && k.armor < 55 && k.wreckTicks === 0 && !this.learned.repair) hint = 'The green strip on the long way round mends your armour';
       else if (s.phase === 'racing' && !s.plankOpen && !this.learned.plank && k.lap >= 2) hint = 'Bump the glowing peg to drop the plank';
       if (p.hint.dataset.t !== hint) {
         p.hint.dataset.t = hint;
@@ -476,11 +619,19 @@ export class RaceHud {
         this.tagD[j] = this.proj.dist;
         this.tagX[j] = this.proj.x - rect.x;
         this.tagY[j] = this.proj.y - rect.y;
-        const key = `${j}:${s.karts[j]!.place}`;
+        const key = `${j}:${s.karts[j]!.place}:${s.combat ? 1 : 0}`;
         if (tag.dataset.k !== key) {
           tag.dataset.k = key;
-          tag.innerHTML = `<i style="background:${esc(this.colors[j] ?? '#fff')} url('${this.faces[j] ?? ''}') center/cover"></i>${esc(this.names[j] ?? '')}${this.bots[j] ? ' <span class="tag bot">bot</span>' : ''} <b>${ORD[s.karts[j]!.place - 1]}</b>`;
+          tag.innerHTML = `<i style="background:${esc(this.colors[j] ?? '#fff')} url('${this.faces[j] ?? ''}') center/cover"></i>${esc(this.names[j] ?? '')}${this.bots[j] ? ' <span class="tag bot">bot</span>' : ''} <b>${ORD[s.karts[j]!.place - 1]}</b>${s.combat ? '<u><s></s></u>' : ''}`;
+          p.tagBars[j] = tag.querySelector('s');
           this.tagW[j] = 0;
+        }
+        // a rival's armour, under its name
+        const bar = p.tagBars[j];
+        if (bar) {
+          const o = s.karts[j]!;
+          bar.style.width = `${Math.max(0, o.armor / COMBAT.armor) * 100}%`;
+          bar.className = o.wreckTicks > 0 ? 'gone' : o.armor <= COMBAT.armor * 0.4 ? 'low' : '';
         }
         tag.style.display = 'block';
         if (!this.tagW[j]) this.tagW[j] = tag.offsetWidth || unit * 26;
@@ -510,6 +661,13 @@ export class RaceHud {
       if (k.boostTicks > 0 && s.phaseTick > 60) this.learned.drift = true;
       if (s.phase === 'racing') this.learned.raceStart = true;
       if (s.plankOpen) this.learned.plank = true;
+      if (s.combat) {
+        if (k.ammo < COMBAT.magazine) this.learned.guns = true;
+        if (k.mines < p.lastMines) this.learned.mines = true;
+        if (k.armor > p.lastArmor + 1 && k.wreckTicks === 0 && p.lastArmor > 0) this.learned.repair = true;
+        p.lastArmor = k.armor;
+        p.lastMines = k.mines;
+      }
     });
   }
 }
@@ -531,6 +689,8 @@ export interface RaceSetup {
   skills: number[];
   /** throttle of the rival in each non-human seat (people always have 1) */
   pace: number[];
+  /** armed karts (combat.ts) */
+  combat: boolean;
 }
 
 export class RaceSession {
@@ -548,6 +708,7 @@ export class RaceSession {
     this.state = createRace({
       karts: 4, laps: setup.laps, required: setup.humans, track: setup.track,
       pace: [0, 1, 2, 3].map((seat) => (setup.humans.includes(seat) ? 1 : setup.pace[q++] ?? 1)),
+      combat: setup.combat,
     });
     this.rivals = [0, 1, 2, 3].map((seat) => (setup.humans.includes(seat) ? null : new Rival({ seed: setup.seed * 13 + seat * 7 + 1, skill: setup.skills[b++] ?? 0.6 })));
     this.bots = this.rivals.map((r) => r !== null);
@@ -556,6 +717,7 @@ export class RaceSession {
     controls.reset();
     controls.enabled = true;
     view.onBanner = (v, l1, l2) => hud.banner(v, l1, l2, l1.startsWith('Shortcut') ? 3200 : 1900);
+    view.onWreck = (seat, by) => hud.wreck(seat, by);
     view.beginRace(this.state, setup.humans, setup.names);
     hud.setup(setup.names, setup.colors, this.bots, setup.faces, setup.humans, trackOf(this.state));
   }
@@ -583,5 +745,6 @@ export class RaceSession {
     this.controls.enabled = false;
     this.controls.reset();
     this.view.onBanner = null;
+    this.view.onWreck = null;
   }
 }

@@ -26,19 +26,20 @@ One entry per attraction. Nothing is built until its entry is complete.
 |---|---|
 | Players | 1–2 people on one device, always four karts. Solo: you and three labelled bot rivals (your second character drives one). Split screen: two people side by side and two bot rivals. |
 | Teams | None. Everyone for themselves. |
-| Controls — touch | Drag left/right anywhere in your half to steer (floating stick). Hold **DRIFT** (or a second finger) while turning to slide; release to boost. **BRAKE** slows and then reverses. Split screen, or the Auto-drift setting: steering hard starts the drift and easing off releases it, so one thumb is enough. |
-| Controls — keyboard | Solo: A/D or ←/→ steer, Space/Shift/J drift, S/↓ brake. Split: player 1 A/D steer, W (or Space, Left Shift) drift, S brake; player 2 ←/→ steer, ↑ (or Enter, Right Shift) drift, ↓ brake. Hints name W and ↑: two Shift keys held together misbehave on some keyboards. |
-| Controls — game controller | Stick or d-pad steers, A / right bumper / right trigger drifts, B / X / left trigger brakes. Alone, any controller; in split screen the first is player 1's and the second player 2's. A presses the main button between races; Start pauses. |
+| Controls — touch | Drag left/right anywhere in your half to steer (floating stick). Hold **DRIFT** (or a second finger) while turning to slide; release to boost. **BRAKE** slows and then reverses. Split screen, or the Auto-drift setting: steering hard starts the drift and easing off releases it, so one thumb is enough. Armed: guns fire by themselves when a rival is in the sights (Auto fire; a FIRE button appears if that is switched off), and **MINE** drops one behind you. |
+| Controls — keyboard | Solo: A/D or ←/→ steer, Space/Shift/J drift, S/↓ brake. Split: player 1 A/D steer, W (or Space, Left Shift) drift, S brake; player 2 ←/→ steer, ↑ (or Enter, Right Shift) drift, ↓ brake. Hints name W and ↑: two Shift keys held together misbehave on some keyboards. Armed, solo: F (or W / ↑ / Enter) fires, E drops a mine. Armed, shared keyboard: player 1 Space fires and E mines (W or Left Shift still drifts); player 2 Enter fires and Right Shift mines (↑ still drifts). |
+| Controls — game controller | Stick or d-pad steers, A / right bumper / right trigger drifts, B / X / left trigger brakes. Alone, any controller; in split screen the first is player 1's and the second player 2's. A presses the main button between races; Start pauses. Armed: right trigger or X fires, Y or left bumper drops a mine, A or right bumper drifts, B or left trigger brakes. |
 | Timing | Countdown 3 s (camera meets your driver, swings behind). Three laps, about 55–70 s. When the last person finishes the race runs on 2.5 s so rivals close behind get a time. The race is called 25 s after the first finisher; anyone still out is placed by distance. |
 | Start | Pressing DRIFT in the last 0.37 s before GO gives a start boost (a tap is enough). Holding it from much earlier stalls you briefly. |
-| Scoring | Finishing order. Shown: race time (winner), gap (others) or lap reached (unfinished), best lap. Personal best race time is kept per mode and rival level, three-lap races only. |
+| Scoring | Finishing order. Shown: race time (winner), gap (others) or lap reached (unfinished), best lap. Personal best race time is kept per mode and rival level, three-lap races only. Armed races also show wrecks caused and times wrecked, and keep their own best times and medals. Wrecks do not change the finishing order. |
 | Ties | Two karts crossing on the same tick are ordered by seat. (Cosmetic at this stage; revisit before any ranked play.) |
 | Rivals | Bots, labelled "bot" on tags and results. Three levels, each two stated dials: skill and throttle (Gentle 85–93 %, Keen 90–96 %, Fierce 97–100 %). No rubber band (D-019). |
-| Fairness | One kart for everyone: one collider radius, one top speed, one handling table (`KART`). Characters and colours change nothing. People always have full throttle. |
-| Accessibility | Auto-accelerate; one-thumb play with Auto-drift; left-handed button swap; reduced motion (no camera shake or roll); hints that retire once the action has been done; place, lap and wrong-way are text, not colour alone. No rapid tapping. Not done: text scaling, colour-blind review of spark colours (the meter repeats them as position). |
+| Fairness | One kart for everyone: one collider radius, one top speed, one handling table (`KART`). Characters and colours change nothing. People always have full throttle. Armed: one armour value, one pair of guns, the same mines from the same crates for every kart (`COMBAT`). |
+| Accessibility | Auto-accelerate; one-thumb play with Auto-drift; left-handed button swap; reduced motion (no camera shake or roll); hints that retire once the action has been done; place, lap and wrong-way are text, not colour alone. No rapid tapping. Not done: text scaling, colour-blind review of spark colours (the meter repeats them as position). Armed: Auto fire means no extra button is needed; the Clean race has no weapons at all; damage is shown three ways (bar, red edge, sound). |
 | The world remembers | The plank starts propped up and blocked. Bumping the peg costs the bumper 28 % of their speed once, drops the plank, and it stays down for everyone for the rest of the race. Results name who did it. |
 | No free laps | The lawn inside the circuit is closed by solid things: the pot, a ladder lying along the middle, a tennis ball. A lap needs both checkpoints. Rolling back over the line puts you a lap behind, not ahead. |
 | Recovery | Walls nose you along them; a hard hit spins you once (0.37 s); stuck or facing the wrong way for a while puts you back on the road, ghosted for a moment. |
+| Combat (armed races, D-025) | Armour 100. Guns: locked 5 s after GO; 10 rounds a second, 2 armour each, 24 units, straight ahead; the pot and the ball give cover; 20 rounds, self-refilling. Mines: two at most, from three crates (back after 15 s); arm in 0.6 s, last 20 s, 35 armour and a spin. Ramming: up to 22 to the kart hit, 30 % of that to the rammer. Hard wall hit: 10. Wreck: 2.5 s stopped, then put back with full armour and a 1.8 s shield; credited to whoever hurt it in the last 5 s. Repair strip on the long way round the flowerbed: +45, once per pass. A finished kart can neither shoot nor be hurt. |
 | Network authority | Not online. The simulation is the same pure deterministic module as Courier's (`src/attractions/dash/sim.ts`, inputs are steer/drift/brake per tick), so a server can run it unchanged; prediction for four moving karts is the unsolved part. *(Proposed.)* |
 | Disconnect | Not applicable locally. Online plan: a dropped seat is driven by a labelled bot at the level's middle skill until they return. *(Proposed.)* |
 | Animation needs | `drive` pose for people and pets (hands or paws on the wheel, lean into turns, glance at a kart alongside), expressions by state (determined in a drift, thrilled on boost, dizzy when spun, cheer or oops at the flag), wave for the winner. |
@@ -57,6 +58,11 @@ One entry per attraction. Nothing is built until its entry is complete.
 - [x] Rival levels are ordered and Gentle rivals are clearly slower than Fierce (tests).
 - [x] The faster route is faster only when driven well: stand-in drivers gain about 5 s with the plank at a 150 ms reaction delay and lose about 4–5 s at 250 ms (simulated).
 - [x] A whole race can be started, driven, finished and rematched in a real browser by scripted keys and by scripted touch, solo and split screen (automated play-through).
+- [x] Armed: guns hit only what is ahead, in range and in the open; mines arm, bite and expire; a wreck is stopped, credited and put back shielded; every kart carries the same kit (tests).
+- [x] Armed: the plain race is untouched: its recorded fingerprints did not move, and a plain race ignores the trigger (tests).
+- [x] Armed: rivals shoot, mine, reload and repair through the same inputs as a person, and a race still ends (tests; simulated for how often).
+- [ ] Armed: being wrecked makes people laugh or swear at each other, not put the phone down. *(needs people)*
+- [ ] Armed: somebody lays a mine on purpose and says so. *(needs people)*
 - [ ] Two friends can each name something they did better than the other after one race. *(needs people)*
 - [ ] They choose another race without being asked. *(needs people)*
 - [ ] A first-time player finishes a Gentle race on the patio more often than off it. *(needs people)*
@@ -87,7 +93,7 @@ One entry per attraction. Nothing is built until its entry is complete.
 | Raw scoring | Catch 100 · perfect +25 · dive +15 · donut +40 each · jelly +30. Miss 0, bonuses not banked. |
 | Tour conversion | Co-op: stars. 2v2: higher pair total → Party Points. |
 | Ties (2v2) | More catches → more perfect catches → shared placement. |
-| Accessibility | Tap-umbrella option; left-handed dive button; reduced motion; open aim assist (flagged on results); non-colour pips; hints vanish after first success. No rapid tapping anywhere. |
+| Accessibility | Tap-umbrella option; left-handed dive button; reduced motion; open aim assist (flagged on results); non-colour pips; hints vanish after first success. No rapid tapping anywhere. Armed: Auto fire means no extra button is needed; the Clean race has no weapons at all; damage is shown three ways (bar, red edge, sound). |
 | Network authority | Server runs the same deterministic sim with both players' inputs. Outcome and score are authoritative only. Motion may be predicted locally from the last snapshot. |
 | Disconnect | Launcher drops while seated → aim clock lobs for them. Either player drops mid-round → round pauses 10 s for a rejoin, then Buddy (labelled) finishes that seat so the stayer completes the round; result marked "finished with a bot". *(Proposed; needs the room server.)* |
 | Animation needs | anticipate (tension-driven), fly, float, tumble, splat, caught, run/idle while carrying, dive, slide, celebrate; expressions per phase. All species. |
@@ -131,7 +137,7 @@ One player is the **giant**: their own character, enormous, leaning over the cak
 | Giant | Aim a wind cone by dragging; hold to inhale (cheeks swell — a 0.7 s visible tell), release to blow. Three breaths, each recharging over 5 s. Cannot blow through a held umbrella. |
 | Keepers | Run across the cake top, plant an umbrella to shield one candle, or carry a sparkler to relight one (3 s, interruptible). |
 | Counterplay | Bait a breath, then relight during the recharge. Giant can feint by exhaling early. |
-| Fairness | The giant's reach, cone and breath are fixed numbers; the giant's *look* is the player's character and changes nothing. |
+| Fairness | The giant's reach, cone and breath are fixed numbers; the giant's *look* is the player's character and changes nothing. Armed: one armour value, one pair of guns, the same mines from the same crates for every kart (`COMBAT`). |
 | Raw scoring | Giant: candles out at the horn. Keepers: candles lit. Same 0–8 scale. |
 | Network authority | Server-timed breaths and candle states; inhale start is the timestamped input so latency cannot shorten the tell. |
 | Open question | Is keeping fun, or only relighting? Prototype the 1v1 first. |

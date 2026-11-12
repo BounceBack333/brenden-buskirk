@@ -19,6 +19,7 @@ Everything below is there to explain a yes or a no.
 5. Can a first-time player stay on the patio?
 6. Does seeing themselves or their pet in the kart matter to them?
 7. Does it read as a game for adults?
+8. Armed: is being wrecked funny or infuriating? Does shooting feel like something you did?
 
 ## Sessions
 
@@ -42,6 +43,11 @@ About ten minutes each. Say only: *"This is an early game. Play it however you l
 | The peg | Who opens the plank, on which lap, and whether it was on purpose. What the other one says |
 | The plank | Who takes it. Who falls off. Whether they try again |
 | Each other | Talking during the race? Blocking, shoving, towing on purpose? |
+| Guns | Do they notice the brackets? Do they chase a rival to shoot it, or only shoot what happens to be ahead? If the guns fire themselves, does anyone say they did not feel in control? Does anyone go looking for a FIRE button |
+| Mines | Does anybody pick up a crate on purpose? Lay one on purpose, and where? Who drives over their own |
+| Wrecks | What they say when wrecked, and when they wreck the other. Laughing, swearing, or silence? How many before somebody stops enjoying it |
+| Armour | Does anybody take the long way for the repair strip? Does a low bar change how they drive |
+| Clean | Does anybody ask for a race without weapons, or switch to it |
 | Finish | Do they look at the results or at each other? Who speaks first and what do they say |
 | Results | Do they read times and gaps? Do they mention best lap? First button pressed |
 | Rematch | Unprompted? How many races before they stop, and who stops |
@@ -63,6 +69,8 @@ About ten minutes each. Say only: *"This is an early game. Play it however you l
 - If neither player drifts on purpose by the end of race two → the hint and the button are failing.
 - If nobody touches the peg in three races → the plank is not being read as a choice.
 - If a first-timer spends more of lap one on the grass than on the patio, on Gentle → handling is too fast or too twitchy for this audience (see D-020 for what was tried).
+- If being wrecked ends the fun for the person behind (they stop trying) → wrecks cost too much, or come too often (`COMBAT` in `combat.ts`; the numbers were set on stand-ins).
+- If nobody can say who wrecked them or how → the combat is not readable enough, whatever the effects look like.
 - If they play once and put it down → the core is not there yet, whatever they say.
 
 ## Record

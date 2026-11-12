@@ -7,3 +7,12 @@ backyard keen seed 3003: tick 3933 hash 2457981225 plank 3 order 2134
 backyard fierce seed 11: tick 3585 hash 1981207684 plank 2 order 4132
 backyard fierce seed 202: tick 3427 hash 2089674936 plank 0 order 2413
 backyard fierce seed 3003: tick 3488 hash 129180060 plank 0 order 1234
+backyard armed gentle seed 11: tick 4868 hash 3814186128 plank 1 order 2314 wrecks 2201
+backyard armed gentle seed 202: tick 5002 hash 1092418992 plank 2 order 2134 wrecks 2002
+backyard armed gentle seed 3003: tick 4870 hash 370811649 plank 0 order 1234 wrecks 1001
+backyard armed keen seed 11: tick 4295 hash 1149039294 plank 0 order 1243 wrecks 1111
+backyard armed keen seed 202: tick 4160 hash 2143722440 plank 2 order 1234 wrecks 0000
+backyard armed keen seed 3003: tick 4376 hash 2033853730 plank 0 order 1324 wrecks 0110
+backyard armed fierce seed 11: tick 3971 hash 4173674025 plank 2 order 4231 wrecks 2120
+backyard armed fierce seed 202: tick 3999 hash 524939729 plank 1 order 4213 wrecks 2101
+backyard armed fierce seed 3003: tick 4184 hash 1238945771 plank 0 order 2143 wrecks 1111

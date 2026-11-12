@@ -15,12 +15,18 @@ export interface Medal {
   ticks: number;
 }
 
-/** A track's medals, best first. The times live with the track (track.ts), in seconds. */
-export function medalsOf(track: { medals: { gold: number; silver: number; bronze: number } }): Medal[] {
+interface MedalTimes { gold: number; silver: number; bronze: number }
+
+/**
+ * A track's medals, best first. The times live with the track (track.ts), in seconds; an armed
+ * race has its own, slower set where the track gives one.
+ */
+export function medalsOf(track: { medals: MedalTimes; combatMedals?: MedalTimes }, combat = false): Medal[] {
+  const m = combat && track.combatMedals ? track.combatMedals : track.medals;
   return [
-    { id: 'gold', name: 'Gold', ticks: Math.round(track.medals.gold * 60) },
-    { id: 'silver', name: 'Silver', ticks: Math.round(track.medals.silver * 60) },
-    { id: 'bronze', name: 'Bronze', ticks: Math.round(track.medals.bronze * 60) },
+    { id: 'gold', name: 'Gold', ticks: Math.round(m.gold * 60) },
+    { id: 'silver', name: 'Silver', ticks: Math.round(m.silver * 60) },
+    { id: 'bronze', name: 'Bronze', ticks: Math.round(m.bronze * 60) },
   ];
 }
 
