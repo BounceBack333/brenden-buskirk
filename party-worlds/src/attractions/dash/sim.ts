@@ -101,6 +101,11 @@ export interface Kart {
   hitBy: number;
   hitTick: number;
   repairTick: number;
+  /** wrecks left before this kart is out for good (only counted when the race has lives) */
+  lives: number;
+  /** out of the race: wrecked for the last time */
+  out: boolean;
+  outTick: number;
 }
 
 export type RaceEvent =
@@ -128,8 +133,9 @@ export type RaceEvent =
   | { type: 'crate'; seat: number; index: number }
   | { type: 'repair'; seat: number; amount: number }
   | { type: 'ram'; seat: number; by: number; damage: number }
-  | { type: 'wreck'; seat: number; by: number }
-  | { type: 'respawn'; seat: number };
+  | { type: 'wreck'; seat: number; by: number; out: boolean }
+  | { type: 'respawn'; seat: number }
+  | { type: 'last_standing'; seat: number };
 
 export type RacePhase = 'countdown' | 'racing' | 'over';
 
@@ -156,6 +162,10 @@ export interface RaceState {
   mineSeq: number;
   /** the tick each of the track's crates is next available */
   crateReady: number[];
+  /** to the death: how many wrecks each kart had in it at the start (0 = a wreck always comes back) */
+  lives: number;
+  /** the seat that won by being the only kart left running, or -1 */
+  lastStanding: number;
   events: RaceEvent[];
 }
 
@@ -169,6 +179,8 @@ export interface RaceConfig {
   pace?: number[];
   /** armed karts (combat.ts); off when missing */
   combat?: boolean;
+  /** armed races only: wrecks before a kart is out for good; 0 or missing = no limit */
+  lives?: number;
 }
 
 export function trackOf(s: RaceState): Track {
@@ -194,6 +206,7 @@ export function createRace(config: RaceConfig = {}): RaceState {
   const track = trackById(config.track ?? DEFAULT_TRACK);
   const n = clamp(Math.floor(config.karts ?? 4), 1, track.grid.length);
   const karts: Kart[] = [];
+  const lives = config.combat === true ? clamp(Math.floor(config.lives ?? 0), 0, 9) : 0;
   for (let i = 0; i < n; i++) {
     const g = track.grid[i]!;
     karts.push({
@@ -205,6 +218,7 @@ export function createRace(config: RaceConfig = {}): RaceState {
       pace: clamp(config.pace?.[i] ?? 1, 0.5, 1),
       armor: COMBAT.armor, ammo: COMBAT.magazine, gunTicks: 0, idleTicks: 0, mines: 0, prevDrop: false,
       wreckTicks: 0, wrecks: 0, kills: 0, hitBy: -1, hitTick: 0, repairTick: -COMBAT.repairCooldownTicks,
+      lives, out: false, outTick: 0,
     });
   }
   return {
@@ -213,6 +227,7 @@ export function createRace(config: RaceConfig = {}): RaceState {
     karts, plankOpen: false, plankOpener: -1, firstFinishTick: 0, homeTick: 0,
     required: (config.required ?? []).filter((s) => s >= 0 && s < n),
     combat: config.combat === true, mines: [], mineSeq: 0, crateReady: (track.combat?.crates ?? []).map(() => 0),
+    lives, lastStanding: -1,
     events: [],
   };
 }
@@ -229,7 +244,8 @@ export function hashRace(s: RaceState): number {
   for (const k of s.karts) v.push(k.x, k.z, k.heading, k.vx, k.vz, k.y, k.charge, k.boostTicks, k.idx, k.lap, k.cpMask, k.place, k.finishTick);
   if (s.combat) {
     // (only for combat races, so a plain race hashes exactly as it always has)
-    for (const k of s.karts) v.push(k.armor, k.ammo, k.mines, k.wreckTicks, k.wrecks, k.kills);
+    for (const k of s.karts) v.push(k.armor, k.ammo, k.mines, k.wreckTicks, k.wrecks, k.kills, k.lives, k.out ? 1 : 0);
+    v.push(s.lastStanding);
     for (const m of s.mines) v.push(m.id, m.x, m.z, m.owner);
     for (const c of s.crateReady) v.push(c);
   }
@@ -294,14 +310,36 @@ export function stepRace(s: RaceState, inputs: readonly DriveInput[]): void {
   for (let i = 0; i < s.karts.length; i++) follow(s, track, i);
   rank(s);
 
-  // The race ends when everyone is home; or a short run-out after the people who matter are
-  // (so a rival half a second behind is given its time, not "still racing"); or a while after
-  // the winner, whoever is still out.
+  // To the death: if only one kart is still running and nobody has finished, it has won.
+  if (s.lives > 0 && s.lastStanding < 0 && s.firstFinishTick === 0) {
+    let running = -1;
+    let count = 0;
+    for (let i = 0; i < s.karts.length; i++) {
+      if (!s.karts[i]!.out) {
+        running = i;
+        count++;
+      }
+    }
+    if (count === 1 && s.karts.length > 1) {
+      const k = s.karts[running]!;
+      s.lastStanding = running;
+      k.finished = true;
+      k.finishTick = s.tick;
+      k.place = 1;
+      s.firstFinishTick = s.tick;
+      s.events.push({ type: 'last_standing', seat: running });
+      s.events.push({ type: 'finish', seat: running, place: 1 });
+    }
+  }
+
+  // The race ends when everyone is home (or out); or a short run-out after the people who
+  // matter are (so a rival half a second behind is given its time, not "still racing"); or a
+  // while after the winner, whoever is still out there.
   let done = true;
-  for (const k of s.karts) if (!k.finished) done = false;
+  for (const k of s.karts) if (!k.finished && !k.out) done = false;
   if (!done && s.required.length > 0) {
     let home = true;
-    for (const seat of s.required) if (!s.karts[seat]!.finished) home = false;
+    for (const seat of s.required) if (!s.karts[seat]!.finished && !s.karts[seat]!.out) home = false;
     if (home) {
       if (s.homeTick === 0) s.homeTick = s.tick;
       if (s.tick - s.homeTick >= RACE.runOutTicks) done = true;
@@ -460,7 +498,8 @@ function drive(s: RaceState, track: Track, seat: number, inp: DriveInput): void 
 /** A wreck: no driver input, it slides to a stop, and after a moment it is put back on the road. */
 function wrecked(s: RaceState, track: Track, seat: number): void {
   const k = s.karts[seat]!;
-  k.wreckTicks--;
+  // (a kart that is out stays a wreck: its clock does not run)
+  if (!k.out) k.wreckTicks--;
   if (k.wreckTicks === 0) {
     putBack(track, k);
     k.armor = COMBAT.armor;
@@ -561,6 +600,8 @@ function collideKarts(s: RaceState): void {
     for (let j = i + 1; j < n; j++) {
       const b = s.karts[j]!;
       if (a.blinkTicks > 0 || b.blinkTicks > 0) continue;
+      // a kart that is out burns where it stopped for a moment, then is no longer in the way
+      if ((a.out && s.tick - a.outTick > COMBAT.wreckTicks) || (b.out && s.tick - b.outTick > COMBAT.wreckTicks)) continue;
       const dy = a.y - b.y;
       if (dy > 0.7 || dy < -0.7) continue;
       const dx = b.x - a.x;
@@ -640,8 +681,8 @@ function follow(s: RaceState, track: Track, seat: number): void {
     s.events.push({ type: 'jump', seat });
   }
 
-  // progress and laps
-  if (!k.finished && best !== k.idx) {
+  // progress and laps (a kart that is out is not going anywhere, however far it slides)
+  if (!k.finished && !k.out && best !== k.idx) {
     const fwd = (best - k.idx + N) % N;
     if (fwd <= 70) {
       const c1 = Math.floor(N / 3);
@@ -753,6 +794,8 @@ function rank(s: RaceState): void {
       let ahead: boolean;
       if (a.finished && b.finished) ahead = b.finishTick < a.finishTick || (b.finishTick === a.finishTick && j < i);
       else if (a.finished !== b.finished) ahead = b.finished;
+      else if (a.out !== b.out) ahead = a.out; // anything still running is ahead of anything that is out
+      else if (a.out) ahead = b.outTick > a.outTick || (b.outTick === a.outTick && j < i); // out later = further up
       else {
         const pa = progressOf(s, a);
         const pb = progressOf(s, b);

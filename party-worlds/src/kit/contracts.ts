@@ -242,7 +242,7 @@ export type SfxName =
   | 'boost' | 'boost_big' | 'charge' | 'bump' | 'kart_bump' | 'land' | 'lap' | 'final_lap' | 'plank'
   | 'gun' | 'gun_hit' | 'gun_empty' | 'explosion' | 'mine_drop' | 'crate' | 'repair' | 'weapons_hot' | 'ram' | 'respawn';
 
-export type MusicMode = 'off' | 'menu' | 'play' | 'tense' | 'win' | 'race';
+export type MusicMode = 'off' | 'menu' | 'play' | 'tense' | 'win' | 'race' | 'combat';
 
 export interface SfxOptions {
   /** 0..1 loudness/brightness scaling. Default 1. */

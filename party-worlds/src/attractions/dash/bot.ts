@@ -48,7 +48,7 @@ export class Rival {
     o.fire = false;
     o.drop = false;
     const k = s.karts[seat];
-    if (!k || s.phase === 'over') return o;
+    if (!k || s.phase === 'over' || k.out) return o;
     if (s.phase === 'countdown') {
       o.drift = s.phaseTick >= this.startPress;
       return o;

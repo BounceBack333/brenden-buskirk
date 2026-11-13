@@ -32,6 +32,11 @@ const CHORD_ROOT = [45, 41, 48, 43];
 const CHORD_ARP = [[57, 60, 64, 69], [53, 57, 60, 65], [55, 60, 64, 67], [55, 59, 62, 67]];
 const ARP_ORDER = [0, 1, 2, 3, 2, 1, 2, 3];
 const LEAD = [76, R, 79, R, 81, R, 79, 76, 77, R, 76, R, 72, R, R, R, 79, R, 76, R, 72, R, 74, 76, 74, R, 71, R, 67, R, R, R];
+// An armed race gets a harder score: faster, in A minor and staying there (Am – Am – F – G), a
+// bass that drives every eighth, fifths stabbed on the off-beats, and a minor-pentatonic lead.
+const STEP_COMBAT = 60 / 138 / 2;
+const COMBAT_ROOT = [45, 45, 41, 43];
+const COMBAT_LEAD = [69, R, 72, 69, R, 76, 74, 72, 69, R, 67, 69, R, R, 64, 67, 65, R, 69, 72, R, 77, 76, 72, 67, R, 71, 74, R, 79, 77, 74];
 
 export function createAudioKit(opts: AudioKitOptions = {}): AudioKit {
   const eng = new Engine(opts.context ?? null);
@@ -138,6 +143,29 @@ export function createAudioKit(opts: AudioKitOptions = {}): AudioKit {
       eng.tone({ type: 'square', f0: midi(CHORD_ARP[bar]![ARP_ORDER[j]!]! + (lift ? 12 : 0)), dur: 0.13, gain: 0.03, at, attack: 0.003, lowpass: 2600, pan: j % 2 ? 0.35 : -0.35, bus });
       const l = LEAD[i % LEAD.length]!;
       if (lift && l !== R) eng.tone({ type: 'sawtooth', f0: midi(l), dur: 0.26, gain: 0.04, at, attack: 0.01, lowpass: 3200, vibHz: 5.5, vibDepth: 5, bus });
+    } else if (mode === 'combat') {
+      const bar = (i >> 3) % 4;
+      const j = i % 8;
+      const lift = (i >> 5) % 2;
+      const root = COMBAT_ROOT[bar]!;
+      // drums: a heavier kick on every beat, a crack on two and four, hats between
+      if (j % 2 === 0) {
+        eng.tone({ f0: 150, f1: 40, dur: 0.16, gain: 0.3, at, attack: 0.001, bus });
+        eng.burst({ dur: 0.012, gain: 0.05, filter: 'highpass', f0: 3000, at, bus });
+      } else eng.burst({ dur: 0.025, gain: 0.04, filter: 'highpass', f0: 8000, at, bus });
+      if (j === 2 || j === 6) {
+        eng.burst({ dur: 0.13, gain: 0.14, filter: 'bandpass', f0: 1700, q: 0.7, at, attack: 0.001, bus });
+        eng.tone({ type: 'triangle', f0: 190, f1: 140, dur: 0.08, gain: 0.08, at, attack: 0.001, bus });
+      }
+      // the bass never lets up: the root on every eighth, jumping the octave before each snare
+      eng.tone({ type: 'sawtooth', f0: midi(root - 12 + (j === 1 || j === 5 ? 12 : 0)), dur: 0.15, gain: 0.1, at, attack: 0.003, lowpass: 640, bus });
+      // fifths, stabbed
+      if (j === 0 || j === 3 || j === 6) {
+        eng.tone({ type: 'sawtooth', f0: midi(root + 12), dur: 0.14, gain: 0.03, at, attack: 0.002, lowpass: 1900, pan: -0.3, bus });
+        eng.tone({ type: 'sawtooth', f0: midi(root + 19), dur: 0.14, gain: 0.026, at, attack: 0.002, lowpass: 1900, pan: 0.3, bus });
+      }
+      const l = COMBAT_LEAD[i % COMBAT_LEAD.length]!;
+      if (lift && l !== R) eng.tone({ type: 'square', f0: midi(l), dur: 0.2, gain: 0.034, at, attack: 0.006, lowpass: 2800, vibHz: 6, vibDepth: 4, bus });
     } else if (mode === 'tense') {
       // a ticking ostinato
       eng.pluck(midi(k % 2 === 0 ? 79 : 76), at, 0.18, 0.06, 0.9, 0, bus);
@@ -153,7 +181,7 @@ export function createAudioKit(opts: AudioKitOptions = {}): AudioKit {
     while (nextTime < horizon && guard++ < 400) {
       scheduleStep(step, nextTime);
       step++;
-      nextTime += mode === 'race' ? STEP_RACE : STEP;
+      nextTime += mode === 'race' ? STEP_RACE : mode === 'combat' ? STEP_COMBAT : STEP;
     }
   }
 

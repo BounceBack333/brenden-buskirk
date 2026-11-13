@@ -108,13 +108,17 @@ export class RaceView {
   /** told about things worth a banner: (local view index or -1 for all, headline, detail) */
   onBanner: ((view: number, l1: string, l2: string) => void) | null = null;
   onBuzz: ((ms: number | number[]) => void) | null = null;
-  /** told who wrecked whom (seat, and the seat credited or -1), for the HUD's running list */
-  onWreck: ((seat: number, by: number) => void) | null = null;
+  /** told who wrecked whom (seat, the seat credited or -1, and whether that put it out for good), for the HUD's running list */
+  onWreck: ((seat: number, by: number, out: boolean) => void) | null = null;
 
   private world: RaceWorld;
   private fx: CombatFx;
+  private sky!: THREE.HemisphereLight;
+  private neon!: THREE.DirectionalLight;
   private armed = false;
   private smokeTurn = 0;
+  /** karts that are out and whose burnt husk has already been cleared away */
+  private cleared = [false, false, false, false];
   private karts: KartModel[] = [];
   private rigs: CharacterRig[] = [];
   private specs: CharacterSpec[];
@@ -147,10 +151,12 @@ export class RaceView {
     scene.environment = env;
     scene.environmentIntensity = 0.35;
     // dusk rather than pitch dark: everything you race on must read on a phone outdoors
-    scene.add(new THREE.HemisphereLight('#8f9cff', '#2a3040', 1.05));
+    this.sky = new THREE.HemisphereLight('#8f9cff', '#2a3040', 1.05);
+    scene.add(this.sky);
     const pink = new THREE.DirectionalLight('#ff4f9a', 0.55); // neon from the house side
     pink.position.set(-60, 30, -40);
     scene.add(pink);
+    this.neon = pink;
     const lamp = new THREE.DirectionalLight('#ffe9c8', 1.55); // the work lamp, low from the east
     lamp.position.set(70, 34, 20);
     scene.add(lamp);
@@ -235,6 +241,13 @@ export class RaceView {
   private arm(on: boolean): void {
     this.armed = on;
     this.fx.setArmed(on);
+    // armed, the yard is lit harder: the neon goes red, the sky cools and the haze closes in
+    this.neon.color.set(on ? '#ff3a2e' : '#ff4f9a');
+    this.neon.intensity = on ? 0.85 : 0.55;
+    this.sky.color.set(on ? '#7f8ae6' : '#8f9cff');
+    this.sky.intensity = on ? 0.95 : 1.05;
+    (this.scene.fog as THREE.FogExp2).color.set(on ? '#261a3a' : '#232a55');
+    (this.scene.fog as THREE.FogExp2).density = on ? 0.0098 : 0.0085;
     for (const kart of this.karts) {
       kart.setArmed(on);
       kart.setWrecked(false);
@@ -277,6 +290,8 @@ export class RaceView {
     this.names = names;
     this.world.resetPlank();
     this.arm(s.combat);
+    this.fx.clearScorches();
+    this.cleared = [false, false, false, false];
     this.cams = this.humans.map((seat) => ({
       camera: new THREE.PerspectiveCamera(64, 1, 0.2, 500), seat, yaw: s.karts[seat]!.heading, fov: 64, shake: 0, finishT: 0,
     }));
@@ -288,7 +303,7 @@ export class RaceView {
       this.rigs[i]!.setExpression('determined');
       this.karts[i]!.root.visible = true;
     }
-    this.audio.music('race');
+    this.audio.music(s.combat ? 'combat' : 'race');
   }
 
   beforeTick(s: RaceState): void {
@@ -437,6 +452,7 @@ export class RaceView {
         break;
       case 'mine_hit': {
         this.boom(e.x, e.z, false);
+        this.fx.scorch(e.x, e.z, 3.4);
         const d = this.near(e.x, e.z);
         if (d < 60) a.play('explosion', { intensity: local(e.seat) ? 1 : Math.max(0.15, 0.7 - d / 60) });
         if (local(e.seat)) {
@@ -474,22 +490,28 @@ export class RaceView {
       case 'wreck': {
         const k = s.karts[e.seat]!;
         this.boom(k.x, k.z, true);
+        this.fx.scorch(k.x, k.z, 4.6);
         this.karts[e.seat]!.setWrecked(true);
         this.rigs[e.seat]!.setExpression('dizzy');
         const d = this.near(k.x, k.z);
-        if (d < 80) a.play('explosion', { intensity: local(e.seat) ? 1 : Math.max(0.25, 0.85 - d / 80), pitch: 0.8 });
-        this.onWreck?.(e.seat, e.by);
+        if (d < 80) a.play('explosion', { intensity: local(e.seat) ? 1 : Math.max(0.25, 0.85 - d / 80), pitch: e.out ? 0.65 : 0.8 });
+        this.onWreck?.(e.seat, e.by, e.out);
+        const who = e.by >= 0 ? this.names[e.by] ?? 'Somebody' : '';
         if (local(e.seat)) {
           this.cam(e.seat).shake = 1.2;
-          this.onBuzz?.([60, 40, 80]);
-          this.onBanner?.(this.viewOf(e.seat), 'Wrecked!', e.by >= 0 ? `${this.names[e.by] ?? 'Somebody'} got you` : 'Nobody to blame but you');
+          this.onBuzz?.(e.out ? [80, 40, 80, 40, 120] : [60, 40, 80]);
+          if (e.out) this.onBanner?.(this.viewOf(e.seat), 'Out!', who ? `${who} finished you off` : 'That was your last life');
+          else this.onBanner?.(this.viewOf(e.seat), 'Wrecked!', who ? `${who} got you${s.lives > 0 ? ` · ${k.lives === 1 ? 'last life' : `${k.lives} lives left`}` : ''}` : 'Nobody to blame but you');
         }
         if (e.by >= 0 && local(e.by)) {
           a.play('star');
-          this.onBanner?.(this.viewOf(e.by), 'Wreck!', `You took out ${this.names[e.seat] ?? 'somebody'}`);
+          this.onBanner?.(this.viewOf(e.by), e.out ? 'Kill!' : 'Wreck!', `${e.out ? 'You put' : 'You took out'} ${this.names[e.seat] ?? 'somebody'}${e.out ? ' out for good' : ''} · +${COMBAT.spoils} armour`);
         }
         break;
       }
+      case 'last_standing':
+        this.onBanner?.(-1, 'Last one running', `${this.names[e.seat] ?? 'Somebody'} wins: nobody else is left`);
+        break;
       case 'respawn':
         this.karts[e.seat]!.setWrecked(false);
         this.rigs[e.seat]!.setExpression('determined');
@@ -670,6 +692,15 @@ export class RaceView {
       kart.setSteer(k.steer);
       kart.setBoost(boost);
       kart.setGhost(k.blinkTicks > 0);
+      // a kart that is out burns where it stopped for a moment, then only the scorch mark is left
+      if (k.out && s.tick - k.outTick > COMBAT.wreckTicks) {
+        kart.root.visible = false;
+        if (!this.cleared[i]) {
+          this.cleared[i] = true;
+          this.fx.scorch(q.x, q.z, 5.4);
+          this.burst(q.x, 0.4, q.z, 8, '#4b4b57', 2.5, 0.4);
+        }
+      }
       // the tub leans out of a corner and squats under a boost
       // (a wreck sits heeled over on its springs)
       const lean = k.wreckTicks > 0 ? 0.3 : k.drifting ? k.driftDir * 0.16 : k.steer * 0.07 * Math.min(1, vf / 10);
@@ -703,7 +734,7 @@ export class RaceView {
       rig.update(dt, ctx);
 
       // a battered kart smokes; a wreck pours it out
-      if (s.combat && emit && !k.finished && (k.wreckTicks > 0 || (k.armor < 40 && (this.smokeTurn + i) % (k.armor < 20 ? 2 : 4) === 0))) {
+      if (s.combat && emit && !k.finished && !this.cleared[i] && (k.wreckTicks > 0 || (k.armor < 40 && (this.smokeTurn + i) % (k.armor < 20 ? 2 : 4) === 0))) {
         kart.bonnet(this.v);
         const heavy = k.wreckTicks > 0;
         // (kept small: the driver of a wreck is looking straight through this)
@@ -781,7 +812,8 @@ export class RaceView {
       height = 1.5 + ease * 0.5;
       ahead = ease * 2.4;
       c.yaw = q.h;
-    } else if (k.finished) {
+    } else if (k.finished || k.out) {
+      // (out of the race: the camera comes round to look at what is left)
       c.finishT += dt;
       const e = Math.min(1, c.finishT / 1.4);
       const ease = e * e * (3 - 2 * e);

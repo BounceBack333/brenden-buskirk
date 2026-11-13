@@ -14,7 +14,7 @@ Short list. Each item says what it blocks and who can unblock it.
 | 5 | **Native iOS route:** Capacitor wrapper of this build, or an engine port | App Store work | Needs a Mac with Xcode and an Apple developer account. Neither exists in this environment |
 | 6 | **Photo-to-character:** which processor, what consent text, what budget | "That is exactly me" | Research note in `research/avatar-pipeline.md`; a direct read of vendor documentation needs these hosts allowed: developers.tripo3d.ai, docs.meshy.ai, developer.apple.com, www.ftc.gov |
 | 7 | **Authorised reference for Bailey** | A real Bailey driver | Until then the cast uses invented dogs only |
-| 8b | **Is this the right kind of fight?** | Everything further on weapons | A first armed pass exists (D-025): guns, mines, armour, wrecks that cost a few seconds, nobody eliminated. Your reaction is the input: too tame, too much, should a wreck put you out of the race, should there be more weapons, should the yard look meaner |
+| 8b | **Is this the right kind of fight?** | Everything further on weapons | Two passes exist (D-025, D-026): guns, mines, armour, and now two wrecks put you out for good, with the yard dressed as an arena. Your reaction is the input: too tame, too much, should it be one life, should there be more weapons, does it need its own track instead of the back garden |
 | 8 | **Is this the right kind of grown-up?** | Everything further on the cast and the look | A first adult pass exists (D-022). Your reaction to it is the input: too plain, too silly, wrong style, who is missing |
 
 ## Needs equipment or people
@@ -31,7 +31,8 @@ Short list. Each item says what it blocks and who can unblock it.
 - Rival levels were tuned against scripted stand-in drivers, not people. So were the combat numbers (damage, magazine, mines, how long a wreck lasts).
 - Being in front means being shot at. Mines are the answer the leader has; whether that feels fair is unknown.
 - Two people on one keyboard have five keys each in an armed race. Controllers or a touch screen are kinder.
-- The yard is still a back garden. The karts are armed; the scenery is not yet any meaner.
+- The yard is still a back garden, re-dressed when armed (fires, chevrons, harder light). A circuit built for fighting would be a second track.
+- Two lives was chosen from simulated races. With real people it may want to be one or three.
 - Split screen draws the scene twice; nothing has been done to make the second view cheaper.
 - Ties on the line are broken by seat number.
 - The race is local only. Courier's online rooms are intact but nothing was added to them.

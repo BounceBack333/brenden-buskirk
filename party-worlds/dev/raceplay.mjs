@@ -65,8 +65,9 @@ await shot('home');
 await click('[data-act="play"]');
 await page.waitForTimeout(350);
 await shot('play-sheet');
-// --clean: the plain race, no weapons (the setting is remembered, so say which every time)
-await click(`[data-weapons="${flags.has('--clean') ? 0 : 1}"]`);
+// --clean: the plain race, no weapons. --armed: weapons, and a wreck always comes back.
+// Otherwise to the death. (The setting is remembered, so say which every time.)
+await click(`[data-rules="${flags.has('--clean') ? 'clean' : flags.has('--armed') ? 'armed' : 'death'}"]`);
 await click(`[data-race="${mode}"]`);
 await page.waitForTimeout(250);
 
@@ -96,7 +97,7 @@ const read = () => page.evaluate(() => {
     karts: s.karts.map((k) => ({
       x: k.x, z: k.z, h: k.heading, vx: k.vx, vz: k.vz, idx: k.idx, lap: k.lap, drifting: k.drifting, driftDir: k.driftDir,
       steer: k.steer, charge: k.charge, boost: k.boostTicks, surface: k.surface, finished: k.finished, place: k.place, y: k.y, stun: k.stunTicks,
-      armor: k.armor, ammo: k.ammo, mines: k.mines, wreck: k.wreckTicks, wrecks: k.wrecks, kills: k.kills,
+      armor: k.armor, ammo: k.ammo, mines: k.mines, wreck: k.wreckTicks, wrecks: k.wrecks, kills: k.kills, out: k.out,
     })),
   };
 });
@@ -237,7 +238,7 @@ while (Date.now() - t0 < 1800000) { // half an hour: a three-lap race at full qu
   let allDone = true;
   for (let v = 0; v < st.humans.length; v++) {
     const cmd = decide(st, v);
-    if (cmd.k.finished) {
+    if (cmd.k.finished || cmd.k.out) {
       await apply(v, { steer: 0, drift: false });
       continue;
     }
@@ -268,6 +269,7 @@ while (Date.now() - t0 < 1800000) { // half an hour: a three-lap race at full qu
   await once('mine-on-road', st.combat && st.minesOut > 0);
   await once('battered', st.combat && me.armor < 45 && me.wreck === 0);
   await once('wrecked', st.combat && me.wreck > 0);
+  await once('out', st.combat && me.out);
   await once('finished', me.finished);
   if (allDone) await page.waitForTimeout(60);
   else await page.waitForTimeout(12);
@@ -281,7 +283,7 @@ await page.waitForTimeout(700);
 await shot('results');
 const results = await page.evaluate(() => {
   const s = window.__pw.race?.state;
-  return s ? { phase: s.phase, tick: s.tick, plankOpen: s.plankOpen, plankOpener: s.plankOpener, combat: s.combat, karts: s.karts.map((k) => ({ place: k.place, finished: k.finished, finishTick: k.finishTick, best: k.bestLapTicks, lap: k.lap, wrecks: k.wrecks, kills: k.kills })) } : null;
+  return s ? { phase: s.phase, tick: s.tick, plankOpen: s.plankOpen, plankOpener: s.plankOpener, combat: s.combat, lives: s.lives, lastStanding: s.lastStanding, karts: s.karts.map((k) => ({ place: k.place, finished: k.finished, finishTick: k.finishTick, best: k.bestLapTicks, lap: k.lap, wrecks: k.wrecks, kills: k.kills, out: k.out })) } : null;
 });
 log.results = results;
 log.text = await page.evaluate(() => document.querySelector('#ui')?.innerText ?? '');
@@ -313,10 +315,11 @@ const fpsSorted = [...log.fps].sort((a, b) => a - b);
 console.log(JSON.stringify({
   mode, touch: touchMode, pad: padMode, portrait, slow,
   bestLapSeconds: results?.karts.map((k) => +(k.best / 60).toFixed(1)),
-  finished: results?.karts.map((k) => `${k.place}${k.finished ? '' : '*'}`).join(','),
+  finished: results?.karts.map((k) => `${k.place}${k.out ? 'x' : k.finished ? '' : '*'}`).join(','),
   raceSeconds: results ? +(results.tick / 60).toFixed(1) : null,
   plankOpen: results?.plankOpen,
   armed: results?.combat ?? false,
+  lives: results?.lives ?? 0,
   wrecked: results?.karts.map((k) => k.wrecks).join(''),
   wrecksCaused: results?.karts.map((k) => k.kills).join(''),
   medianFps: fpsSorted[Math.floor(fpsSorted.length / 2)] ?? null,

@@ -2,6 +2,21 @@
 
 Newest first. Each entry: what was decided, why, what it costs, and what would change it.
 
+## D-026 · To the death (2026-11-13)
+The founder was asked which way to push the armed race (harsher wrecks, more weapons, a meaner track) and said to continue. So: further in all three directions, as far as could be done without guessing at new content.
+**What changed.**
+- **To the death** is now the default way to race, beside Armed and Clean on the play sheet. Each kart has two wrecks in it. The second puts it out for good: it burns where it stopped, then is gone, leaving a scorch mark. If only one kart is left running before anyone has taken the flag, it has won there and then. Karts that are out rank behind everything still running, the later out the higher. Alone, the race is called 2.5 s after you go out; you are not left watching.
+- **The spoils.** Wrecking a rival gives back 25 armour and a full magazine. Fighting is now a way to stay alive, not only a way to slow somebody down.
+- **The yard remembers.** Every mine and every wreck leaves a burn on the road for the rest of the race.
+- **A meaner yard when armed.** Fires burning in old tin cans down the middle of the lawn and behind the hairpin; red and white chevron boards round the outside of the hairpin; redder, closer light. All of it is where no kart can go, so none of it had to be made solid and the circuit is unchanged.
+- **A harder score** for armed races: faster (138 against 126), staying in A minor, a bass that drives every eighth.
+**Why two lives.** `dev/combatprobe.ts`, thirty races a level. With three lives no kart was put out in ninety races but one: the rule would have been decoration. With one life about two karts went out every race and the stand-in was out of more than half of them. With two, 0.3, 0.6 and 1.1 karts went out per race at Gentle, Keen and Fierce and the stand-in was out of 2, 9 and 9 races in thirty: a real risk, and most races still settled at the flag. Simulated; nobody has played it.
+**The plain race** is still exactly the plain race: its nine fingerprints have not moved. The armed ones changed (the spoils) and nine more were recorded for races to the death.
+**Kept from D-025.** Cars against cars only; nobody is hurt (a driver who is out sits in the smoke looking dizzy); every kart has the same kit and the same number of lives.
+**Cost.** Going out early ends your race, which is the point and may also be the thing that makes somebody put the phone down. Armed (a wreck always comes back) is one tap away for that reason. The leader's rear is still the most dangerous place on the track.
+**Not done.** No new weapons: a second gun or a rocket means another button, and nobody has yet said the first two are too few. No new track: the yard was re-dressed, not replaced.
+**What would change it.** People. Whether being put out makes two friends shout at each other or makes one of them stop playing is the thing to watch (`PLAYTEST.md`).
+
 ## D-025 · Armed: more Death Race than Mario Kart (2026-11-12)
 The founder, on the racing build: "let's make it more like death race than Mario kart".
 **Read as:** a combat racer. The race is still what you win, but the karts are armed and can be wrecked. The rules are our own; nothing is taken from any film or game beyond the genre.

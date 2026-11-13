@@ -9,8 +9,8 @@ import { KART, RACE, TRACK_IDS, trackById } from '../src/attractions/dash/track'
  * The combat layer: guns, mines, armour, wrecks. Karts are placed by hand on the home straight
  * (which runs east along z = 30) with the weapons already live, so each rule is tested alone.
  */
-function arena(positions: [number, number, number?][], combat = true): RaceState {
-  const s = createRace({ karts: positions.length, combat });
+function arena(positions: [number, number, number?][], combat = true, lives = 0): RaceState {
+  const s = createRace({ karts: positions.length, combat, lives });
   s.phase = 'racing';
   s.phaseTick = COMBAT.safeTicks + 1;
   s.tick = RACE.countdownTicks + COMBAT.safeTicks + 1;
@@ -356,6 +356,164 @@ describe('wrecks', () => {
   });
 });
 
+describe('the spoils', () => {
+  it('whoever wrecks a kart takes some armour and a full magazine off it', () => {
+    const s = arena([[0, 30], [10, 30]]);
+    s.karts[0]!.armor = 40;
+    s.karts[0]!.ammo = 3;
+    s.karts[1]!.armor = COMBAT.damage;
+    run(s, 1, { 0: { fire: true } });
+    expect(s.karts[1]!.wreckTicks).toBeGreaterThan(0);
+    expect(s.karts[0]!.armor).toBe(40 + COMBAT.spoils);
+    expect(s.karts[0]!.ammo).toBe(COMBAT.magazine);
+  });
+  it('never more than full, and nothing for a wreck nobody caused', () => {
+    const s = arena([[0, 30], [10, 30]]);
+    s.karts[1]!.armor = COMBAT.damage;
+    run(s, 1, { 0: { fire: true } });
+    expect(s.karts[0]!.armor).toBe(COMBAT.armor);
+    const alone = arena([[0, 30], [-60, -30]]);
+    alone.karts[0]!.armor = 5;
+    alone.karts[1]!.armor = 50;
+    alone.mines.push({ id: 1, owner: 0, x: 2, z: 30, armTick: 0, dieTick: alone.tick + 9999 });
+    run(alone, 30);
+    expect(alone.karts[0]!.wrecks).toBe(1);
+    expect(alone.karts[1]!.armor).toBe(50);
+  });
+});
+
+describe('to the death', () => {
+  /** kart 0 shoots kart 1 until it is wrecked; returns what happened */
+  const finishOff = (s: RaceState): RaceEvent[] => {
+    s.karts[1]!.armor = COMBAT.damage;
+    s.karts[0]!.x = s.karts[1]!.x - 9;
+    s.karts[0]!.z = s.karts[1]!.z;
+    s.karts[0]!.heading = 0;
+    s.karts[0]!.ammo = COMBAT.magazine;
+    s.karts[0]!.gunTicks = 0;
+    return run(s, 1, { 0: { fire: true } });
+  };
+
+  it('is off unless asked for, and means nothing in a plain race', () => {
+    expect(createRace({ karts: 2, combat: true }).lives).toBe(0);
+    expect(createRace({ karts: 2, combat: false, lives: 2 }).lives).toBe(0);
+    const s = createRace({ karts: 2, combat: true, lives: 2 });
+    expect(s.lives).toBe(2);
+    expect(s.karts.every((k) => k.lives === 2 && !k.out)).toBe(true);
+  });
+
+  it('without lives a kart comes back however often it is wrecked', () => {
+    const s = arena([[0, 30], [10, 30], [-60, -30]]);
+    for (let n = 0; n < 4; n++) {
+      finishOff(s);
+      run(s, COMBAT.wreckTicks + COMBAT.shieldTicks + 5);
+      expect(s.karts[1]!.out).toBe(false);
+      expect(s.karts[1]!.wreckTicks).toBe(0);
+    }
+    expect(s.karts[1]!.wrecks).toBe(4);
+  });
+
+  it('the last life puts a kart out for good', () => {
+    const s = arena([[0, 30], [10, 30], [-60, -30]], true, 2);
+    const first = finishOff(s);
+    expect(of(first, 'wreck')[0]).toMatchObject({ seat: 1, by: 0, out: false });
+    expect(s.karts[1]!.lives).toBe(1);
+    run(s, COMBAT.wreckTicks + COMBAT.shieldTicks + 5);
+    expect(s.karts[1]!.wreckTicks).toBe(0); // back in it
+    const second = finishOff(s);
+    expect(of(second, 'wreck')[0]).toMatchObject({ seat: 1, by: 0, out: true });
+    const k = s.karts[1]!;
+    expect(k.out).toBe(true);
+    expect(k.lives).toBe(0);
+    // it does not come back, cannot be hurt, does not shoot, and is ranked behind everything running
+    const later = run(s, COMBAT.wreckTicks * 3, { 1: { fire: true, steer: 127 } });
+    expect(of(later, 'respawn').length).toBe(0);
+    expect(k.out).toBe(true);
+    expect(canBeHit(k)).toBe(false);
+    expect(of(later, 'shot').filter((e) => e.seat === 1).length).toBe(0);
+    expect(k.place).toBe(3);
+    expect(Math.hypot(k.vx, k.vz)).toBeLessThan(0.5);
+    expect(k.finished).toBe(false);
+  });
+
+  it('a kart that is out stops being in the way once it has burnt down', () => {
+    const s = arena([[0, 30], [10, 30], [-60, -30]], true, 1);
+    finishOff(s);
+    expect(s.karts[1]!.out).toBe(true);
+    run(s, COMBAT.wreckTicks + 5);
+    const husk = s.karts[1]!;
+    const k = s.karts[0]!;
+    k.x = husk.x - 3;
+    k.z = husk.z;
+    k.heading = 0;
+    k.vx = 14;
+    k.vz = 0;
+    const ev = run(s, 40);
+    expect(of(ev, 'kart_bump').length).toBe(0);
+    expect(k.x).toBeGreaterThan(husk.x + 1); // drove straight through where it was
+  });
+
+  it('whoever is put out later is ranked higher', () => {
+    const s = arena([[0, 30], [10, 30], [20, 34], [-60, -30]], true, 1);
+    finishOff(s);
+    run(s, 30);
+    // now the third kart goes, to a mine nobody is credited for
+    s.karts[2]!.armor = 1;
+    s.mines.push({ id: 7, owner: 2, x: s.karts[2]!.x + 1, z: s.karts[2]!.z, armTick: 0, dieTick: s.tick + 9999 });
+    run(s, 60);
+    expect(s.karts[1]!.out && s.karts[2]!.out).toBe(true);
+    expect(s.karts[2]!.place).toBeLessThan(s.karts[1]!.place);
+    expect(Math.max(s.karts[0]!.place, s.karts[3]!.place)).toBe(2);
+  });
+
+  it('the last kart running has won, there and then', () => {
+    const s = arena([[0, 30], [10, 30]], true, 1);
+    const ev = finishOff(s);
+    expect(of(ev, 'last_standing')[0]).toMatchObject({ seat: 0 });
+    expect(of(ev, 'finish')[0]).toMatchObject({ seat: 0, place: 1 });
+    expect(s.lastStanding).toBe(0);
+    expect(s.karts[0]!.finished).toBe(true);
+    expect(s.karts[0]!.place).toBe(1);
+    expect(s.karts[0]!.lap).toBeLessThanOrEqual(s.laps); // it did not have to reach the flag
+    expect(s.phase).toBe('over');
+  });
+
+  it('but not once somebody has already taken the flag', () => {
+    const s = arena([[0, 30], [10, 30], [-60, -30]], true, 1);
+    const home = s.karts[2]!;
+    home.finished = true;
+    home.finishTick = s.tick - 10;
+    home.lap = s.laps + 1;
+    s.firstFinishTick = home.finishTick;
+    finishOff(s);
+    expect(s.karts[1]!.out).toBe(true);
+    expect(s.lastStanding).toBe(-1);
+    expect(s.karts[0]!.finished).toBe(false);
+    run(s, 2);
+    expect(home.place).toBe(1);
+    expect(s.karts[0]!.place).toBe(2);
+    expect(s.karts[1]!.place).toBe(3);
+  });
+
+  it('a race does not wait for a person who is out', () => {
+    const s = createRace({ karts: 3, combat: true, lives: 1, required: [1] });
+    s.phase = 'racing';
+    s.phaseTick = COMBAT.safeTicks + 1;
+    s.tick = RACE.countdownTicks + COMBAT.safeTicks + 1;
+    [[0, 30], [10, 30], [-60, -30]].forEach(([x, z], i) => {
+      s.karts[i]!.x = x!;
+      s.karts[i]!.z = z!;
+      s.karts[i]!.heading = 0;
+      s.karts[i]!.lap = 1;
+    });
+    finishOff(s);
+    expect(s.karts[1]!.out).toBe(true);
+    expect(s.phase).toBe('racing'); // the run-out
+    run(s, RACE.runOutTicks + 2);
+    expect(s.phase).toBe('over');
+  });
+});
+
 describe('a whole combat race', () => {
   function botRace(seed: number): { s: RaceState; events: RaceEvent[] } {
     const s = createRace({ karts: 4, combat: true });
@@ -390,6 +548,33 @@ describe('a whole combat race', () => {
       }
       expect(s.mines.length).toBeLessThanOrEqual(COMBAT.maxMines);
     }
+  });
+
+  it('to the death, still ends and still adds up', () => {
+    let out = 0;
+    for (const seed of [5, 61, 909, 4242]) {
+      const s = createRace({ karts: 4, combat: true, lives: 1 });
+      const bots = [0.95, 0.75, 0.55, 0.35].map((skill, i) => new Rival({ seed: seed + i, skill }));
+      for (let t = 0; t < 60 * 240 && s.phase !== 'over'; t++) stepRace(s, bots.map((b, i) => ({ ...b.think(s, i) })));
+      expect(s.phase).toBe('over');
+      const gone = s.karts.filter((k) => k.out);
+      out += gone.length;
+      for (const k of gone) {
+        expect(k.finished).toBe(false);
+        expect(k.wrecks).toBe(1);
+        expect(k.lives).toBe(0);
+      }
+      for (const k of s.karts) if (!k.out) expect(k.wrecks).toBe(0);
+      // places are 1..4 with no repeats, and nobody who is out is ahead of anybody who is not
+      expect([...s.karts.map((k) => k.place)].sort()).toEqual([1, 2, 3, 4]);
+      const worstRunning = Math.max(0, ...s.karts.filter((k) => !k.out).map((k) => k.place));
+      for (const k of gone) expect(k.place).toBeGreaterThan(worstRunning);
+      if (s.lastStanding >= 0) {
+        expect(gone.length).toBe(3);
+        expect(s.karts[s.lastStanding]!.place).toBe(1);
+      }
+    }
+    expect(out).toBeGreaterThan(0); // with one life each, somebody goes
   });
 
   it('is the same race every time, and a copy is its own race', () => {

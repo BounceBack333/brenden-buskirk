@@ -2,7 +2,7 @@
 
 **Our people and pets, inside impossible little worlds.**
 
-A combat racing game for adults: you and your friends (or a bear in a jacket, a frog in a cowboy hat, your dog) as armed tin-toy racers in places hidden in ordinary objects. The playable prototype is **Backyard Dash**: three laps of a patio at night. Karts drive themselves, you steer; hold DRIFT through a corner and let go for a boost; shoot whoever is in front of you and leave mines for whoever is behind; take the road past the repair strip or risk the plank across the flowerbed, once somebody has knocked the peg out from under it. Run out of armour and you are a wreck for a few seconds.
+A combat racing game for adults: you and your friends (or a bear in a jacket, a frog in a cowboy hat, your dog) as armed tin-toy racers in places hidden in ordinary objects. The playable prototype is **Backyard Dash**: three laps of a patio at night. Karts drive themselves, you steer; hold DRIFT through a corner and let go for a boost; shoot whoever is in front of you and leave mines for whoever is behind; take the road past the repair strip or risk the plank across the flowerbed, once somebody has knocked the peg out from under it. Run out of armour and you are a wreck; be wrecked twice and you are out for good. The last kart running wins.
 
 This is a **web build** (TypeScript + Three.js). It is not a native iOS app. Nobody has play-tested it yet. See `docs/PROGRESS.md` for exactly what is and is not proven.
 
@@ -22,11 +22,11 @@ Every build has a label (version, commit, day built) on the last line of Setting
 | Command | What it does |
 |---|---|
 | `npm run dev` | Development server with hot reload |
-| `npm test` | 152 automated tests: race rules, combat rules, tracks, medals and series, the character kit, the simulation purity rule, saved data, the game loop, Courier rules, private-room server |
+| `npm test` | 163 automated tests: race rules, combat rules, tracks, medals and series, the character kit, the simulation purity rule, saved data, the game loop, Courier rules, private-room server |
 | `npm run check` | Everything a change must pass: type-check, tests, race fingerprint, build, size budget. CI runs exactly this |
 | `npm run smoke` | Starts the built game in a headless browser, begins an armed race, a clean one and a Courier round, fails on any page error (after a build; CI runs it too) |
 | `npm run size` | Built file sizes against the budget (after a build) |
-| `npm run fingerprint` | Compares eighteen bot races (nine plain, nine armed) with the recorded ones in `dev/fingerprint.txt`; fails if a race plays differently. `npm run fingerprint -- --update` records a change that was meant |
+| `npm run fingerprint` | Compares 27 bot races (nine plain, nine armed, nine to the death) with the recorded ones in `dev/fingerprint.txt`; fails if a race plays differently. `npm run fingerprint -- --update` records a change that was meant |
 | `npm run typecheck` | Strict TypeScript check |
 | `npm run build` | Production build into `dist/` (static files; host anywhere) |
 | `npm run server` | Private-room server for Courier on port 8787 (`PORT`, `ALLOWED_ORIGINS`, `LAUNCHES` env vars) |
@@ -37,7 +37,7 @@ Every build has a label (version, commit, day built) on the last line of Setting
 - **Race** — you against three rivals. Rivals are bots and are labelled; your second character drives the quickest one. Pick how hard they race: Gentle, Keen or Fierce.
 - **Split screen** — two people on one device, left and right halves, plus two bot rivals. Best on a tablet or a laptop. It is a first-to-three series: the score carries across rematches.
 - **Alone** there are bronze, silver and gold times to beat (three-lap races).
-- **Armed or Clean** — races are armed (guns, mines, armour, wrecks) unless you pick Clean on the play sheet, which is the plain race exactly as it was. Each keeps its own best times and medals.
+- **To the death, Armed or Clean** — three ways to race, chosen on the play sheet. *To the death* (the default): guns, mines, armour, and two wrecks put you out for good; the last kart running wins. *Armed*: the same weapons, but a wreck always comes back. *Clean*: no weapons, the plain race exactly as it was. Each keeps its own best times and medals.
 - **Parked: Catapult Courier** — with a bot partner, same screen, or an online room (needs `npm run server`).
 
 ### Controls
@@ -98,7 +98,7 @@ sh dev/race-evidence.sh                                                         
 LEVEL=1 npx tsx dev/humanish.ts                                                            # stand-in drivers against a rival level
 npx tsx dev/raceprobe.ts                                                                   # rivals race each other: lap times, boosts, bumps
 node dev/measure-audio.mjs                                                                 # every sound, rendered offline
-LEVEL=1 npx tsx dev/combatprobe.ts                                                         # how violent an armed race is: wrecks, hits, mines, repairs
+LEVEL=1 npx tsx dev/combatprobe.ts                                                         # how violent an armed race is: wrecks, hits, mines, karts put out (LIVES=0|1|2|3)
 node dev/combat-shots.mjs                                                                  # freeze on a shot, a wreck, a mine and a respawn, to look at the effects
 ```
 

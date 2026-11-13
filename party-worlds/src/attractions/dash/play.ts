@@ -299,7 +299,7 @@ export class RaceHud {
     const brake = el('button', 'race-btn brake touchable', 'BRAKE');
     const fire = el('button', 'race-btn fire touchable', 'FIRE');
     const mine = el('button', 'race-btn mine touchable', 'MINE<b></b>');
-    const kit = el('div', 'race-kit', '<div class="armor"><span>Armour</span><i><b></b></i></div><div class="ammo"><span>Guns</span><i><b></b></i></div>');
+    const kit = el('div', 'race-kit', '<div class="armor"><span>Armour</span><i><b></b></i></div><div class="ammo"><span>Guns</span><i><b></b></i></div><div class="lives"></div>');
     const lock = el('div', 'race-lock', '<i></i><i></i><i></i><i></i>');
     const hint = el('div', 'hint race-hint');
     const tags = [0, 1, 2, 3].map(() => el('div', 'race-tag'));
@@ -411,10 +411,12 @@ export class RaceHud {
     this.root.hidden = !on;
   }
 
-  /** One line for the running list: who wrecked whom. */
-  wreck(seat: number, by: number): void {
+  /** One line for the running list: who wrecked whom, and whether that was the end of them. */
+  wreck(seat: number, by: number, out = false): void {
     const who = (n: number): string => `<b style="color:${esc(this.colors[n] ?? '#fff')}">${esc(this.names[n] ?? '?')}</b>`;
-    const line = el('div', 'line', by >= 0 ? `${who(by)} wrecked ${who(seat)}` : `${who(seat)} wrecked`);
+    const line = el('div', `line${out ? ' out' : ''}`, out
+      ? (by >= 0 ? `${who(by)} put ${who(seat)} out` : `${who(seat)} is out`)
+      : by >= 0 ? `${who(by)} wrecked ${who(seat)}` : `${who(seat)} wrecked`);
     this.feed.prepend(line);
     this.feedLines.unshift({ el: line, until: performance.now() + 4500 });
     while (this.feedLines.length > 3) this.feedLines.pop()!.el.remove();
@@ -511,7 +513,7 @@ export class RaceHud {
         void p.place.offsetWidth;
         p.place.classList.add('bump');
       }
-      p.lap.textContent = k.finished ? 'Finished' : `Lap ${Math.max(1, Math.min(s.laps, k.lap))}/${s.laps}`;
+      p.lap.textContent = k.out ? 'Out' : k.finished ? 'Finished' : `Lap ${Math.max(1, Math.min(s.laps, k.lap))}/${s.laps}`;
       // drift charge: fills, then flips colour at each boost level
       const c = k.drifting ? Math.min(1, k.charge / 2) : 0;
       p.fill.style.width = `${c * 100}%`;
@@ -547,6 +549,15 @@ export class RaceHud {
         if (k.armor < p.lastArmor - 0.01) p.hurtUntil = now + 220;
         p.root.classList.toggle('hurt', now < p.hurtUntil);
         p.root.classList.toggle('wrecked', k.wreckTicks > 0);
+        // to the death: one pip per life
+        const livesEl = p.kit.querySelector('.lives') as HTMLElement;
+        const lifeKey = `${s.lives}:${k.lives}`;
+        if (livesEl.dataset.k !== lifeKey) {
+          livesEl.dataset.k = lifeKey;
+          livesEl.innerHTML = s.lives > 0 ? `<span>Lives</span>${Array.from({ length: s.lives }, (_, n) => `<i class="${n < k.lives ? 'on' : ''}"></i>`).join('')}` : '';
+          livesEl.classList.toggle('last', s.lives > 0 && k.lives === 1);
+        }
+        p.root.classList.toggle('out', k.out);
         if (k.mines !== p.lastMines || p.mine.dataset.n === undefined) {
           p.mine.dataset.n = String(k.mines);
           (p.mine.querySelector('b') as HTMLElement).textContent = k.mines > 0 ? `×${k.mines}` : '';
@@ -573,7 +584,7 @@ export class RaceHud {
         }
         p.lock.style.display = locked ? 'block' : 'none';
       } else {
-        p.root.classList.remove('hurt', 'wrecked');
+        p.root.classList.remove('hurt', 'wrecked', 'out');
         p.lock.style.display = 'none';
       }
       // first-race hints, retired once done; worded for whatever this player is steering with
@@ -633,6 +644,7 @@ export class RaceHud {
           const o = s.karts[j]!;
           bar.style.width = `${Math.max(0, o.armor / COMBAT.armor) * 100}%`;
           bar.className = o.wreckTicks > 0 ? 'gone' : o.armor <= COMBAT.armor * 0.4 ? 'low' : '';
+          tag.classList.toggle('out', o.out);
         }
         tag.style.display = 'block';
         if (!this.tagW[j]) this.tagW[j] = tag.offsetWidth || unit * 26;
@@ -692,6 +704,8 @@ export interface RaceSetup {
   pace: number[];
   /** armed karts (combat.ts) */
   combat: boolean;
+  /** armed, to the death: wrecks before a kart is out for good (0 = always comes back) */
+  lives: number;
 }
 
 export class RaceSession {
@@ -710,6 +724,7 @@ export class RaceSession {
       karts: 4, laps: setup.laps, required: setup.humans, track: setup.track,
       pace: [0, 1, 2, 3].map((seat) => (setup.humans.includes(seat) ? 1 : setup.pace[q++] ?? 1)),
       combat: setup.combat,
+      lives: setup.lives,
     });
     this.rivals = [0, 1, 2, 3].map((seat) => (setup.humans.includes(seat) ? null : new Rival({ seed: setup.seed * 13 + seat * 7 + 1, skill: setup.skills[b++] ?? 0.6 })));
     this.bots = this.rivals.map((r) => r !== null);
@@ -718,7 +733,7 @@ export class RaceSession {
     controls.reset();
     controls.enabled = true;
     view.onBanner = (v, l1, l2) => hud.banner(v, l1, l2, l1.startsWith('Shortcut') ? 3200 : 1900);
-    view.onWreck = (seat, by) => hud.wreck(seat, by);
+    view.onWreck = (seat, by, out) => hud.wreck(seat, by, out);
     view.beginRace(this.state, setup.humans, setup.names);
     hud.setup(setup.names, setup.colors, this.bots, setup.faces, setup.humans, trackOf(this.state));
   }

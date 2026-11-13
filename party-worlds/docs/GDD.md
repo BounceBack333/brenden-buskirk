@@ -39,10 +39,16 @@ The founder asked for "more like death race than Mario kart". Since then a race 
 - **Guns.** Hold FIRE (or let them fire themselves) and whoever is straight ahead and in range loses armour. Aiming is steering. Twenty rounds, then a wait.
 - **Mines.** Two at most, from crates beside the racing line. Leave one where somebody has to drive: the chicane, the plank.
 - **Ramming.** A hard hit hurts the kart that takes it far more than the one that gives it.
-- **A wreck** costs about four seconds: stopped, then back on the road with full armour and a moment of shield. Nobody is out of the race.
+- **A wreck** costs about four seconds: stopped, then back on the road with full armour and a moment of shield.
 - **The repair strip** is on the long way round the flowerbed. The plank is quicker and skips it. Battered, which way do you go?
 
-Everyone carries exactly the same kit, rivals included. It is cars against cars: no bystanders, nobody hurt, a wrecked driver is dizzy for three seconds. The results add a Wrecks column, so there are two things to brag about.
+- **The spoils** (D-026): wreck a rival and you take 25 armour and a full magazine off them. Fighting keeps you alive.
+
+**To the death** (D-026) is the default. Every kart has two wrecks in it; the second puts it out for good, and it burns down to a scorch mark that stays for the rest of the race. If only one kart is left running before anyone has finished, it has won. The other two ways to race are one tap away: **Armed** (a wreck always comes back) and **Clean** (no weapons).
+
+Armed, the yard is an arena: fires in old tin cans, chevrons round the hairpin, redder light, a harder score.
+
+Everyone carries exactly the same kit and the same number of lives, rivals included. It is cars against cars: no bystanders, nobody hurt, a wrecked driver is dizzy. The results add a Wrecks column, so there are two things to brag about.
 
 ## 3. Memorable moments → requirements
 

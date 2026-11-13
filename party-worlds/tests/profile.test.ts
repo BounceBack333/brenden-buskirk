@@ -21,6 +21,7 @@ describe('saved profile', () => {
     p.settings.rivals = 2;
     p.settings.weapons = false;
     p.settings.autoFire = !p.settings.autoFire;
+    p.settings.lives = 0;
     p.seats = ['bruno', 'waffles'];
     p.best['backyard:solo:keen:time'] = 3301;
     p.best['backyard:medal'] = 2;
@@ -65,6 +66,12 @@ describe('saved profile', () => {
     expect(s.music).toBe(fresh.settings.music);
     expect(s.rivals).toBe(0);
     expect(sanitizeSettings({ rivals: 1.9 }).rivals).toBe(1);
+    // lives: a whole number from none to nine, or the default
+    expect(sanitizeSettings({ lives: 0 }).lives).toBe(0);
+    expect(sanitizeSettings({ lives: 2.8 }).lives).toBe(2);
+    expect(sanitizeSettings({ lives: 500 }).lives).toBe(9);
+    expect(sanitizeSettings({ lives: -3 }).lives).toBe(0);
+    expect(sanitizeSettings({ lives: 'many' }).lives).toBe(fresh.settings.lives);
     // JSON cannot carry Infinity or NaN: they arrive as null
     expect(parseProfile('{"settings":{"master":null},"roundsPlayed":null}').settings.master).toBe(fresh.settings.master);
     expect(parseProfile('{"roundsPlayed":-4}').roundsPlayed).toBe(0);

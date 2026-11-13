@@ -55,7 +55,7 @@ async function measure(): Promise<{ rows: Row[]; problems: string[] }> {
   rows.push(analyse('flutter 1', await render(2.5, (k) => k.setFlutter(1))));
   rows.push(analyse('engine 1', await render(2.5, (k) => k.setEngine(1, 1))));
   rows.push(analyse('skid 1', await render(2.5, (k) => k.setSkid(1))));
-  for (const mode of ['menu', 'play', 'tense', 'win', 'race'] as MusicMode[]) rows.push(analyse(`music:${mode}`, await render(8, (k) => k.music(mode))));
+  for (const mode of ['menu', 'play', 'tense', 'win', 'race', 'combat'] as MusicMode[]) rows.push(analyse(`music:${mode}`, await render(8, (k) => k.music(mode))));
   rows.push(analyse('pile-up x10', await render(2.5, (k) => { for (const n of ['launch', 'catch_perfect', 'boing', 'ring', 'balloon_pop', 'fanfare', 'miss_splat', 'rim', 'umbrella_open', 'star'] as SfxName[]) k.play(n); })));
   rows.push(analyse('spam footstep x200', await render(2.5, (k) => { for (let i = 0; i < 200; i++) k.play('footstep'); })));
   const problems: string[] = [];

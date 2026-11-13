@@ -25,15 +25,16 @@ const lines: string[] = [];
 for (const track of TRACK_IDS) {
   // the plain race first, then the armed one: the plain lines must never move because of a
   // change to the weapons
-  for (const combat of [false, true]) {
+  // (and then armed to the death, two lives each)
+  for (const [combat, lives] of [[false, 0], [true, 0], [true, 2]] as const) {
     for (const level of RIVAL_LEVELS) {
       for (const seed of [11, 202, 3003]) {
-        const s = createRace({ track, karts: 4, laps: 3, pace: [1, ...level.pace], combat });
+        const s = createRace({ track, karts: 4, laps: 3, pace: [1, ...level.pace], combat, lives });
         const bots = [0.9, ...level.skills].map((skill, i) => new Rival({ seed: seed + i * 7, skill }));
         let guard = 0;
         while (s.phase !== 'over' && guard++ < 60 * 300) stepRace(s, bots.map((b, i) => ({ ...b.think(s, i) })));
-        const fought = combat ? ` wrecks ${s.karts.map((k) => k.wrecks).join('')}` : '';
-        lines.push(`${track}${combat ? ' armed' : ''} ${level.id} seed ${seed}: tick ${s.tick} hash ${hashRace(s)} plank ${s.plankOpen ? s.plankOpener : '-'} order ${s.karts.map((k) => k.place).join('')}${fought}`);
+        const fought = combat ? ` wrecks ${s.karts.map((k) => k.wrecks).join('')}${lives ? ` out ${s.karts.map((k) => (k.out ? 'x' : '-')).join('')}` : ''}` : '';
+        lines.push(`${track}${combat ? (lives ? ' death' : ' armed') : ''} ${level.id} seed ${seed}: tick ${s.tick} hash ${hashRace(s)} plank ${s.plankOpen ? s.plankOpener : '-'} order ${s.karts.map((k) => k.place).join('')}${fought}`);
       }
     }
   }

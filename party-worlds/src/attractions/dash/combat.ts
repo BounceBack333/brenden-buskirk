@@ -12,8 +12,14 @@
  * your mines; a mine dropped behind you arms after a moment and takes a large bite out of
  * whoever drives over it, you included. Hard rams hurt the kart that is hit, hard wall hits
  * hurt you. Armour at zero is a wreck: a few seconds stopped, then back on the road with full
- * armour and a short shield. The repair strip on the long way round gives armour back, once per
- * pass. It is cars against cars only.
+ * armour and a short shield. Whoever did it takes the spoils: some armour and a full magazine.
+ * The repair strip on the long way round gives armour back, once per pass.
+ *
+ * "To the death" (RaceConfig.lives): each kart has that many wrecks in it. The last one puts it
+ * out of the race for good, and if only one kart is left running before anyone has finished,
+ * it has won. Without lives a wreck always comes back.
+ *
+ * It is cars against cars only.
  */
 import { dcos, dsin } from '../../core/dmath';
 import { KART, TICK_HZ, segDist2 } from './track';
@@ -61,6 +67,14 @@ export const COMBAT = {
   creditTicks: 5 * TICK_HZ,
   repair: 45,
   repairCooldownTicks: 6 * TICK_HZ,
+  /** what a kart takes off a rival it wrecks: this much armour, and a full magazine */
+  spoils: 25,
+  /**
+   * "To the death": how many wrecks a kart has in it (the race itself is told through
+   * RaceConfig.lives). Two, from dev/combatprobe.ts: with three nobody was ever put out, with
+   * one about half the field went every race.
+   */
+  lives: 2,
 } as const;
 
 export interface Mine {
@@ -107,10 +121,25 @@ export function damage(s: RaceState, seat: number, amount: number, by: number): 
   let credit = -1;
   if (k.hitBy >= 0 && k.hitBy !== seat && s.tick - k.hitTick <= COMBAT.creditTicks) {
     credit = k.hitBy;
-    s.karts[credit]!.kills++;
+    const winner = s.karts[credit]!;
+    winner.kills++;
+    // the spoils, if the winner is in a state to use them
+    if (canBeHit(winner) || winner.blinkTicks > 0) {
+      winner.armor = Math.min(COMBAT.armor, winner.armor + COMBAT.spoils);
+      winner.ammo = COMBAT.magazine;
+    }
   }
   k.hitBy = -1;
-  s.events.push({ type: 'wreck', seat, by: credit });
+  // to the death: that was one of its lives
+  if (s.lives > 0) {
+    k.lives--;
+    if (k.lives <= 0) {
+      k.lives = 0;
+      k.out = true;
+      k.outTick = s.tick;
+    }
+  }
+  s.events.push({ type: 'wreck', seat, by: credit, out: k.out });
 }
 
 /**

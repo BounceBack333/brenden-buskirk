@@ -10,6 +10,7 @@ import type { Track } from './track';
 
 const TRACERS = 40;
 const FLASHES = 5;
+const SCORCHES = 14;
 const X_AXIS = new THREE.Vector3(1, 0, 0);
 
 function stripes(): THREE.CanvasTexture {
@@ -56,6 +57,32 @@ function chevrons(): THREE.CanvasTexture {
   return t;
 }
 
+/** Red and white chevrons pointing left: the outside of a corner, the way racing circuits mark it. */
+function arrows(): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 96;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#16161c';
+  g.fillRect(0, 0, 256, 96);
+  for (let i = 0; i < 4; i++) {
+    const x = 34 + i * 62;
+    g.fillStyle = i % 2 ? '#f4f1e8' : '#ff3030';
+    g.beginPath();
+    g.moveTo(x + 26, 8);
+    g.lineTo(x - 6, 48);
+    g.lineTo(x + 26, 88);
+    g.lineTo(x + 2, 88);
+    g.lineTo(x - 30, 48);
+    g.lineTo(x + 2, 8);
+    g.closePath();
+    g.fill();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
 function disc(): THREE.CanvasTexture {
   const c = document.createElement('canvas');
   c.width = 64;
@@ -87,13 +114,19 @@ export class CombatFx {
   private flashes: { mesh: THREE.Mesh; t: number; size: number; fresh: boolean }[] = [];
   private fNext = 0;
   private mines: MineModel[] = [];
+  private scorches: THREE.Mesh[] = [];
+  private sNext = 0;
   private crates: THREE.Group[] = [];
   private pickups = new THREE.Group();
+  /** what makes the yard an arena when the karts are armed: fires, chevrons */
+  private arena = new THREE.Group();
+  private fires: { flames: THREE.Mesh[]; pool: THREE.Mesh; seed: number }[] = [];
   private strip: THREE.Mesh | null = null;
   private readonly dir = new THREE.Vector3();
   private readonly glow = disc();
   private readonly hazard = stripes();
   private readonly plus = chevrons();
+  private readonly chev = arrows();
 
   constructor(track: Track) {
     const tracerMat = new THREE.MeshBasicMaterial({ color: '#ffd98a', transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false });
@@ -131,7 +164,18 @@ export class CombatFx {
       this.mines.push({ root, lamp, pool });
     }
 
-    this.root.add(this.pickups);
+    // what a blast leaves on the road: the yard remembers where it happened until the next race
+    const burn = new THREE.MeshBasicMaterial({ map: this.glow, color: '#000000', transparent: true, opacity: 0.62, depthWrite: false, toneMapped: false });
+    const burnGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+    for (let i = 0; i < SCORCHES; i++) {
+      const m = new THREE.Mesh(burnGeo, burn);
+      m.visible = false;
+      m.renderOrder = 1;
+      this.root.add(m);
+      this.scorches.push(m);
+    }
+
+    this.root.add(this.pickups, this.arena);
     this.setTrack(track);
   }
 
@@ -144,8 +188,17 @@ export class CombatFx {
         if (mesh.isMesh) mesh.geometry.dispose();
       });
     }
+    for (const o of [...this.arena.children]) {
+      this.arena.remove(o);
+      o.traverse((m) => {
+        const mesh = m as THREE.Mesh;
+        if (mesh.isMesh) mesh.geometry.dispose();
+      });
+    }
     this.crates = [];
+    this.fires = [];
     this.strip = null;
+    this.dress(track);
     const kit = track.combat;
     if (!kit) return;
 
@@ -205,9 +258,84 @@ export class CombatFx {
     }
   }
 
-  /** Crates and the strip are part of the yard only when weapons are on. */
+  /**
+   * Arena dressing, all of it where no kart can go (behind the hairpin's wall and inside the
+   * ladder on the lawn), so nothing here needs to be solid: fires burning in old tin cans, and
+   * chevron boards round the outside of the hairpin.
+   */
+  private dress(track: Track): void {
+    const d = track.dressing;
+    const tin = new THREE.MeshStandardMaterial({ color: '#4a3528', roughness: 0.85, metalness: 0.45 });
+    const band = new THREE.MeshStandardMaterial({ map: this.hazard, roughness: 0.7, metalness: 0.2 });
+    const ember = new THREE.MeshBasicMaterial({ color: '#ffb14a', toneMapped: false });
+    const flameMat = new THREE.MeshBasicMaterial({ color: '#ff8a2e', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false });
+    const coreMat = new THREE.MeshBasicMaterial({ color: '#ffe39a', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false });
+    const canGeo = new THREE.CylinderGeometry(0.95, 0.85, 1.9, 14, 1, true).translate(0, 0.95, 0);
+    const bandGeo = new THREE.CylinderGeometry(0.97, 0.97, 0.45, 14, 1, true).translate(0, 1.15, 0);
+    const emberGeo = new THREE.CircleGeometry(0.86, 14).rotateX(-Math.PI / 2).translate(0, 1.7, 0);
+    const flameGeo = new THREE.ConeGeometry(0.62, 2.2, 7).translate(0, 1.1, 0);
+    const coreGeo = new THREE.ConeGeometry(0.36, 1.5, 6).translate(0, 0.75, 0);
+    const fire = (x: number, z: number): void => {
+      const g = new THREE.Group();
+      g.position.set(x, 0, z);
+      const can = new THREE.Mesh(canGeo, tin);
+      can.material.side = THREE.DoubleSide;
+      g.add(can, new THREE.Mesh(bandGeo, band), new THREE.Mesh(emberGeo, ember));
+      const flames: THREE.Mesh[] = [];
+      for (const [fx, fz, mat, geo] of [[0, 0, flameMat, flameGeo], [0.28, 0.15, flameMat, flameGeo], [-0.2, -0.22, coreMat, coreGeo]] as const) {
+        const f = new THREE.Mesh(geo, mat);
+        f.position.set(fx, 1.75, fz);
+        g.add(f);
+        flames.push(f);
+      }
+      const pool = new THREE.Mesh(
+        new THREE.PlaneGeometry(15, 15).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ map: this.glow, color: '#ff7a2e', transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false }),
+      );
+      pool.position.y = 0.06;
+      pool.renderOrder = 2;
+      g.add(pool);
+      this.arena.add(g);
+      this.fires.push({ flames, pool, seed: x * 0.37 + z * 0.61 });
+    };
+    // inside the ladder, down the middle of the lawn: seen from both straights, reached from neither
+    const lad = d.ladder;
+    const midZ = (lad.z0 + lad.z1) / 2;
+    for (let n = 0; n < 4; n++) fire(lad.x0 + 9 + ((lad.x1 - lad.x0 - 18) * n) / 3, midZ + (n % 2 ? 1.6 : -1.6));
+    // behind the hairpin's wall, with the chevron boards between them
+    const h = d.hose;
+    const boardGeo = new THREE.PlaneGeometry(6.4, 2.4);
+    const boardMat = new THREE.MeshBasicMaterial({ map: this.chev, toneMapped: false });
+    const postGeo = new THREE.CylinderGeometry(0.1, 0.1, 2.4, 6).translate(0, 1.2, 0);
+    const postMat = new THREE.MeshStandardMaterial({ color: '#2a2c36', roughness: 0.6, metalness: 0.6 });
+    const steps = 6;
+    for (let n = 0; n <= steps; n++) {
+      const a = h.a0 + ((h.a1 - h.a0) * (n + 0.5)) / (steps + 1);
+      const r = h.r + 2.6;
+      const x = h.cx + Math.cos(a) * r;
+      const z = h.cz + Math.sin(a) * r;
+      if (n % 3 === 1) {
+        fire(h.cx + Math.cos(a) * (r + 1.6), h.cz + Math.sin(a) * (r + 1.6));
+        continue;
+      }
+      const board = new THREE.Group();
+      board.position.set(x, 0, z);
+      board.lookAt(h.cx, 0, h.cz);
+      const face = new THREE.Mesh(boardGeo, boardMat);
+      face.position.y = 2.9;
+      const p1 = new THREE.Mesh(postGeo, postMat);
+      p1.position.set(-2.6, 0, -0.08);
+      const p2 = new THREE.Mesh(postGeo, postMat);
+      p2.position.set(2.6, 0, -0.08);
+      board.add(face, p1, p2);
+      this.arena.add(board);
+    }
+  }
+
+  /** Crates, the strip and the arena dressing are part of the yard only when weapons are on. */
   setArmed(on: boolean): void {
     this.pickups.visible = on;
+    this.arena.visible = on;
     if (!on) for (const m of this.mines) m.root.visible = false;
   }
 
@@ -225,6 +353,21 @@ export class CombatFx {
     this.tracers.instanceMatrix.needsUpdate = true;
     this.tLife[i] = 0.07;
     this.tFresh[i] = 1;
+  }
+
+  /** Leave a burn on the ground here. The oldest goes when there are too many. */
+  scorch(x: number, z: number, size: number): void {
+    const m = this.scorches[this.sNext]!;
+    this.sNext = (this.sNext + 1) % SCORCHES;
+    m.position.set(x, 0.045 + this.sNext * 0.0004, z);
+    m.scale.set(size, 1, size);
+    m.rotation.y = x * 1.7 + z;
+    m.visible = true;
+  }
+
+  /** A new race starts on a clean road. */
+  clearScorches(): void {
+    for (const m of this.scorches) m.visible = false;
   }
 
   flash(x: number, y: number, z: number, size: number): void {
@@ -282,6 +425,17 @@ export class CombatFx {
     if (this.strip) (this.strip.material as THREE.MeshBasicMaterial).opacity = 0.45 + 0.2 * Math.sin(time * 3.2);
     if (this.strip) this.plus.offset.y = -time * 0.6;
 
+    // fires: flames lick, the light on the ground breathes
+    for (const f of this.fires) {
+      const t = time * 9 + f.seed * 7;
+      f.flames.forEach((m, n) => {
+        const k = 0.8 + 0.28 * Math.sin(t * (1 + n * 0.23) + n * 2.1);
+        m.scale.set(0.85 + 0.2 * Math.sin(t * 1.7 + n), k + 0.25 * Math.abs(Math.sin(t * 0.63 + n * 1.3)), 0.85 + 0.2 * Math.cos(t * 1.3 + n));
+        m.rotation.y = t * 0.2 + n;
+      });
+      (f.pool.material as THREE.MeshBasicMaterial).opacity = 0.34 + 0.1 * Math.sin(t * 0.9) + 0.05 * Math.sin(t * 2.7);
+    }
+
     for (let i = 0; i < this.mines.length; i++) {
       const model = this.mines[i]!;
       const mine = s && s.combat ? s.mines[i] : undefined;
@@ -309,5 +463,6 @@ export class CombatFx {
     this.glow.dispose();
     this.hazard.dispose();
     this.plus.dispose();
+    this.chev.dispose();
   }
 }

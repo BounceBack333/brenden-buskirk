@@ -191,6 +191,7 @@ function boot(): void {
       skills: m === 'split' ? [level.skills[0], level.skills[2]] : [...level.skills],
       pace: m === 'split' ? [level.pace[0], level.pace[2]] : [...level.pace],
       combat: profile.settings.weapons,
+      lives: profile.settings.weapons ? profile.settings.lives : 0,
     });
     // (the simulation has already run on for a moment after the last person finished)
     race.onDone = (s) => window.setTimeout(() => finishRace(s), 700);
@@ -208,18 +209,22 @@ function boot(): void {
       face: setup.faces[seat] ?? '',
       bot: race!.bots[seat]!,
       you: !setup.humans.includes(seat) ? '' : setup.humans.length > 1 ? `P${setup.humans.indexOf(seat) + 1}` : 'you',
-      time: k.finished
-        ? seat === winner.seat ? seconds(k.finishTick - RACE.countdownTicks) : `+${seconds(k.finishTick - winner.k.finishTick)}`
-        : `lap ${Math.min(s.laps, Math.max(1, k.lap))} of ${s.laps}`,
+      // (a kart can win without a time: by being the only one left running)
+      time: s.lastStanding === seat ? 'last one running'
+        : k.finished
+          ? seat === winner.seat ? seconds(k.finishTick - RACE.countdownTicks) : `+${seconds(k.finishTick - winner.k.finishTick)}`
+          : k.out ? `out on lap ${Math.min(s.laps, Math.max(1, k.lap))}`
+            : `lap ${Math.min(s.laps, Math.max(1, k.lap))} of ${s.laps}`,
       best: k.bestLapTicks ? seconds(k.bestLapTicks) : '—',
       wrecks: s.combat ? String(k.kills) : '',
       wrecked: s.combat ? k.wrecks : 0,
     }));
     // personal best: your fastest finished race in this mode (lower is better); armed and plain
     // races are different races and keep separate bests
-    const armed = s.combat ? ':armed' : '';
+    const armed = s.combat ? (s.lives > 0 ? ':death' : ':armed') : '';
     const key = `${track.id}:${raceMode}:${rivalLevel(raceLevel).id}${armed}:time`;
-    const mine = setup.humans.map((seat) => s.karts[seat]!).filter((k) => k.finished).map((k) => k.finishTick - RACE.countdownTicks);
+    // (only a race driven to the flag posts a time)
+    const mine = setup.humans.map((seat) => s.karts[seat]!).filter((k) => k.finished && k.lap > s.laps).map((k) => k.finishTick - RACE.countdownTicks);
     const prev = profile.best[key] ?? 0;
     const now = mine.length ? Math.min(...mine) : 0;
     const newBest = now > 0 && (prev === 0 || now < prev) && s.laps === RACE.laps;
@@ -233,7 +238,11 @@ function boot(): void {
     // what this race was for
     let stakes: RaceStakes | null = null;
     let again = 'Rematch';
-    let headline = youWon ? `${setup.names[winner.seat]} wins!` : `${setup.names[winner.seat]} takes it`;
+    let headline = s.lastStanding >= 0 ? `${setup.names[winner.seat]} is the last one running`
+      : youWon ? `${setup.names[winner.seat]} wins!` : `${setup.names[winner.seat]} takes it`;
+    // alone and put out: the race was called there and then, so say that rather than name a winner who never finished
+    const me = setup.humans.length === 1 ? s.karts[setup.humans[0]!]! : null;
+    if (me?.out && !winner.k.finished) headline = `Put out on lap ${Math.min(s.laps, Math.max(1, me.lap))}`;
     if (setup.humans.length === 2) {
       // two people: whoever finished ahead of the other takes the race, whatever the bots did
       const [a, b] = [setup.humans[0]!, setup.humans[1]!];
@@ -279,12 +288,14 @@ function boot(): void {
         const plank = opener ? `${opener} knocked the peg out and opened the plank for everyone.` : 'Nobody opened the plank shortcut this time.';
         if (!s.combat) return plank;
         const total = s.karts.reduce((n, k) => n + k.wrecks, 0);
-        return `${total === 0 ? 'Nobody was wrecked.' : total === 1 ? 'One wreck.' : `${total} wrecks.`} ${plank}`;
+        const gone = s.karts.filter((k) => k.out).length;
+        const out = gone === 0 ? '' : gone === 1 ? ' One kart put out for good.' : ` ${gone} karts put out for good.`;
+        return `${total === 0 ? 'Nobody was wrecked.' : total === 1 ? 'One wreck.' : `${total} wrecks.`}${out} ${plank}`;
       })(),
       best: best ? seconds(best) : '—',
       newBest,
       combat: s.combat,
-      rivals: `${rivalLevel(raceLevel).name} rivals · ${s.combat ? 'armed' : 'no weapons'}`,
+      rivals: `${rivalLevel(raceLevel).name} rivals · ${s.combat ? (s.lives > 0 ? 'to the death' : 'armed') : 'no weapons'}`,
       stepUp: youWon && raceMode === 'solo' && raceLevel < RIVAL_LEVELS.length - 1 ? rivalLevel(raceLevel + 1).name : '',
       stakes,
       again,

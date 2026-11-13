@@ -18,6 +18,7 @@ page.on('pageerror', (e) => errors.push(String(e).slice(0, 300)));
 await page.goto(url, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__ready === true, null, { timeout: 60000 });
 await page.click('[data-act="play"]');
+await page.click('[data-rules="armed"]'); // a wreck comes back, so the respawn can be photographed
 await page.click('[data-race="solo"]');
 await page.waitForFunction(() => window.__pw.race?.state.phase === 'racing', null, { timeout: 120000 });
 

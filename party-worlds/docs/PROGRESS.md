@@ -1,6 +1,6 @@
 # Progress and acceptance record
 
-Last updated: 2026-11-12 (armed racing, D-025).
+Last updated: 2026-11-13 (to the death, D-026).
 
 ## Status words
 
@@ -14,6 +14,24 @@ Last updated: 2026-11-12 (armed racing, D-025).
 | **Blocked** | Cannot proceed without the named dependency |
 
 One recording of Catapult Courier was made by the founder and reviewed by an advisor; that review is the reason for the change of direction (D-016). Apart from that, nothing in this project has been played by a person, and nothing has run on a physical phone that we have observed. There are no player reactions, retention figures, revenue figures or device frame rates in this repository, because none exist.
+
+## Milestone: to the death (D-026)
+
+**Asked for:** "Continue", after being asked which way to push the armed race.
+
+| Area | Status | Evidence |
+|---|---|---|
+| Lives, being put out, last kart running wins | Implemented and tested | `tests/combat.test.ts` (37, eleven of them new): off unless asked for; the last life puts a kart out and it never comes back, shoots or scores a lap; it stops being in the way once it has burnt down; later out ranks higher; the last kart running wins at once, but not after somebody has taken the flag; a race does not wait for a person who is out; four whole races with one life each end and add up |
+| The spoils of a wreck | Implemented and tested | Same file: 25 armour and a full magazine, never past full, nothing for a wreck nobody caused |
+| How often karts go out (two lives) | Simulated | `dev/combatprobe.ts`, 30 races a level: 0.3 / 0.6 / 1.1 karts out per race at Gentle / Keen / Fierce; the stand-in out of 2, 9 and 9 races. With three lives: one kart in ninety races. With one: about two a race |
+| The plain race is still unchanged | Implemented and tested | Its nine fingerprints are identical; 27 are now recorded (plain, armed, to the death) |
+| Play sheet: To the death / Armed / Clean; lives on the HUD; "Out" | Implemented, automation only | Looked at in 1280×720 frames: the sheet, a race with two lives showing, being put out (camera comes round to the burning kart, the list says who did it), and the results ("out on lap 1", "One kart put out for good") |
+| The yard when armed: fires, chevrons, scorch marks, redder light | Implemented, **seen by me only** | Same frames. None of it is solid and all of it is out of reach, so the circuit and its tests are unchanged |
+| A harder score for armed races | Implemented, **measured but never heard** | `dev/measure-audio.mjs`: peak 0.46, nothing clipping; a little louder than the plain race's (0.37) |
+| Checks | Implemented and tested | 163 tests; `npm run smoke` starts a race to the death, sees it go live, and starts a clean one |
+| Scripted play-throughs on this build | Not yet run | — |
+
+**Total:** 163 of 163 tests pass (32 race and track, 37 combat, 6 medals and series, 10 character kit, 17 purity, 7 saved data, 9 game loop, 26 Courier, 19 room server); type-check clean; 27 fingerprints match; build 948 KB JS + 198 KB CSS (272 KB + 120 KB gzipped), inside the budget.
 
 ## Milestone: armed racing (D-025)
 
@@ -33,7 +51,7 @@ One recording of Catapult Courier was made by the founder and reviewed by an adv
 | Scripted play-throughs (build `0.1.0 · 9fdf715`) | Implemented, automation only | Seven races through the real UI with nothing else running: armed solo by keys over three laps (plank, rematch; the scripted driver posted 53.73 s and was given gold), armed split screen by keys, armed solo by touch landscape and upright, armed split screen by thumbs, armed split screen by two stand-in controllers (two wrecks; a wrecked kart came back and finished second), and a Clean solo race. Zero page errors in all seven. The recovery checks, the four frozen effect frames and a Courier round also passed. The three-lap run was done twice: the first time the script's own fifteen-minute limit ran out as the race ended and it reported that the results never appeared; the limit is now thirty minutes |
 | Two things seen in those screenshots and changed afterwards (build `fa9476e`) | Implemented, automation only | Smoke from a wreck blotted out the wrecked driver's view: smaller now. In split screen the wreck list sat under a lap counter: moved. After the change: check and smoke pass, and the effect frames were looked at again. The seven races were not rerun for it |
 
-**Total:** 152 of 152 tests pass (32 race and track, 26 combat, 6 medals and series, 10 character kit, 17 purity, 7 saved data, 9 game loop, 26 Courier, 19 room server); type-check clean; 18 fingerprints match; build 941 KB JS + 197 KB CSS (270 KB + 120 KB gzipped), inside the budget.
+**Total at that point:** 152 of 152 tests (32 race and track, 26 combat, 6 medals and series, 10 character kit, 17 purity, 7 saved data, 9 game loop, 26 Courier, 19 room server); type-check clean; 18 fingerprints match; build 941 KB JS + 197 KB CSS (270 KB + 120 KB gzipped), inside the budget.
 
 ## Milestone: things that must not break in someone's hands (D-024)
 

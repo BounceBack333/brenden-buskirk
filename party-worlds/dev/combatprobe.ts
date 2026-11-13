@@ -14,6 +14,8 @@ import { rivalLevel } from '../src/attractions/dash/rivals';
 
 const LEVEL = rivalLevel(Number(process.env.LEVEL ?? 1));
 const COMBAT_ON = process.env.COMBAT !== '0';
+/** LIVES=3 is "to the death"; LIVES=0 means a wreck always comes back */
+const LIVES = Number(process.env.LIVES ?? 3);
 const races = Number(process.argv[2] ?? 20);
 const track = trackOf(createRace());
 const S = track.samples;
@@ -82,10 +84,11 @@ class Standin {
   }
 }
 
+const outs = { me: 0, all: 0, standing: 0, meStanding: 0 };
 const sum = { time: 0, finished: 0, place: 0, wins: 0, myWrecks: 0, myKills: 0, wrecks: 0, shots: 0, hits: 0, mineHits: 0, ownMine: 0, drops: 0, crates: 0, repairs: 0, rams: 0, ramDamage: 0, walls: 0, rivalTime: 0, rivalN: 0, armorAtEnd: 0 };
 const worst = { wrecks: 0 };
 for (let r = 0; r < races; r++) {
-  const s = createRace({ karts: 4, required: [0], pace: [1, ...LEVEL.pace], combat: COMBAT_ON });
+  const s = createRace({ karts: 4, required: [0], pace: [1, ...LEVEL.pace], combat: COMBAT_ON, lives: LIVES });
   const me = new Standin(true);
   const bots = LEVEL.skills.map((skill, i) => new Rival({ seed: 900 + r * 17 + i * 5, skill }));
   const inputs: DriveInput[] = [noDrive(), noDrive(), noDrive(), noDrive()];
@@ -107,13 +110,17 @@ for (let r = 0; r < races; r++) {
   }
   worst.wrecks = Math.max(worst.wrecks, raceWrecks);
   const k = s.karts[0]!;
+  if (k.out) outs.me++;
+  outs.all += s.karts.filter((q) => q.out).length;
+  if (s.lastStanding >= 0) { outs.standing++; if (s.lastStanding === 0) outs.meStanding++; }
   sum.place += k.place; if (k.place === 1) sum.wins++;
   sum.myWrecks += k.wrecks; sum.myKills += k.kills; sum.armorAtEnd += k.armor;
-  if (k.finished) { sum.finished++; sum.time += (k.finishTick - 180) / 60; }
+  if (k.finished && k.lap > s.laps) { sum.finished++; sum.time += (k.finishTick - 180) / 60; }
   for (let i = 1; i < 4; i++) if (s.karts[i]!.finished) { sum.rivalTime += (s.karts[i]!.finishTick - 180) / 60; sum.rivalN++; }
 }
 const per = (v: number): string => (v / races).toFixed(1);
 console.log(`${COMBAT_ON ? 'COMBAT' : 'plain'} · rivals ${LEVEL.name} · ${races} races · armour ${COMBAT.armor}, ${COMBAT.damage} a round, magazine ${COMBAT.magazine}, mine ${COMBAT.mineDamage}`);
 console.log(`stand-in: place ${(sum.place / races).toFixed(2)}, wins ${sum.wins}/${races}, race ${(sum.time / Math.max(1, sum.finished)).toFixed(1)} s (${sum.finished} finished), wrecked ${per(sum.myWrecks)} a race, wrecks caused ${per(sum.myKills)}, armour at the flag ${per(sum.armorAtEnd)}`);
 console.log(`rivals: race ${(sum.rivalTime / Math.max(1, sum.rivalN)).toFixed(1)} s`);
+if (COMBAT_ON && LIVES > 0) console.log(`to the death (${LIVES} lives): stand-in put out in ${outs.me}/${races} races; karts put out per race ${(outs.all / races).toFixed(2)}; races won by the last kart running ${outs.standing}/${races} (the stand-in ${outs.meStanding})`);
 console.log(`per race, all four karts: wrecks ${per(sum.wrecks)} (most in one race ${worst.wrecks}), rounds ${per(sum.shots)} (${sum.shots ? Math.round((100 * sum.hits) / sum.shots) : 0}% hit), mines dropped ${per(sum.drops)}, mine hits ${per(sum.mineHits)} (own mine ${per(sum.ownMine)}), crates ${per(sum.crates)}, repairs ${per(sum.repairs)}, rams ${per(sum.rams)} (${(sum.ramDamage / Math.max(1, sum.rams)).toFixed(1)} armour each)`);

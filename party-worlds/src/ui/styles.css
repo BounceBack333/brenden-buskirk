@@ -585,3 +585,15 @@ input[type='range'] { accent-color: var(--coral); }
 .race-lock.firing { animation: lock-kick 0.1s steps(2) infinite; }
 @keyframes lock-kick { 50% { transform: translate(-50%, -50%) scale(0.9); } }
 .race-feed.split { top: calc(var(--pad-y) + var(--u) * 18); }
+/* to the death: lives, and being out */
+.race-kit .lives { display: flex; align-items: center; gap: calc(var(--u) * 0.9); }
+.race-kit .lives:empty { display: none; }
+.race-kit .lives i { width: calc(var(--u) * 2.6); height: calc(var(--u) * 2.6); border-radius: 50%; background: rgba(6, 7, 20, 0.72); border: calc(var(--u) * 0.3) solid rgba(255, 255, 255, 0.75); transform: none; }
+.race-kit .lives i.on { background: #ff3b3b; box-shadow: 0 0 calc(var(--u) * 1.4) rgba(255, 59, 59, 0.8); }
+.race-kit .lives.last span { color: #ff8f8f; animation: blink 0.5s steps(2) infinite; }
+.race-pane.out::after { opacity: 1; box-shadow: inset 0 0 calc(var(--u) * 22) calc(var(--u) * 8) rgba(120, 0, 0, 0.85); }
+.race-pane.out .race-btn, .race-pane.out .race-meter { opacity: 0.25; }
+.race-tag.out { opacity: 0.45 !important; text-decoration: line-through; }
+.race-feed .line.out { border-left-color: #fff; background: rgba(160, 10, 10, 0.85); }
+/* three ways to race on one row */
+.rivals-row .seg button[data-rules] { flex: 0 0 auto; min-width: calc(var(--u) * 13); padding: 0 calc(var(--u) * 2.6); white-space: nowrap; }

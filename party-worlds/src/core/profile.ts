@@ -25,6 +25,8 @@ export interface Settings {
   weapons: boolean;
   /** racing: the guns fire by themselves whenever a rival is in the sights */
   autoFire: boolean;
+  /** armed racing, "to the death": wrecks before a kart is out for good; 0 = a wreck always comes back */
+  lives: number;
 }
 
 export interface Profile {
@@ -55,7 +57,7 @@ export function defaultSettings(): Settings {
   return {
     master: 0.9, sfx: 1, music: 0.6,
     reducedMotion: prefersReduced, aimAssist: false, umbrellaToggle: false, leftHanded: false, haptics: true, autoDrift: false, rivals: 0,
-    weapons: true, autoFire: thumbs,
+    weapons: true, autoFire: thumbs, lives: 2, // (COMBAT.lives: to the death is how a race starts out)
   };
 }
 
@@ -98,6 +100,7 @@ export function sanitizeSettings(raw: unknown, base: Settings = defaultSettings(
     rivals: count(o.rivals),
     weapons: flag(o.weapons, base.weapons),
     autoFire: flag(o.autoFire, base.autoFire),
+    lives: typeof o.lives === 'number' && Number.isFinite(o.lives) ? Math.min(9, Math.max(0, Math.floor(o.lives))) : base.lives,
   };
 }
 

@@ -6,6 +6,7 @@ import { PRESET_CHARACTERS, SPEC_OPTIONS, describeSpec, randomSpec, sanitizeSpec
 import type { FieldOption } from '../characters/spec';
 import { POINTS, starsFor } from '../attractions/courier/rules';
 import type { CourierState, LaunchResult } from '../attractions/courier/sim';
+import { COMBAT } from '../attractions/dash/combat';
 import { MAX_CUSTOM } from '../core/profile';
 import type { Profile, Settings } from '../core/profile';
 import type { AudioKit, CharacterAction, CharacterSpec, Species } from '../kit/contracts';
@@ -15,6 +16,11 @@ import { RIVAL_LEVELS, rivalLevel } from '../attractions/dash/rivals';
 
 export type PlayMode = 'shared' | 'buddy' | 'online';
 export type RaceMode = 'solo' | 'split';
+
+/** the three ways to race: no weapons; weapons and a wreck always comes back; weapons and a limited number of wrecks */
+type RaceRules = 'clean' | 'armed' | 'death';
+/** how many wrecks a kart has in it "to the death" */
+const DEATH_LIVES: number = COMBAT.lives;
 
 export interface RaceRow {
   place: number;
@@ -202,7 +208,7 @@ export class Screens {
       <div class="sheet card" role="dialog" aria-label="Play together">
         <div class="sheet-head">
           <div><h2>Backyard Dash</h2>
-          <p class="pitch">${Screens.pitch(a.profile.settings.weapons)}</p></div>
+          <p class="pitch">${Screens.pitch(Screens.rules(a.profile.settings))}</p></div>
           <button class="icon-btn" data-act="close" aria-label="Close">${ICON.close}</button>
         </div>
         <div class="choices two">
@@ -220,8 +226,8 @@ export class Screens {
         </div>
         <div class="rivals-row">
           <span class="lbl">Weapons</span>
-          <div class="seg" role="group" aria-label="Weapons"><button data-weapons="1" aria-pressed="${a.profile.settings.weapons}">Armed</button><button data-weapons="0" aria-pressed="${!a.profile.settings.weapons}">Clean</button></div>
-          <span class="muted blurb arms">${Screens.arms(a.profile.settings.weapons)}</span>
+          <div class="seg" role="group" aria-label="Weapons">${(['death', 'armed', 'clean'] as const).map((r) => `<button data-rules="${r}" data-weapons="${r === 'clean' ? 0 : 1}" aria-pressed="${Screens.rules(a.profile.settings) === r}">${r === 'death' ? 'To the death' : r === 'armed' ? 'Armed' : 'Clean'}</button>`).join('')}</div>
+          <span class="muted blurb arms">${Screens.arms(Screens.rules(a.profile.settings))}</span>
         </div>
         <div class="parked">
           <span class="muted">Parked experiment · Catapult Courier:</span>
@@ -240,15 +246,18 @@ export class Screens {
       sheet.querySelectorAll('[data-rivals]').forEach((b) => b.setAttribute('aria-pressed', String(b === el)));
       (sheet.querySelector('.blurb') as HTMLElement).textContent = rivalLevel(a.profile.settings.rivals).blurb;
     }, sheet);
-    this.on('[data-weapons]', (el) => {
+    this.on('[data-rules]', (el) => {
       this.tap();
-      const on = el.dataset.weapons === '1';
-      a.profile.settings.weapons = on;
+      const rules = el.dataset.rules as RaceRules;
+      a.profile.settings.weapons = rules !== 'clean';
+      // (the number of lives is kept when weapons are switched off, so it is still there when they come back)
+      if (rules === 'death') a.profile.settings.lives = DEATH_LIVES;
+      else if (rules === 'armed') a.profile.settings.lives = 0;
       a.save();
       a.showWeapons();
-      sheet.querySelectorAll('[data-weapons]').forEach((b) => b.setAttribute('aria-pressed', String(b === el)));
-      (sheet.querySelector('.arms') as HTMLElement).textContent = Screens.arms(on);
-      (sheet.querySelector('.pitch') as HTMLElement).textContent = Screens.pitch(on);
+      sheet.querySelectorAll('[data-rules]').forEach((b) => b.setAttribute('aria-pressed', String(b === el)));
+      (sheet.querySelector('.arms') as HTMLElement).textContent = Screens.arms(rules);
+      (sheet.querySelector('.pitch') as HTMLElement).textContent = Screens.pitch(rules);
     }, sheet);
     this.on('[data-race]', (el) => {
       a.audio.play('ui_confirm');
@@ -262,14 +271,23 @@ export class Screens {
   }
 
   /** Race results: finishing order, times, and what happened to the shortcut. */
-  private static pitch(armed: boolean): string {
-    return armed
-      ? 'Three laps of the patio after dark, armed. Shoot what is in front of you, mine what is behind you, and get round before your armour runs out.'
-      : "Three laps of the patio after dark. Drift for boosts, sit in a rival's wake, and decide who pays to open the shortcut.";
+  /** Which of the three ways to race the settings describe. */
+  private static rules(s: Settings): RaceRules {
+    return !s.weapons ? 'clean' : s.lives > 0 ? 'death' : 'armed';
   }
 
-  private static arms(armed: boolean): string {
-    return armed ? 'Guns, mines and armour for everyone, rivals included. A wreck costs a few seconds.' : 'No weapons: a straight race.';
+  private static pitch(rules: RaceRules): string {
+    return rules === 'clean'
+      ? "Three laps of the patio after dark. Drift for boosts, sit in a rival's wake, and decide who pays to open the shortcut."
+      : rules === 'death'
+        ? 'Three laps of the patio after dark, armed, and not everybody finishes. Shoot what is in front of you, mine what is behind you, and be running at the end.'
+        : 'Three laps of the patio after dark, armed. Shoot what is in front of you, mine what is behind you, and get round before your armour runs out.';
+  }
+
+  private static arms(rules: RaceRules): string {
+    return rules === 'clean' ? 'No weapons: a straight race.'
+      : rules === 'death' ? `Guns, mines and armour for everyone. ${DEATH_LIVES === 2 ? 'Two' : DEATH_LIVES} wrecks and you are out for good; the last kart running wins.`
+        : 'Guns, mines and armour for everyone, rivals included. A wreck costs a few seconds, and you always come back.';
   }
 
   raceResults(info: RaceResultsInfo): void {
