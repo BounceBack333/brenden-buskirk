@@ -5,12 +5,90 @@
  */
 import * as THREE from 'three';
 import { COMBAT } from './combat';
+import type { ItemName } from './combat';
 import type { RaceState } from './sim';
 import type { Track } from './track';
 
 const TRACERS = 40;
 const FLASHES = 5;
 const SCORCHES = 14;
+const ROCKETS = 8;
+const RINGS = 3;
+
+/** One colour per thing, the same on the crate, the button and the minimap. */
+const ITEM_HEX: Readonly<Record<ItemName, string>> = { mine: '#ff3b3b', rocket: '#ff8a2e', shock: '#b06bff', shield: '#3db8ff', overdrive: '#ffd23d' };
+
+/** The face of a crate: a dark panel with a glyph that says what is inside. */
+function emblem(item: ItemName): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = 96;
+  c.height = 96;
+  const g = c.getContext('2d')!;
+  const col = ITEM_HEX[item];
+  g.fillStyle = '#15161d';
+  g.fillRect(0, 0, 96, 96);
+  g.strokeStyle = col;
+  g.lineWidth = 8;
+  g.strokeRect(5, 5, 86, 86);
+  g.fillStyle = col;
+  g.strokeStyle = col;
+  g.lineJoin = 'round';
+  g.lineCap = 'round';
+  g.lineWidth = 9;
+  g.beginPath();
+  if (item === 'mine') {
+    g.arc(48, 50, 17, 0, Math.PI * 2);
+    g.fill();
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      g.moveTo(48 + Math.cos(a) * 17, 50 + Math.sin(a) * 17);
+      g.lineTo(48 + Math.cos(a) * 29, 50 + Math.sin(a) * 29);
+    }
+    g.stroke();
+  } else if (item === 'rocket') {
+    g.moveTo(48, 16);
+    g.lineTo(64, 42);
+    g.lineTo(64, 70);
+    g.lineTo(32, 70);
+    g.lineTo(32, 42);
+    g.closePath();
+    g.fill();
+    g.moveTo(34, 78);
+    g.lineTo(26, 86);
+    g.moveTo(62, 78);
+    g.lineTo(70, 86);
+    g.stroke();
+  } else if (item === 'shock') {
+    g.moveTo(56, 14);
+    g.lineTo(30, 52);
+    g.lineTo(48, 52);
+    g.lineTo(40, 82);
+    g.lineTo(68, 42);
+    g.lineTo(50, 42);
+    g.closePath();
+    g.fill();
+  } else if (item === 'shield') {
+    g.moveTo(48, 16);
+    g.lineTo(74, 26);
+    g.lineTo(72, 54);
+    g.quadraticCurveTo(64, 74, 48, 82);
+    g.quadraticCurveTo(32, 74, 24, 54);
+    g.lineTo(22, 26);
+    g.closePath();
+    g.stroke();
+  } else {
+    // overdrive: go, and then some
+    for (const x of [24, 46]) {
+      g.moveTo(x, 22);
+      g.lineTo(x + 24, 48);
+      g.lineTo(x, 74);
+    }
+    g.stroke();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
 const X_AXIS = new THREE.Vector3(1, 0, 0);
 
 function stripes(): THREE.CanvasTexture {
@@ -116,6 +194,11 @@ export class CombatFx {
   private mines: MineModel[] = [];
   private scorches: THREE.Mesh[] = [];
   private sNext = 0;
+  private rockets: { root: THREE.Group; flame: THREE.Mesh }[] = [];
+  private bubbles: THREE.Mesh[] = [];
+  private rings: { mesh: THREE.Mesh; t: number; fresh: boolean; reach: number }[] = [];
+  private rNext = 0;
+  private emblems = new Map<ItemName, THREE.CanvasTexture>();
   private crates: THREE.Group[] = [];
   private pickups = new THREE.Group();
   /** what makes the yard an arena when the karts are armed: fires, chevrons */
@@ -175,6 +258,40 @@ export class CombatFx {
       this.scorches.push(m);
     }
 
+    // rockets: a stubby body with a flame, pooled
+    const bodyGeo = new THREE.CylinderGeometry(0.16, 0.16, 0.9, 8).rotateZ(-Math.PI / 2);
+    const noseGeo = new THREE.ConeGeometry(0.16, 0.34, 8).rotateZ(-Math.PI / 2).translate(0.62, 0, 0);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: '#d9dde6', roughness: 0.4, metalness: 0.6 });
+    const noseMat = new THREE.MeshBasicMaterial({ color: ITEM_HEX.rocket, toneMapped: false });
+    const jetGeo = new THREE.ConeGeometry(0.22, 1.5, 7).rotateZ(Math.PI / 2).translate(-1.15, 0, 0);
+    const jetMat = new THREE.MeshBasicMaterial({ color: '#ffd98a', transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false });
+    for (let i = 0; i < ROCKETS; i++) {
+      const root = new THREE.Group();
+      const flame = new THREE.Mesh(jetGeo, jetMat);
+      root.add(new THREE.Mesh(bodyGeo, bodyMat), new THREE.Mesh(noseGeo, noseMat), flame);
+      root.visible = false;
+      this.root.add(root);
+      this.rockets.push({ root, flame });
+    }
+    // the shield: a bubble round a kart (one each; the view says where)
+    const bubbleGeo = new THREE.IcosahedronGeometry(1.45, 2);
+    for (let i = 0; i < 4; i++) {
+      const m = new THREE.Mesh(bubbleGeo, new THREE.MeshBasicMaterial({ color: ITEM_HEX.shield, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false, side: THREE.FrontSide }));
+      m.visible = false;
+      m.renderOrder = 4;
+      this.root.add(m);
+      this.bubbles.push(m);
+    }
+    // the shockwave: a ring that runs out along the ground
+    const ringGeo = new THREE.RingGeometry(0.82, 1, 40).rotateX(-Math.PI / 2);
+    for (let i = 0; i < RINGS; i++) {
+      const mesh = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: ITEM_HEX.shock, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false, side: THREE.DoubleSide }));
+      mesh.visible = false;
+      mesh.renderOrder = 3;
+      this.root.add(mesh);
+      this.rings.push({ mesh, t: 0, fresh: false, reach: 1 });
+    }
+
     this.root.add(this.pickups, this.arena);
     this.setTrack(track);
   }
@@ -202,14 +319,19 @@ export class CombatFx {
     const kit = track.combat;
     if (!kit) return;
 
-    const boxMat = new THREE.MeshStandardMaterial({ map: this.hazard, roughness: 0.6, metalness: 0.1, emissive: '#ffb52e', emissiveMap: this.hazard, emissiveIntensity: 0.35 });
     for (const c of kit.crates) {
       const g = new THREE.Group();
-      const box = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.95, 0.95), boxMat);
-      box.position.y = 0.95;
+      // every face says what is inside, in that thing's colour
+      let face = this.emblems.get(c.item);
+      if (!face) {
+        face = emblem(c.item);
+        this.emblems.set(c.item, face);
+      }
+      const box = new THREE.Mesh(new THREE.BoxGeometry(1.15, 1.15, 1.15), new THREE.MeshBasicMaterial({ map: face, toneMapped: false }));
+      box.position.y = 1.05;
       const pool = new THREE.Mesh(
-        new THREE.PlaneGeometry(4.4, 4.4).rotateX(-Math.PI / 2),
-        new THREE.MeshBasicMaterial({ map: this.glow, color: '#ffb52e', transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false }),
+        new THREE.PlaneGeometry(5, 5).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ map: this.glow, color: ITEM_HEX[c.item], transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false }),
       );
       pool.position.y = 0.05;
       pool.renderOrder = 3;
@@ -368,6 +490,29 @@ export class CombatFx {
   /** A new race starts on a clean road. */
   clearScorches(): void {
     for (const m of this.scorches) m.visible = false;
+    for (const b of this.bubbles) b.visible = false;
+  }
+
+  /** A shockwave leaves here and runs out to `reach`. */
+  ring(x: number, z: number, reach: number): void {
+    const r = this.rings[this.rNext]!;
+    this.rNext = (this.rNext + 1) % RINGS;
+    r.mesh.position.set(x, 0.12, z);
+    r.mesh.visible = true;
+    r.t = 0.45;
+    r.fresh = true;
+    r.reach = reach;
+  }
+
+  /** Put (or take away) the shield bubble round kart `seat`. */
+  bubble(seat: number, on: boolean, x: number, y: number, z: number, time: number, fading: boolean): void {
+    const m = this.bubbles[seat];
+    if (!m) return;
+    m.visible = on && (!fading || Math.sin(time * 26) > -0.3); // it flickers before it goes
+    if (!on) return;
+    m.position.set(x, y + 0.75, z);
+    m.rotation.y = time * 0.9;
+    (m.material as THREE.MeshBasicMaterial).opacity = 0.15 + 0.05 * Math.sin(time * 7 + seat);
   }
 
   flash(x: number, y: number, z: number, size: number): void {
@@ -419,11 +564,36 @@ export class CombatFx {
       g.visible = ready;
       const box = g.children[0]!;
       box.rotation.y = time * 1.4 + i;
-      box.rotation.x = 0.35;
-      box.position.y = 0.95 + Math.sin(time * 2.6 + i * 2) * 0.12;
+      box.position.y = 1.05 + Math.sin(time * 2.6 + i * 2) * 0.12;
     }
     if (this.strip) (this.strip.material as THREE.MeshBasicMaterial).opacity = 0.45 + 0.2 * Math.sin(time * 3.2);
     if (this.strip) this.plus.offset.y = -time * 0.6;
+
+    for (const r of this.rings) {
+      if (r.t <= 0) continue;
+      if (r.fresh) r.fresh = false;
+      else r.t -= dt;
+      if (r.t <= 0) {
+        r.mesh.visible = false;
+        continue;
+      }
+      const k = 1 - r.t / 0.45;
+      r.mesh.scale.setScalar(1 + (r.reach - 1) * k);
+      (r.mesh.material as THREE.MeshBasicMaterial).opacity = 0.85 * (1 - k);
+    }
+
+    for (let i = 0; i < this.rockets.length; i++) {
+      const model = this.rockets[i]!;
+      const rk = s && s.combat ? s.rockets[i] : undefined;
+      if (!rk) {
+        model.root.visible = false;
+        continue;
+      }
+      model.root.visible = true;
+      model.root.position.set(rk.x, 0.75, rk.z);
+      model.root.rotation.y = -Math.atan2(rk.dz, rk.dx);
+      model.flame.scale.set(0.8 + 0.4 * Math.sin(time * 60 + i), 1, 1);
+    }
 
     // fires: flames lick, the light on the ground breathes
     for (const f of this.fires) {
@@ -464,5 +634,6 @@ export class CombatFx {
     this.hazard.dispose();
     this.plus.dispose();
     this.chev.dispose();
+    for (const t of this.emblems.values()) t.dispose();
   }
 }

@@ -12,8 +12,8 @@
  * everyone for the rest of the race.
  */
 import { clamp, dcos, dsin, hashNumbers } from '../../core/dmath';
-import { COMBAT, damage, ram, stepCombat } from './combat';
-import type { Mine } from './combat';
+import { COMBAT, ITEM, damage, ram, stepCombat } from './combat';
+import type { ItemName, Mine, Rocket } from './combat';
 import { DEFAULT_TRACK, DT, KART, RACE, segDist2, trackById } from './track';
 import type { Capsule, Circle, Track } from './track';
 
@@ -24,12 +24,12 @@ export interface DriveInput {
   brake: boolean;
   /** combat races: hold to shoot straight ahead */
   fire?: boolean;
-  /** combat races: press to leave a mine behind */
-  drop?: boolean;
+  /** combat races: press to use whatever is in the slot (a mine, a rocket, a shield…) */
+  use?: boolean;
 }
 
 export function noDrive(): DriveInput {
-  return { steer: 0, drift: false, brake: false, fire: false, drop: false };
+  return { steer: 0, drift: false, brake: false, fire: false, use: false };
 }
 
 export const SURFACE = { road: 0, grass: 1, soil: 2, plank: 3 } as const;
@@ -88,9 +88,18 @@ export interface Kart {
   gunTicks: number;
   /** ticks since the last round was fired */
   idleTicks: number;
-  /** mines carried */
-  mines: number;
-  prevDrop: boolean;
+  /** what is in the slot (ITEM in combat.ts) and how many uses of it are left */
+  item: number;
+  charges: number;
+  prevUse: boolean;
+  /** the shield: > 0 while nothing can hurt this kart */
+  bubbleTicks: number;
+  /** when the shield last said it had stopped something */
+  blockTick: number;
+  /** overdrive: > 0 while whatever this kart touches has been rammed */
+  overTicks: number;
+  /** when this kart was last rammed */
+  ramTick: number;
   /** > 0 while wrecked and waiting to be put back */
   wreckTicks: number;
   /** times this kart has been wrecked */
@@ -130,7 +139,13 @@ export type RaceEvent =
   | { type: 'mine_drop'; seat: number; id: number }
   | { type: 'mine_hit'; seat: number; owner: number; id: number; x: number; z: number }
   | { type: 'mine_gone'; id: number }
-  | { type: 'crate'; seat: number; index: number }
+  | { type: 'crate'; seat: number; index: number; item: ItemName }
+  | { type: 'rocket'; seat: number; id: number; target: number }
+  | { type: 'rocket_hit'; seat: number; owner: number; id: number; x: number; z: number }
+  | { type: 'shock'; seat: number; x: number; z: number; hits: number }
+  | { type: 'shield_up'; seat: number }
+  | { type: 'blocked'; seat: number; by: number }
+  | { type: 'overdrive'; seat: number }
   | { type: 'repair'; seat: number; amount: number }
   | { type: 'ram'; seat: number; by: number; damage: number }
   | { type: 'wreck'; seat: number; by: number; out: boolean }
@@ -160,6 +175,9 @@ export interface RaceState {
   /** mines lying on the track */
   mines: Mine[];
   mineSeq: number;
+  /** rockets in flight */
+  rockets: Rocket[];
+  rocketSeq: number;
   /** the tick each of the track's crates is next available */
   crateReady: number[];
   /** to the death: how many wrecks each kart had in it at the start (0 = a wreck always comes back) */
@@ -216,7 +234,8 @@ export function createRace(config: RaceConfig = {}): RaceState {
       finished: false, finishTick: 0, place: i + 1, lapStartTick: 0, bestLapTicks: 0,
       stuckTicks: 0, wrongTicks: 0, blinkTicks: 0, prevDrift: false, driftHeldTicks: 0, startPressTick: -999, jumped: false, behind: false,
       pace: clamp(config.pace?.[i] ?? 1, 0.5, 1),
-      armor: COMBAT.armor, ammo: COMBAT.magazine, gunTicks: 0, idleTicks: 0, mines: 0, prevDrop: false,
+      armor: COMBAT.armor, ammo: COMBAT.magazine, gunTicks: 0, idleTicks: 0,
+      item: ITEM.none, charges: 0, prevUse: false, bubbleTicks: 0, blockTick: 0, overTicks: 0, ramTick: -COMBAT.ramCooldownTicks,
       wreckTicks: 0, wrecks: 0, kills: 0, hitBy: -1, hitTick: 0, repairTick: -COMBAT.repairCooldownTicks,
       lives, out: false, outTick: 0,
     });
@@ -226,7 +245,7 @@ export function createRace(config: RaceConfig = {}): RaceState {
     tick: 0, phase: 'countdown', phaseTick: 0, laps: Math.max(1, Math.floor(config.laps ?? RACE.laps)),
     karts, plankOpen: false, plankOpener: -1, firstFinishTick: 0, homeTick: 0,
     required: (config.required ?? []).filter((s) => s >= 0 && s < n),
-    combat: config.combat === true, mines: [], mineSeq: 0, crateReady: (track.combat?.crates ?? []).map(() => 0),
+    combat: config.combat === true, mines: [], mineSeq: 0, rockets: [], rocketSeq: 0, crateReady: (track.combat?.crates ?? []).map(() => 0),
     lives, lastStanding: -1,
     events: [],
   };
@@ -235,7 +254,7 @@ export function createRace(config: RaceConfig = {}): RaceState {
 export function cloneRace(s: RaceState): RaceState {
   return {
     ...s, karts: s.karts.map((k) => ({ ...k })), required: s.required.slice(),
-    mines: s.mines.map((m) => ({ ...m })), crateReady: s.crateReady.slice(), events: [],
+    mines: s.mines.map((m) => ({ ...m })), rockets: s.rockets.map((r) => ({ ...r })), crateReady: s.crateReady.slice(), events: [],
   };
 }
 
@@ -244,9 +263,10 @@ export function hashRace(s: RaceState): number {
   for (const k of s.karts) v.push(k.x, k.z, k.heading, k.vx, k.vz, k.y, k.charge, k.boostTicks, k.idx, k.lap, k.cpMask, k.place, k.finishTick);
   if (s.combat) {
     // (only for combat races, so a plain race hashes exactly as it always has)
-    for (const k of s.karts) v.push(k.armor, k.ammo, k.mines, k.wreckTicks, k.wrecks, k.kills, k.lives, k.out ? 1 : 0);
+    for (const k of s.karts) v.push(k.armor, k.ammo, k.item, k.charges, k.bubbleTicks, k.overTicks, k.wreckTicks, k.wrecks, k.kills, k.lives, k.out ? 1 : 0);
     v.push(s.lastStanding);
     for (const m of s.mines) v.push(m.id, m.x, m.z, m.owner);
+    for (const r of s.rockets) v.push(r.id, r.x, r.z, r.dx, r.dz, r.owner, r.target);
     for (const c of s.crateReady) v.push(c);
   }
   return hashNumbers(v);

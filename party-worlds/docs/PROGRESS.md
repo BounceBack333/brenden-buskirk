@@ -1,6 +1,6 @@
 # Progress and acceptance record
 
-Last updated: 2026-11-13 (to the death, D-026).
+Last updated: 2026-11-13 (things in the crates, D-027).
 
 ## Status words
 
@@ -13,7 +13,31 @@ Last updated: 2026-11-13 (to the death, D-026).
 | **Proposed** | Designed on paper only |
 | **Blocked** | Cannot proceed without the named dependency |
 
-One recording of Catapult Courier was made by the founder and reviewed by an advisor; that review is the reason for the change of direction (D-016). Apart from that, nothing in this project has been played by a person, and nothing has run on a physical phone that we have observed. There are no player reactions, retention figures, revenue figures or device frame rates in this repository, because none exist.
+One recording of Catapult Courier was made by the founder and reviewed by an advisor; that review is the reason for the change of direction (D-016). The founder has since played the armed race and said what is quoted below. Apart from that, nothing in this project has been played by a person, and nothing has run on a physical phone that we have observed. There are no retention figures, revenue figures or device frame rates in this repository, because none exist.
+
+## What the founder has said after playing
+
+Quoted exactly; nothing here is inferred. The device and the length of play are not known.
+
+| When | Build | What was said |
+|---|---|---|
+| 2026-11-13 | To the death (`1e199f4`) | "I like it. We're improving." |
+| 2026-11-13 | Same | Asked what felt off: "It felt good. Vehicles are weak, more power ups would be cool. Different weapons and such." Asked for a track built for fighting: "Do it." |
+
+## Milestone: things in the crates (D-027)
+
+**Asked for:** "Vehicles are weak, more power ups would be cool. Different weapons and such."
+
+| Area | Status | Evidence |
+|---|---|---|
+| One slot; rockets, shockwave, shield, ram, mines; crates that always hold the same thing | Implemented and tested | `tests/combat.test.ts` (45, eight of them new): each crate gives what it holds and comes back later; a full slot of the same thing leaves the crate, anything else is swapped; a rocket finds whoever was ahead, burns out with nobody there, and is stopped by the pot; a shockwave catches what is close and nothing else; a shield stops bullets, a mine and a rocket and then ends; a ram damages once per touch and costs the rammer nothing; nothing works before the weapons are live |
+| Rivals use them | Implemented and tested (they do); Simulated (how much) | `dev/combatprobe.ts`, 30 races a level, two lives: about four rockets a race (two or three hit), one or two each of shockwaves, shields and rams; 2.6 / 4.0 / 4.3 wrecks and 0.5 / 0.9 / 0.9 karts put out per race |
+| The plain race is still unchanged | Implemented and tested | Nine plain fingerprints identical; the eighteen armed ones re-recorded |
+| The slot's button, banners, the look of each thing | Implemented, **seen by me only** | Frames frozen on a rocket leaving and landing, a shockwave, a shield going up and a ram (`dev/combat-shots.mjs`). The first run of that script found nothing wrong with the game and two things wrong with the script (it parked karts off the lap, which made the game show its own recovery screen) |
+| Sound | Implemented, **measured but never heard** | Five new effects rendered offline: none silent, none clipping |
+| Scripted play-throughs on this build | Not yet run | — |
+
+**Total:** 171 of 171 tests pass (32 race and track, 45 combat, 6 medals and series, 10 character kit, 17 purity, 7 saved data, 9 game loop, 26 Courier, 19 room server); 27 fingerprints match; build 959 KB JS + 199 KB CSS (275 KB + 121 KB gzipped), inside the budget.
 
 ## Milestone: to the death (D-026)
 
@@ -31,7 +55,7 @@ One recording of Catapult Courier was made by the founder and reviewed by an adv
 | Checks | Implemented and tested | 163 tests; `npm run smoke` starts a race to the death, sees it go live, and starts a clean one |
 | Scripted play-throughs on this build | Not yet run | — |
 
-**Total:** 163 of 163 tests pass (32 race and track, 37 combat, 6 medals and series, 10 character kit, 17 purity, 7 saved data, 9 game loop, 26 Courier, 19 room server); type-check clean; 27 fingerprints match; build 948 KB JS + 198 KB CSS (272 KB + 120 KB gzipped), inside the budget.
+**Total at that point:** 163 of 163 tests (32 race and track, 37 combat, 6 medals and series, 10 character kit, 17 purity, 7 saved data, 9 game loop, 26 Courier, 19 room server); type-check clean; 27 fingerprints match; build 948 KB JS + 198 KB CSS (272 KB + 120 KB gzipped), inside the budget.
 
 ## Milestone: armed racing (D-025)
 

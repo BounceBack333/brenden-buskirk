@@ -8,7 +8,8 @@ import type { MusicMode, SfxName } from '../src/kit/contracts';
 const SFX: SfxName[] = ['ui_tap', 'ui_back', 'ui_confirm', 'ui_toggle', 'countdown', 'go', 'swap', 'launch', 'umbrella_open', 'umbrella_close',
   'umbrella_spent', 'boing', 'balloon_bump', 'balloon_pop', 'ring', 'rim', 'catch', 'catch_perfect', 'miss_splat', 'dive', 'skid', 'footstep',
   'score_tick', 'star', 'fanfare', 'whoops', 'boost', 'boost_big', 'charge', 'bump', 'kart_bump', 'land', 'lap', 'final_lap', 'plank',
-  'gun', 'gun_hit', 'gun_empty', 'explosion', 'mine_drop', 'crate', 'repair', 'weapons_hot', 'ram', 'respawn'];
+  'gun', 'gun_hit', 'gun_empty', 'explosion', 'mine_drop', 'crate', 'repair', 'weapons_hot', 'ram', 'respawn',
+  'rocket', 'shock', 'shield_up', 'shield_block', 'overdrive'];
 
 interface Row { name: string; ms: number; peak: number; rms: number; centroid: number; nan: boolean; tailDb: number }
 

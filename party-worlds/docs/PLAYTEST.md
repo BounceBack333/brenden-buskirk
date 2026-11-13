@@ -44,7 +44,8 @@ About ten minutes each. Say only: *"This is an early game. Play it however you l
 | The plank | Who takes it. Who falls off. Whether they try again |
 | Each other | Talking during the race? Blocking, shoving, towing on purpose? |
 | Guns | Do they notice the brackets? Do they chase a rival to shoot it, or only shoot what happens to be ahead? If the guns fire themselves, does anyone say they did not feel in control? Does anyone go looking for a FIRE button |
-| Mines | Does anybody pick up a crate on purpose? Lay one on purpose, and where? Who drives over their own |
+| The crates | Does anybody go for a particular crate on purpose, and which? Do they know what they are carrying without looking at the button? Which of the five gets a reaction, and which gets ignored. Does anybody say the karts feel stronger |
+| Mines | Lay one on purpose, and where? Who drives over their own |
 | Going out | The first time one of them is put out for good: what both say, and whether the one who is out wants the next race. Does anybody switch to Armed so that it cannot happen? Does anybody win by being the last one running, and do they think it counts |
 | Wrecks | What they say when wrecked, and when they wreck the other. Laughing, swearing, or silence? How many before somebody stops enjoying it |
 | Armour | Does anybody take the long way for the repair strip? Does a low bar change how they drive |

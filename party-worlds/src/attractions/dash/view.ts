@@ -83,6 +83,15 @@ class Sparks {
   }
 }
 
+/** What the banner calls each thing when you pick it up. */
+const ITEM_NAME: Readonly<Record<string, [string, string]>> = {
+  mine: ['Mines', 'Leave one where they have to drive'],
+  rocket: ['Rockets', 'Line somebody up ahead'],
+  shock: ['Shockwave', 'Set it off in a crowd'],
+  shield: ['Shield', 'Five seconds nothing can hurt you'],
+  overdrive: ['Ram', 'A long boost: drive into somebody'],
+};
+
 const TWO_PI = Math.PI * 2;
 function wrap(a: number): number {
   let x = a % TWO_PI;
@@ -467,8 +476,66 @@ export class RaceView {
       case 'crate':
         if (local(e.seat)) {
           a.play('crate');
-          this.onBanner?.(this.viewOf(e.seat), 'Mines loaded', '');
+          const [name, tip] = ITEM_NAME[e.item] ?? ['Loaded', ''];
+          this.onBanner?.(this.viewOf(e.seat), name, tip);
         }
+        break;
+      case 'rocket': {
+        const k = s.karts[e.seat]!;
+        if (local(e.seat)) {
+          a.play('rocket');
+          this.cam(e.seat).shake = Math.max(this.cam(e.seat).shake, 0.3);
+        } else if (this.near(k.x, k.z) < 50) a.play('rocket', { intensity: 0.35 });
+        if (e.target >= 0 && local(e.target)) this.onBanner?.(this.viewOf(e.target), 'Incoming!', `${this.names[e.seat] ?? 'Somebody'} fired a rocket at you`);
+        break;
+      }
+      case 'rocket_hit': {
+        this.boom(e.x, e.z, false);
+        this.fx.scorch(e.x, e.z, 3);
+        const d = this.near(e.x, e.z);
+        if (d < 70) a.play('explosion', { intensity: e.seat >= 0 && local(e.seat) ? 1 : Math.max(0.15, 0.75 - d / 70), pitch: 1.15 });
+        if (e.seat >= 0 && local(e.seat)) {
+          this.cam(e.seat).shake = 1.1;
+          this.onBuzz?.([40, 30, 60]);
+        }
+        if (e.seat >= 0 && local(e.owner)) this.onBanner?.(this.viewOf(e.owner), 'Rocket hit!', `${this.names[e.seat] ?? 'Somebody'} took it`);
+        break;
+      }
+      case 'shock': {
+        this.fx.ring(e.x, e.z, COMBAT.shockRadius);
+        this.burst(e.x, 0.5, e.z, 16, '#c79bff', 9, 0.18);
+        const d = this.near(e.x, e.z);
+        if (d < 50) a.play('shock', { intensity: local(e.seat) ? 1 : Math.max(0.2, 0.9 - d / 50) });
+        for (const seat of this.humans) {
+          const q = this.pose[seat];
+          if (q && seat !== e.seat && Math.hypot(q.x - e.x, q.z - e.z) <= COMBAT.shockRadius) {
+            this.cam(seat).shake = 0.9;
+            this.onBuzz?.([30, 20, 30, 20, 30]);
+          }
+        }
+        if (local(e.seat)) this.onBanner?.(this.viewOf(e.seat), 'Shockwave', e.hits === 0 ? 'Nobody was near enough' : e.hits === 1 ? 'Caught one of them' : `Caught ${e.hits} of them`);
+        break;
+      }
+      case 'shield_up':
+        if (local(e.seat)) {
+          a.play('shield_up');
+          this.onBanner?.(this.viewOf(e.seat), 'Shield up', '');
+        }
+        break;
+      case 'blocked': {
+        const q = this.pose[e.seat]!;
+        this.burst(q.x, 0.9, q.z, 5, '#8fd6ff', 3, 0.14);
+        if (local(e.seat)) a.play('shield_block');
+        else if (e.by >= 0 && local(e.by)) a.play('shield_block', { intensity: 0.5, pitch: 0.8 });
+        break;
+      }
+      case 'overdrive':
+        if (local(e.seat)) {
+          a.play('overdrive');
+          this.cam(e.seat).shake = 0.5;
+          this.onBuzz?.([20, 20, 60]);
+          this.onBanner?.(this.viewOf(e.seat), 'Ram!', 'Drive into somebody');
+        } else if (this.near(s.karts[e.seat]!.x, s.karts[e.seat]!.z) < 35) a.play('overdrive', { intensity: 0.4 });
         break;
       case 'repair':
         if (local(e.seat)) {
@@ -733,6 +800,15 @@ export class RaceView {
       }
       rig.update(dt, ctx);
 
+      // the shield's bubble; an overdrive throws sparks off the back
+      if (s.combat) this.fx.bubble(i, k.bubbleTicks > 0 && k.wreckTicks === 0, q.x, q.y, q.z, this.time, k.bubbleTicks < 60);
+      if (s.combat && emit && k.overTicks > 0) {
+        for (const side of [-1, 1] as const) {
+          kart.rearWheel(side, this.v);
+          this.sparks.spawn(this.v.x, this.v.y + 0.25, this.v.z, Math.sin(this.time * 41 + side) * 1.5, 1.5, Math.cos(this.time * 37 + side) * 1.5, 0.3, 0.2, side > 0 ? '#ffd23d' : '#ff8a2e', 3);
+        }
+      }
+
       // a battered kart smokes; a wreck pours it out
       if (s.combat && emit && !k.finished && !this.cleared[i] && (k.wreckTicks > 0 || (k.armor < 40 && (this.smokeTurn + i) % (k.armor < 20 ? 2 : 4) === 0))) {
         kart.bonnet(this.v);
@@ -756,6 +832,9 @@ export class RaceView {
         }
       }
     }
+
+    // rockets leave smoke behind them
+    if (s.combat && emit) for (const r of s.rockets) this.sparks.spawn(r.x - r.dx * 0.9, 0.75, r.z - r.dz * 0.9, 0, 0.5, 0, 0.45, 0.3, '#8a8a96', -0.4);
 
     // sound for the first local driver
     const me = s.karts[this.humans[0] ?? 0]!;

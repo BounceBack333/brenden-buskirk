@@ -111,11 +111,11 @@ export interface Track {
   };
   /**
    * What the combat layer needs from a circuit (see combat.ts). Without it a combat race here
-   * still has guns, mines carried from the start and ramming, but no refills and no repairs.
+   * still has guns and ramming, but nothing to pick up and no repairs.
    */
   combat?: {
-    /** mine crates, on the road but off the usual line */
-    crates: { x: number; z: number }[];
+    /** crates, on the road but off the usual line; each always holds the same thing */
+    crates: { x: number; z: number; item: 'mine' | 'rocket' | 'shock' | 'shield' | 'overdrive' }[];
     /** drive through for armour: put it on the long way round, so the shortcut costs something */
     repair: Zone;
   };
@@ -265,13 +265,19 @@ function buildBackyard(): Track {
   const ball: Circle = { x: 49.2, z: 15, r: 2.4 };
   const circles: Circle[] = [pot, ball, ...chairLegs];
 
-  // Mine crates sit to one side of the usual line: on the outside of the home straight, on the
-  // inside after the hairpin, and on the outside of the sweeper round the pot.
-  const beside = (index: number, lane: number): { x: number; z: number } => {
+  // Crates sit to one side of the usual line, each where its contents make sense: rockets at
+  // the start of the long home straight (a sight-line), mines before the chicane (somewhere to
+  // leave them), the shield on the long way round the flowerbed (one more reason not to take the
+  // plank), the overdrive on the run down to the sweeper, the shockwave where the pack bunches
+  // round the pot.
+  const beside = <T extends string>(index: number, lane: number, item: T): { x: number; z: number; item: T } => {
     const p = samples[index % samples.length]!;
-    return { x: p.x - p.tz * lane, z: p.z + p.tx * lane };
+    return { x: p.x - p.tz * lane, z: p.z + p.tx * lane, item };
   };
-  const crates = [beside(30, 2.2), beside(100, -2.2), beside(238, 2.2)];
+  const crates = [
+    beside(30, 2.2, 'rocket' as const), beside(100, -2.2, 'mine' as const), beside(164, 2.4, 'shield' as const),
+    beside(212, -2.1, 'overdrive' as const), beside(244, 2.2, 'shock' as const),
+  ];
 
   const grid = [
     { x: -9.5, z: 28.5, heading: 0 }, { x: -12.2, z: 31.5, heading: 0 },

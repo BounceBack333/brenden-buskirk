@@ -8,7 +8,7 @@
  */
 import { createRace, stepRace, noDrive, trackOf, forwardSpeed } from '../src/attractions/dash/sim';
 import type { DriveInput, RaceState } from '../src/attractions/dash/sim';
-import { COMBAT, gunTarget, weaponsHot } from '../src/attractions/dash/combat';
+import { COMBAT, ITEM, gunTarget, rocketTarget, weaponsHot } from '../src/attractions/dash/combat';
 import { Rival } from '../src/attractions/dash/bot';
 import { rivalLevel } from '../src/attractions/dash/rivals';
 
@@ -35,7 +35,7 @@ class Standin {
     this.seen.push({ x: k.x, z: k.z, h: k.heading, v: forwardSpeed(k), idx: k.idx, drifting: k.drifting, driftDir: k.driftDir, charge: k.charge, surface: k.surface });
     if (this.seen.length > 16) this.seen.shift();
     const p = this.seen[0]!;
-    o.fire = false; o.drop = false; o.brake = false;
+    o.fire = false; o.use = false; o.brake = false;
     if (s.phase === 'countdown') { o.steer = 0; o.drift = s.phaseTick >= 170; return o; }
     if (s.tick % 5 === 0) {
       const a = S[(p.idx + Math.round(6 + p.v * 0.55)) % N]!;
@@ -70,14 +70,24 @@ class Standin {
     o.drift = this.drift;
     if (this.shoots && weaponsHot(s)) {
       o.fire = gunTarget(s, track, seat) >= 0;
-      if (k.mines > 0 && s.tick % 90 === 0) {
+      // the slot, used roughly as a person would once they know what each thing is for
+      if (k.charges > 0 && s.tick % 45 === 0) {
         const fx = Math.cos(k.heading); const fz = Math.sin(k.heading);
+        let behind = false; let close = false; let ahead = false;
         for (let j = 0; j < s.karts.length; j++) {
           if (j === seat) continue;
           const ox = s.karts[j]!.x - k.x; const oz = s.karts[j]!.z - k.z;
           const d = Math.hypot(ox, oz);
-          if (d < 10 && ox * fx + oz * fz < -0.8 * d) o.drop = true;
+          const along = ox * fx + oz * fz;
+          if (d < 10 && along < -0.8 * d) behind = true;
+          if (d < COMBAT.shockRadius - 1) close = true;
+          if (along > 2 && along < 16 && Math.abs(ox * fz - oz * fx) < 3) ahead = true;
         }
+        if (k.item === ITEM.mine) o.use = behind;
+        else if (k.item === ITEM.rocket) o.use = rocketTarget(s, seat) >= 0;
+        else if (k.item === ITEM.shock) o.use = close;
+        else if (k.item === ITEM.overdrive) o.use = ahead;
+        else if (k.item === ITEM.shield) o.use = k.armor < 55;
       }
     }
     return o;
@@ -85,6 +95,7 @@ class Standin {
 }
 
 const outs = { me: 0, all: 0, standing: 0, meStanding: 0 };
+const used = { rocket: 0, rocketHits: 0, shock: 0, shockHits: 0, shield: 0, overdrive: 0 };
 const sum = { time: 0, finished: 0, place: 0, wins: 0, myWrecks: 0, myKills: 0, wrecks: 0, shots: 0, hits: 0, mineHits: 0, ownMine: 0, drops: 0, crates: 0, repairs: 0, rams: 0, ramDamage: 0, walls: 0, rivalTime: 0, rivalN: 0, armorAtEnd: 0 };
 const worst = { wrecks: 0 };
 for (let r = 0; r < races; r++) {
@@ -103,6 +114,11 @@ for (let r = 0; r < races; r++) {
       else if (e.type === 'wreck') { sum.wrecks++; raceWrecks++; }
       else if (e.type === 'mine_hit') { sum.mineHits++; if (e.owner === e.seat) sum.ownMine++; }
       else if (e.type === 'mine_drop') sum.drops++;
+      else if (e.type === 'rocket') used.rocket++;
+      else if (e.type === 'rocket_hit' && e.seat >= 0) used.rocketHits++;
+      else if (e.type === 'shock') { used.shock++; used.shockHits += e.hits; }
+      else if (e.type === 'shield_up') used.shield++;
+      else if (e.type === 'overdrive') used.overdrive++;
       else if (e.type === 'crate') sum.crates++;
       else if (e.type === 'repair') sum.repairs++;
       else if (e.type === 'ram') { sum.rams++; sum.ramDamage += e.damage; }
@@ -123,4 +139,5 @@ console.log(`${COMBAT_ON ? 'COMBAT' : 'plain'} · rivals ${LEVEL.name} · ${race
 console.log(`stand-in: place ${(sum.place / races).toFixed(2)}, wins ${sum.wins}/${races}, race ${(sum.time / Math.max(1, sum.finished)).toFixed(1)} s (${sum.finished} finished), wrecked ${per(sum.myWrecks)} a race, wrecks caused ${per(sum.myKills)}, armour at the flag ${per(sum.armorAtEnd)}`);
 console.log(`rivals: race ${(sum.rivalTime / Math.max(1, sum.rivalN)).toFixed(1)} s`);
 if (COMBAT_ON && LIVES > 0) console.log(`to the death (${LIVES} lives): stand-in put out in ${outs.me}/${races} races; karts put out per race ${(outs.all / races).toFixed(2)}; races won by the last kart running ${outs.standing}/${races} (the stand-in ${outs.meStanding})`);
+if (COMBAT_ON) console.log(`per race, from the crates: rockets ${per(used.rocket)} (${per(used.rocketHits)} hit), shockwaves ${per(used.shock)} (${per(used.shockHits)} karts caught), shields ${per(used.shield)}, overdrives ${per(used.overdrive)}`);
 console.log(`per race, all four karts: wrecks ${per(sum.wrecks)} (most in one race ${worst.wrecks}), rounds ${per(sum.shots)} (${sum.shots ? Math.round((100 * sum.hits) / sum.shots) : 0}% hit), mines dropped ${per(sum.drops)}, mine hits ${per(sum.mineHits)} (own mine ${per(sum.ownMine)}), crates ${per(sum.crates)}, repairs ${per(sum.repairs)}, rams ${per(sum.rams)} (${(sum.ramDamage / Math.max(1, sum.rams)).toFixed(1)} armour each)`);

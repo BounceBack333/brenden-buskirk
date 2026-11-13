@@ -14,7 +14,7 @@ export interface AudioKitOptions {
 }
 
 /** Sounds that may be dropped when a lot is already playing. */
-const LOW_PRIORITY: ReadonlySet<SfxName> = new Set<SfxName>(['footstep', 'skid', 'score_tick', 'gun', 'gun_hit']);
+const LOW_PRIORITY: ReadonlySet<SfxName> = new Set<SfxName>(['footstep', 'skid', 'score_tick', 'gun', 'gun_hit', 'shield_block']);
 const MAX_VOICES = 44;
 
 // ───────────────────────────── music ─────────────────────────────
@@ -396,6 +396,29 @@ export function createAudioKit(opts: AudioKitOptions = {}): AudioKit {
       case 'respawn':
         eng.tone({ type: 'triangle', f0: 220, f1: 880, dur: 0.3, gain: 0.14 });
         eng.pluck(midi(81), 0.26, 0.4, 0.12, 1);
+        break;
+      case 'rocket':
+        // a hiss that climbs as it leaves
+        eng.burst({ dur: 0.45, gain: 0.2 + 0.25 * i, f0: 700, f1: 3200, q: 1.2, pan, attack: 0.01 });
+        eng.tone({ type: 'sawtooth', f0: 160, f1: 520, dur: 0.35, gain: 0.07 + 0.06 * i, pan, lowpass: 1800 });
+        break;
+      case 'shock':
+        eng.tone({ type: 'sawtooth', f0: 900, f1: 70, dur: 0.32, gain: 0.16 + 0.14 * i, pan, lowpass: 3600 });
+        eng.burst({ dur: 0.25, gain: 0.2 + 0.2 * i, f0: 2600, f1: 400, q: 0.9, pan, attack: 0.002 });
+        eng.tone({ f0: 80, f1: 40, dur: 0.3, gain: 0.25, pan });
+        break;
+      case 'shield_up':
+        eng.tone({ type: 'triangle', f0: 330, f1: 990, dur: 0.22, gain: 0.14 });
+        eng.pluck(midi(84), 0.16, 0.5, 0.11, 1);
+        eng.pluck(midi(91), 0.22, 0.6, 0.08, 1);
+        break;
+      case 'shield_block':
+        eng.tone({ type: 'triangle', f0: 1900 * p, f1: 1500, dur: 0.07, gain: 0.07 + 0.05 * i, pan });
+        break;
+      case 'overdrive':
+        eng.tone({ type: 'sawtooth', f0: 70, f1: 190, dur: 0.7, gain: 0.2, lowpass: 900 });
+        eng.burst({ dur: 0.7, gain: 0.45, f0: 300, f1: 3600, q: 0.7, attack: 0.04 });
+        eng.pluck(midi(76), 0.05, 0.3, 0.1, 1);
         break;
       case 'plank':
         eng.tone({ f0: 180, f1: 90, dur: 0.12, gain: 0.4 });

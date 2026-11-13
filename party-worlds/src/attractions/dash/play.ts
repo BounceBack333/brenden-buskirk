@@ -6,7 +6,8 @@
  * Hold DRIFT while turning to slide; let go to boost. A second finger also drifts. With
  * "auto drift" (the default when two people share a screen) steering hard starts the slide.
  * In a combat race FIRE shoots straight ahead (or, with "auto fire", the guns shoot by
- * themselves when a rival is in the sights) and MINE leaves one behind.
+ * themselves when a rival is in the sights) and the other button uses whatever was last picked
+ * up from a crate: a mine, a rocket, a shockwave, a shield or a ram.
  */
 import type { Pointers, Ptr } from '../../core/pointers';
 import type { Settings } from '../../core/profile';
@@ -14,7 +15,8 @@ import type { StageSize } from '../../core/viewport';
 import { esc } from '../../ui/hud';
 import { ICON } from '../../ui/icons';
 import { Rival } from './bot';
-import { COMBAT, gunTarget, weaponsHot } from './combat';
+import { COMBAT, gunTarget, itemOf, weaponsHot } from './combat';
+import type { ItemName } from './combat';
 import { KART, RACE } from './track';
 import type { Track } from './track';
 import { createRace, forwardSpeed, noDrive, stepRace, trackOf } from './sim';
@@ -127,6 +129,7 @@ export class RaceControls {
     const out = combat
       ? { steer: Math.max(-1, Math.min(1, x)), drift: pressed(0) || pressed(5), brake: pressed(1) || pressed(6), fire: pressed(7) || pressed(2), drop: pressed(3) || pressed(4) }
       : { steer: Math.max(-1, Math.min(1, x)), drift: pressed(0) || pressed(5) || pressed(7), brake: pressed(1) || pressed(2) || pressed(6), fire: false, drop: false };
+    // (drop: the "use what is in the slot" button; the name is from when the slot only held mines)
     if (out.steer !== 0 || out.drift || out.brake || out.fire || out.drop) this.padUsed[view] = true;
     return out;
   }
@@ -180,7 +183,7 @@ export class RaceControls {
     o.drift = pad.driftBtn || pad.driftPtr !== null || keyDrift || auto || (!!gp && gp.drift);
     o.brake = pad.brakeBtn || keyBrake || (!!gp && gp.brake);
     o.fire = false;
-    o.drop = false;
+    o.use = false;
     if (combat) {
       const keyFire = split
         ? (view === 0 ? keys.has('Space') || keys.has('KeyF') : keys.has('Enter') || keys.has('ControlRight') || keys.has('Slash') || keys.has('Numpad0'))
@@ -191,7 +194,7 @@ export class RaceControls {
       // auto fire: the guns shoot whenever they would hit (always, for two sharing a touch screen)
       const autoFire = this.autoFire(view);
       o.fire = pad.fireBtn || keyFire || (!!gp && gp.fire) || (autoFire && weaponsHot(s) && gunTarget(s, trackOf(s), this.humans[view]!) >= 0);
-      o.drop = pad.mineBtn || keyDrop || (!!gp && gp.drop);
+      o.use = pad.mineBtn || keyDrop || (!!gp && gp.drop);
     }
     return o;
   }
@@ -205,6 +208,17 @@ export class RaceControls {
 // ───────────────────────────── HUD ─────────────────────────────
 
 const ORD = ['1st', '2nd', '3rd', '4th'];
+
+/** What the slot's button says, what each thing does (for the first time you carry it), and its colour everywhere. */
+export const ITEM_LABEL: Readonly<Record<ItemName, string>> = { mine: 'MINE', rocket: 'ROCKET', shock: 'SHOCK', shield: 'SHIELD', overdrive: 'RAM' };
+const ITEM_DOES: Readonly<Record<ItemName, string>> = {
+  mine: 'leaves a mine behind you',
+  rocket: 'fires a rocket at whoever is ahead',
+  shock: 'a blast that hurts and bogs down everyone near you',
+  shield: 'nothing can hurt you for five seconds',
+  overdrive: 'a long boost, and whoever you drive into takes the damage',
+};
+export const ITEM_COLOR: Readonly<Record<ItemName, string>> = { mine: '#ff3b3b', rocket: '#ff8a2e', shock: '#b06bff', shield: '#3db8ff', overdrive: '#ffd23d' };
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, html = ''): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -239,7 +253,9 @@ interface Pane {
   bannerUntil: number;
   lastPlace: number;
   lastArmor: number;
+  /** charges in the slot last frame, and what they were */
   lastMines: number;
+  lastItem: '' | ItemName;
   hurtUntil: number;
 }
 
@@ -298,7 +314,7 @@ export class RaceHud {
     const drift = el('button', 'race-btn drift touchable', 'DRIFT');
     const brake = el('button', 'race-btn brake touchable', 'BRAKE');
     const fire = el('button', 'race-btn fire touchable', 'FIRE');
-    const mine = el('button', 'race-btn mine touchable', 'MINE<b></b>');
+    const mine = el('button', 'race-btn mine touchable', '<span>—</span><b></b>');
     const kit = el('div', 'race-kit', '<div class="armor"><span>Armour</span><i><b></b></i></div><div class="ammo"><span>Guns</span><i><b></b></i></div><div class="lives"></div>');
     const lock = el('div', 'race-lock', '<i></i><i></i><i></i><i></i>');
     const hint = el('div', 'hint race-hint');
@@ -324,7 +340,7 @@ export class RaceHud {
     return {
       root: p, place, face, lap, meter, fill: meter.querySelector('i') as HTMLElement, banner, count, wrong, drift, brake, fire, mine,
       kit, armor: kit.querySelector('.armor') as HTMLElement, ammo: kit.querySelector('.ammo') as HTMLElement, lock,
-      hint, tags, tagBars: [null, null, null, null], bannerUntil: 0, lastPlace: 0, lastArmor: COMBAT.armor, lastMines: 0, hurtUntil: 0,
+      hint, tags, tagBars: [null, null, null, null], bannerUntil: 0, lastPlace: 0, lastArmor: COMBAT.armor, lastMines: 0, lastItem: '', hurtUntil: 0,
     };
   }
 
@@ -399,6 +415,8 @@ export class RaceHud {
       p.lastPlace = 0;
       p.lastArmor = COMBAT.armor;
       p.lastMines = 0;
+      p.lastItem = '';
+      delete p.mine.dataset.n;
       p.hurtUntil = 0;
       p.banner.classList.remove('show');
       for (const tag of p.tags) tag.dataset.k = '';
@@ -464,10 +482,10 @@ export class RaceHud {
         ctx.fillStyle = '#3dff9a';
         ctx.fillRect(rx - 4, ry - 1.5, 8, 3);
         ctx.fillRect(rx - 1.5, ry - 4, 3, 8);
-        ctx.fillStyle = '#ffb52e';
         tr.combat.crates.forEach((c, n) => {
           if (s.tick < (s.crateReady[n] ?? 0)) return;
           const [cx, cy] = this.mapXY(c.x, c.z);
+          ctx.fillStyle = ITEM_COLOR[c.item];
           ctx.fillRect(cx - 2.5, cy - 2.5, 5, 5);
         });
       }
@@ -558,11 +576,18 @@ export class RaceHud {
           livesEl.classList.toggle('last', s.lives > 0 && k.lives === 1);
         }
         p.root.classList.toggle('out', k.out);
-        if (k.mines !== p.lastMines || p.mine.dataset.n === undefined) {
-          p.mine.dataset.n = String(k.mines);
-          (p.mine.querySelector('b') as HTMLElement).textContent = k.mines > 0 ? `×${k.mines}` : '';
-          p.mine.classList.toggle('empty', k.mines === 0);
+        // the slot: what is in it, and how many
+        const item = itemOf(k);
+        const slot = `${item}:${k.charges}`;
+        if (p.mine.dataset.n !== slot) {
+          p.mine.dataset.n = slot;
+          p.mine.dataset.item = item;
+          (p.mine.querySelector('span') as HTMLElement).textContent = item ? ITEM_LABEL[item] : '—';
+          (p.mine.querySelector('b') as HTMLElement).textContent = k.charges > 1 ? `×${k.charges}` : '';
+          p.mine.classList.toggle('empty', !item);
         }
+        p.root.classList.toggle('bubble', k.bubbleTicks > 0);
+        p.root.classList.toggle('over', k.overTicks > 0);
         p.fire.classList.toggle('auto', this.controls.autoFire(i));
         p.fire.classList.toggle('locked', !hot);
         p.mine.classList.toggle('locked', !hot);
@@ -584,7 +609,7 @@ export class RaceHud {
         }
         p.lock.style.display = locked ? 'block' : 'none';
       } else {
-        p.root.classList.remove('hurt', 'wrecked', 'out');
+        p.root.classList.remove('hurt', 'wrecked', 'out', 'bubble', 'over');
         p.lock.style.display = 'none';
       }
       // first-race hints, retired once done; worded for whatever this player is steering with
@@ -602,7 +627,10 @@ export class RaceHud {
       else if (s.phase === 'racing' && !this.learned.steer) hint = touch ? `${ICON.hand}Drag left or right to steer` : onPad ? 'Steer with the stick' : `Steer with ${split ? (i === 0 ? 'A / D' : '← / →') : 'A / D or ← / →'}`;
       else if (s.phase === 'racing' && !this.learned.drift && s.phaseTick > 240) hint = auto ? 'Steer hard into a corner to slide, ease off to boost' : `Hold ${touch ? 'DRIFT' : driftKey} in a corner, let go to boost`;
       else if (s.combat && weaponsHot(s) && !this.learned.guns) hint = autoGuns ? 'Line a rival up in front of you: your guns do the rest' : `Hold ${touch ? 'FIRE' : fireKey} to shoot whoever is in front of you`;
-      else if (s.combat && weaponsHot(s) && k.mines > 0 && !this.learned.mines) hint = `${touch ? 'MINE' : `Press ${mineKey}:`} leaves a mine behind you`;
+      else if (s.combat && weaponsHot(s) && itemOf(k) && !this.learned[`item_${itemOf(k)}`]) {
+        const it = itemOf(k) as ItemName;
+        hint = `${touch ? ITEM_LABEL[it] : `Press ${mineKey}`}: ${ITEM_DOES[it]}`;
+      }
       else if (s.combat && k.armor < 55 && k.wreckTicks === 0 && !this.learned.repair) hint = 'The green strip on the long way round mends your armour';
       else if (s.phase === 'racing' && !s.plankOpen && !this.learned.plank && k.lap >= 2) hint = 'Bump the glowing peg to drop the plank';
       if (p.hint.dataset.t !== hint) {
@@ -676,10 +704,12 @@ export class RaceHud {
       if (s.plankOpen) this.learned.plank = true;
       if (s.combat) {
         if (k.ammo < COMBAT.magazine) this.learned.guns = true;
-        if (k.mines < p.lastMines) this.learned.mines = true;
+        // used one: that item needs no more explaining
+        if (k.charges < p.lastMines && p.lastItem) this.learned[`item_${p.lastItem}`] = true;
+        p.lastItem = itemOf(k);
         if (k.armor > p.lastArmor + 1 && k.wreckTicks === 0 && p.lastArmor > 0) this.learned.repair = true;
         p.lastArmor = k.armor;
-        p.lastMines = k.mines;
+        p.lastMines = k.charges;
       }
     });
   }

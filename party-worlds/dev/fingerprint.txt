@@ -7,21 +7,21 @@ backyard keen seed 3003: tick 3933 hash 2457981225 plank 3 order 2134
 backyard fierce seed 11: tick 3585 hash 1981207684 plank 2 order 4132
 backyard fierce seed 202: tick 3427 hash 2089674936 plank 0 order 2413
 backyard fierce seed 3003: tick 3488 hash 129180060 plank 0 order 1234
-backyard armed gentle seed 11: tick 4673 hash 3558460178 plank 1 order 1234 wrecks 1100
-backyard armed gentle seed 202: tick 5002 hash 1813174576 plank 2 order 2134 wrecks 2002
-backyard armed gentle seed 3003: tick 4870 hash 906511273 plank 0 order 1234 wrecks 1001
-backyard armed keen seed 11: tick 4342 hash 62677144 plank 0 order 1243 wrecks 1111
-backyard armed keen seed 202: tick 4160 hash 2065653672 plank 2 order 1234 wrecks 0000
-backyard armed keen seed 3003: tick 4288 hash 3229005885 plank 0 order 2134 wrecks 0110
-backyard armed fierce seed 11: tick 4075 hash 2954424931 plank 0 order 4321 wrecks 2111
-backyard armed fierce seed 202: tick 3997 hash 2047998367 plank 1 order 3214 wrecks 1101
-backyard armed fierce seed 3003: tick 4028 hash 3603014848 plank 2 order 1324 wrecks 1201
-backyard death gentle seed 11: tick 4673 hash 3680094994 plank 1 order 1234 wrecks 1100 out ----
-backyard death gentle seed 202: tick 4007 hash 2968068868 plank 2 order 4123 wrecks 2002 out x--x
-backyard death gentle seed 3003: tick 4870 hash 933774249 plank 0 order 1234 wrecks 1001 out ----
-backyard death keen seed 11: tick 4342 hash 2350669976 plank 0 order 1243 wrecks 1111 out ----
-backyard death keen seed 202: tick 4160 hash 4213137320 plank 2 order 1234 wrecks 0000 out ----
-backyard death keen seed 3003: tick 4288 hash 1222031421 plank 0 order 2134 wrecks 0110 out ----
-backyard death fierce seed 11: tick 3932 hash 2809135760 plank 0 order 4321 wrecks 2111 out x---
-backyard death fierce seed 202: tick 3997 hash 3282172319 plank 1 order 3214 wrecks 1101 out ----
-backyard death fierce seed 3003: tick 4028 hash 1634879123 plank 2 order 1423 wrecks 1201 out -x--
+backyard armed gentle seed 11: tick 4471 hash 345642330 plank 0 order 2134 wrecks 1000
+backyard armed gentle seed 202: tick 4202 hash 1962189185 plank 0 order 1234 wrecks 0110
+backyard armed gentle seed 3003: tick 4357 hash 2439366366 plank 3 order 3124 wrecks 2000
+backyard armed keen seed 11: tick 4143 hash 2033104932 plank 0 order 3142 wrecks 2020
+backyard armed keen seed 202: tick 4108 hash 2824195228 plank 0 order 1243 wrecks 0120
+backyard armed keen seed 3003: tick 4253 hash 2621066771 plank 0 order 1234 wrecks 0211
+backyard armed fierce seed 11: tick 4004 hash 682168664 plank 0 order 2134 wrecks 1121
+backyard armed fierce seed 202: tick 3957 hash 2025193935 plank 0 order 4123 wrecks 1121
+backyard armed fierce seed 3003: tick 3905 hash 212828592 plank 0 order 1234 wrecks 0211
+backyard death gentle seed 11: tick 4471 hash 3777631578 plank 0 order 2134 wrecks 1000 out ----
+backyard death gentle seed 202: tick 4202 hash 1089773953 plank 0 order 1234 wrecks 0110 out ----
+backyard death gentle seed 3003: tick 4357 hash 3731958582 plank 3 order 4123 wrecks 2000 out x---
+backyard death keen seed 11: tick 3990 hash 3658440870 plank 0 order 4132 wrecks 2020 out x-x-
+backyard death keen seed 202: tick 4066 hash 2652617289 plank 0 order 1243 wrecks 0120 out --x-
+backyard death keen seed 3003: tick 4120 hash 71031662 plank 0 order 1423 wrecks 0210 out -x--
+backyard death fierce seed 11: tick 3977 hash 1154635093 plank 0 order 2143 wrecks 1121 out --x-
+backyard death fierce seed 202: tick 3988 hash 3795522238 plank 0 order 3142 wrecks 1121 out --x-
+backyard death fierce seed 3003: tick 4125 hash 4044671371 plank 0 order 1432 wrecks 0211 out -x--

@@ -2,7 +2,7 @@
 
 **Our people and pets, inside impossible little worlds.**
 
-A combat racing game for adults: you and your friends (or a bear in a jacket, a frog in a cowboy hat, your dog) as armed tin-toy racers in places hidden in ordinary objects. The playable prototype is **Backyard Dash**: three laps of a patio at night. Karts drive themselves, you steer; hold DRIFT through a corner and let go for a boost; shoot whoever is in front of you and leave mines for whoever is behind; take the road past the repair strip or risk the plank across the flowerbed, once somebody has knocked the peg out from under it. Run out of armour and you are a wreck; be wrecked twice and you are out for good. The last kart running wins.
+A combat racing game for adults: you and your friends (or a bear in a jacket, a frog in a cowboy hat, your dog) as armed tin-toy racers in places hidden in ordinary objects. The playable prototype is **Backyard Dash**: three laps of a patio at night. Karts drive themselves, you steer; hold DRIFT through a corner and let go for a boost; shoot whoever is in front of you, and use whatever you picked up from the crates (mines, rockets, a shockwave, a shield, a ram); take the road past the repair strip or risk the plank across the flowerbed, once somebody has knocked the peg out from under it. Run out of armour and you are a wreck; be wrecked twice and you are out for good. The last kart running wins.
 
 This is a **web build** (TypeScript + Three.js). It is not a native iOS app. Nobody has play-tested it yet. See `docs/PROGRESS.md` for exactly what is and is not proven.
 
@@ -22,7 +22,7 @@ Every build has a label (version, commit, day built) on the last line of Setting
 | Command | What it does |
 |---|---|
 | `npm run dev` | Development server with hot reload |
-| `npm test` | 163 automated tests: race rules, combat rules, tracks, medals and series, the character kit, the simulation purity rule, saved data, the game loop, Courier rules, private-room server |
+| `npm test` | 171 automated tests: race rules, combat rules, tracks, medals and series, the character kit, the simulation purity rule, saved data, the game loop, Courier rules, private-room server |
 | `npm run check` | Everything a change must pass: type-check, tests, race fingerprint, build, size budget. CI runs exactly this |
 | `npm run smoke` | Starts the built game in a headless browser, begins an armed race, a clean one and a Courier round, fails on any page error (after a build; CI runs it too) |
 | `npm run size` | Built file sizes against the budget (after a build) |
@@ -48,7 +48,7 @@ Every build has a label (version, commit, day built) on the last line of Setting
 | Start boost | Press DRIFT just before GO | same |
 | Brake / reverse | BRAKE | S or ↓ |
 | Fire (armed races) | The guns fire by themselves when a rival is in your sights; switch "Auto fire" off in Settings for a FIRE button | F (or W, ↑, Enter) |
-| Drop a mine (armed races) | MINE | E |
+| Use what you picked up (armed races): mine, rocket, shockwave, shield or ram | The button that names it | E |
 | Split screen | Each half is its own stick; steering hard starts the drift by itself, and the guns fire by themselves | Player 1: A / D steer, W drift, S brake, Space fire, E mine · Player 2: ← / → steer, ↑ drift, ↓ brake, Enter fire, right Shift mine |
 | Game controller | — | Stick or d-pad to steer, A (or right bumper) to drift, B to brake; armed, right trigger or X fires and Y drops a mine. One controller per player in split screen. A also presses the main button between races; Start pauses |
 

@@ -240,7 +240,8 @@ export type SfxName =
   | 'dive' | 'skid' | 'footstep'
   | 'score_tick' | 'star' | 'fanfare' | 'whoops'
   | 'boost' | 'boost_big' | 'charge' | 'bump' | 'kart_bump' | 'land' | 'lap' | 'final_lap' | 'plank'
-  | 'gun' | 'gun_hit' | 'gun_empty' | 'explosion' | 'mine_drop' | 'crate' | 'repair' | 'weapons_hot' | 'ram' | 'respawn';
+  | 'gun' | 'gun_hit' | 'gun_empty' | 'explosion' | 'mine_drop' | 'crate' | 'repair' | 'weapons_hot' | 'ram' | 'respawn'
+  | 'rocket' | 'shock' | 'shield_up' | 'shield_block' | 'overdrive';
 
 export type MusicMode = 'off' | 'menu' | 'play' | 'tense' | 'win' | 'race' | 'combat';
 

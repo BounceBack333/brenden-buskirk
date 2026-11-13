@@ -597,3 +597,16 @@ input[type='range'] { accent-color: var(--coral); }
 .race-feed .line.out { border-left-color: #fff; background: rgba(160, 10, 10, 0.85); }
 /* three ways to race on one row */
 .rivals-row .seg button[data-rules] { flex: 0 0 auto; min-width: calc(var(--u) * 13); padding: 0 calc(var(--u) * 2.6); white-space: nowrap; }
+/* the slot: the button takes the colour of what is in it */
+.race-btn.mine span { line-height: 1; }
+.race-btn.mine[data-item='mine'] { box-shadow: inset 0 0 0 calc(var(--u) * 0.6) #ff3b3b, 0 0 calc(var(--u) * 2.6) rgba(255, 59, 59, 0.5); }
+.race-btn.mine[data-item='rocket'] { box-shadow: inset 0 0 0 calc(var(--u) * 0.6) #ff8a2e, 0 0 calc(var(--u) * 2.6) rgba(255, 138, 46, 0.55); }
+.race-btn.mine[data-item='shock'] { box-shadow: inset 0 0 0 calc(var(--u) * 0.6) #b06bff, 0 0 calc(var(--u) * 2.6) rgba(176, 107, 255, 0.55); }
+.race-btn.mine[data-item='shield'] { box-shadow: inset 0 0 0 calc(var(--u) * 0.6) #3db8ff, 0 0 calc(var(--u) * 2.6) rgba(61, 184, 255, 0.55); }
+.race-btn.mine[data-item='overdrive'] { box-shadow: inset 0 0 0 calc(var(--u) * 0.6) #ffd23d, 0 0 calc(var(--u) * 2.6) rgba(255, 210, 61, 0.55); }
+.race-btn.mine.empty { box-shadow: inset 0 0 0 calc(var(--u) * 0.4) rgba(255, 255, 255, 0.35); }
+.race-btn.mine:not(.empty) { font-size: calc(var(--u) * 2.7); }
+/* while a shield or an overdrive is running, the edge of the view says so */
+.race-pane::before { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+.race-pane.bubble::before { opacity: 1; box-shadow: inset 0 0 calc(var(--u) * 12) calc(var(--u) * 2) rgba(61, 184, 255, 0.6); }
+.race-pane.over::before { opacity: 1; box-shadow: inset 0 0 calc(var(--u) * 12) calc(var(--u) * 2) rgba(255, 190, 40, 0.6); }

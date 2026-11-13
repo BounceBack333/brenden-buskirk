@@ -97,7 +97,7 @@ const read = () => page.evaluate(() => {
     karts: s.karts.map((k) => ({
       x: k.x, z: k.z, h: k.heading, vx: k.vx, vz: k.vz, idx: k.idx, lap: k.lap, drifting: k.drifting, driftDir: k.driftDir,
       steer: k.steer, charge: k.charge, boost: k.boostTicks, surface: k.surface, finished: k.finished, place: k.place, y: k.y, stun: k.stunTicks,
-      armor: k.armor, ammo: k.ammo, mines: k.mines, wreck: k.wreckTicks, wrecks: k.wrecks, kills: k.kills, out: k.out,
+      armor: k.armor, ammo: k.ammo, mines: k.charges, wreck: k.wreckTicks, wrecks: k.wrecks, kills: k.kills, out: k.out,
     })),
   };
 });

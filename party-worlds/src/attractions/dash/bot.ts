@@ -7,7 +7,7 @@
  */
 import { Rng, clamp } from '../../core/dmath';
 import { KART } from './track';
-import { canBeHit, gunTarget, weaponsHot } from './combat';
+import { COMBAT, ITEM, canBeHit, gunTarget, rocketTarget, weaponsHot } from './combat';
 import { forwardSpeed, noDrive, trackOf } from './sim';
 import type { DriveInput, RaceState } from './sim';
 
@@ -46,7 +46,7 @@ export class Rival {
     o.drift = false;
     o.brake = false;
     o.fire = false;
-    o.drop = false;
+    o.use = false;
     const k = s.karts[seat];
     if (!k || s.phase === 'over' || k.out) return o;
     if (s.phase === 'countdown') {
@@ -105,8 +105,8 @@ export class Rival {
       const lane = clamp(this.lane * 0.55 + inside + this.wobble, -(p.hw - 1.6), p.hw - 1.6);
       tx = p.x - p.tz * lane;
       tz = p.z + p.tx * lane;
-      // out of mines: swing over for a crate that is coming up
-      if (s.combat && k.mines === 0 && this.skill > 0.3 && track.combat) {
+      // nothing in the slot: swing over for a crate that is coming up
+      if (s.combat && k.charges === 0 && this.skill > 0.3 && track.combat) {
         const hx = Math.cos(k.heading);
         const hz = Math.sin(k.heading);
         for (let c = 0; c < track.combat.crates.length; c++) {
@@ -174,20 +174,35 @@ export class Rival {
       // guns: squeeze once somebody has sat in the sights for a moment (the sharper, the sooner)
       this.sights = gunTarget(s, track, seat) >= 0 ? this.sights + 1 : 0;
       o.fire = k.ammo > 0 && this.sights > Math.round(16 - 13 * this.skill);
-      // a mine for whoever is sitting on the tail
-      if (k.mines > 0 && s.tick >= this.nextMine) {
+      // whatever is in the slot, used the way it is meant to be (a press is one tick, then a pause)
+      if (k.charges > 0 && s.tick >= this.nextMine) {
+        let use = false;
+        let behind = false; // somebody sitting on the tail
+        let close = 0; // rivals inside a shockwave's reach
+        let ahead = false; // somebody near enough in front to drive into
         for (let j = 0; j < s.karts.length; j++) {
           const other = s.karts[j]!;
           if (j === seat || !canBeHit(other)) continue;
           const ox = other.x - k.x;
           const oz = other.z - k.z;
           const d2 = ox * ox + oz * oz;
-          if (d2 > 100 || d2 < 4) continue;
-          if (ox * fx + oz * fz < -0.8 * Math.sqrt(d2)) {
-            o.drop = true;
-            this.nextMine = s.tick + 75;
-            break;
-          }
+          const along = ox * fx + oz * fz;
+          if (d2 <= 100 && d2 >= 4 && along < -0.8 * Math.sqrt(d2)) behind = true;
+          if (d2 <= (COMBAT.shockRadius - 1.5) * (COMBAT.shockRadius - 1.5)) close++;
+          if (along > 2 && along < 16 && Math.abs(ox * fz - oz * fx) < 3) ahead = true;
+        }
+        if (k.item === ITEM.mine) use = behind;
+        else if (k.item === ITEM.rocket) use = rocketTarget(s, seat) >= 0 && this.sights >= 0 && this.rng.next() < 0.04 + this.skill * 0.1;
+        else if (k.item === ITEM.shock) use = close >= 1;
+        else if (k.item === ITEM.overdrive) use = ahead && vf > 8;
+        else if (k.item === ITEM.shield) {
+          // when it is being hurt and has something left to save, or a rocket is coming for it
+          use = k.armor < 55 && s.tick - k.hitTick < 30;
+          for (const r of s.rockets) if (r.target === seat && r.owner !== seat) use = true;
+        }
+        if (use) {
+          o.use = true;
+          this.nextMine = s.tick + 60;
         }
       }
     }

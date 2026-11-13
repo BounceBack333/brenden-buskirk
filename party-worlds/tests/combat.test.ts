@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { cloneRace, createRace, hashRace, noDrive, stepRace, trackOf } from '../src/attractions/dash/sim';
 import type { DriveInput, RaceEvent, RaceState } from '../src/attractions/dash/sim';
-import { COMBAT, canBeHit, gunTarget, weaponsHot } from '../src/attractions/dash/combat';
+import { COMBAT, ITEM, ITEM_CHARGES, canBeHit, gunTarget, itemOf, rocketTarget, weaponsHot } from '../src/attractions/dash/combat';
 import { Rival } from '../src/attractions/dash/bot';
 import { KART, RACE, TRACK_IDS, trackById } from '../src/attractions/dash/track';
 
@@ -42,8 +42,9 @@ const of = <T extends RaceEvent['type']>(ev: RaceEvent[], type: T): Extract<Race
 describe('a plain race stays plain', () => {
   it('ignores the trigger and the mine button, and nothing loses armour', () => {
     const s = arena([[0, 30], [8, 30]], false);
-    s.karts[0]!.mines = 2;
-    const ev = run(s, 240, { 0: { fire: true, drop: true } });
+    s.karts[0]!.item = ITEM.mine;
+    s.karts[0]!.charges = 2;
+    const ev = run(s, 240, { 0: { fire: true, use: true } });
     expect(of(ev, 'shot').length).toBe(0);
     expect(of(ev, 'mine_drop').length).toBe(0);
     expect(s.mines.length).toBe(0);
@@ -55,7 +56,7 @@ describe('a plain race stays plain', () => {
     const b = createRace({ karts: 4 });
     for (let t = 0; t < 900; t++) {
       stepRace(a, inputs(4));
-      stepRace(b, inputs(4, { 0: { fire: true, drop: t % 7 === 0 }, 2: { fire: true } }));
+      stepRace(b, inputs(4, { 0: { fire: true, use: t % 7 === 0 }, 2: { fire: true } }));
     }
     expect(hashRace(b)).toBe(hashRace(a));
   });
@@ -140,19 +141,21 @@ describe('guns', () => {
 describe('mines', () => {
   it('drop behind the kart, one per press, and only if it has one', () => {
     const s = arena([[0, 30]]);
-    expect(of(run(s, 2, { 0: { drop: true } }), 'mine_drop').length).toBe(0);
+    expect(of(run(s, 2, { 0: { use: true } }), 'mine_drop').length).toBe(0);
     run(s, 1); // let go of the button
-    s.karts[0]!.mines = 2;
+    s.karts[0]!.item = ITEM.mine;
+    s.karts[0]!.charges = 2;
     const x = s.karts[0]!.x;
-    const ev = run(s, 30, { 0: { drop: true } }); // held: still one
+    const ev = run(s, 30, { 0: { use: true } }); // held: still one
     expect(of(ev, 'mine_drop').length).toBe(1);
     expect(s.mines.length).toBe(1);
-    expect(s.karts[0]!.mines).toBe(1);
+    expect(s.karts[0]!.charges).toBe(1);
     expect(s.mines[0]!.x).toBeLessThan(x); // behind a kart that faces east
     expect(s.mines[0]!.owner).toBe(0);
     run(s, 1);
-    expect(of(run(s, 1, { 0: { drop: true } }), 'mine_drop').length).toBe(1);
-    expect(s.karts[0]!.mines).toBe(0);
+    expect(of(run(s, 1, { 0: { use: true } }), 'mine_drop').length).toBe(1);
+    expect(s.karts[0]!.charges).toBe(0);
+    expect(itemOf(s.karts[0]!)).toBe('');
   });
 
   it('are harmless until armed, then take a large bite and spin whoever drives over them', () => {
@@ -183,8 +186,9 @@ describe('mines', () => {
     expect(of(run(s, 6), 'mine_gone').length).toBe(1);
     expect(s.mines.length).toBe(0);
     for (let i = 0; i < COMBAT.maxMines; i++) s.mines.push({ id: 10 + i, owner: 0, x: -70 + i, z: -35, armTick: 0, dieTick: s.tick + 99999 });
-    s.karts[0]!.mines = 1;
-    const ev = run(s, 2, { 0: { drop: true } });
+    s.karts[0]!.item = ITEM.mine;
+    s.karts[0]!.charges = 1;
+    const ev = run(s, 2, { 0: { use: true } });
     expect(s.mines.length).toBe(COMBAT.maxMines);
     expect(of(ev, 'mine_gone')[0]!.id).toBe(10);
   });
@@ -216,24 +220,40 @@ describe('crates and the repair strip', () => {
     }
   });
 
-  it('a crate fills the mines, then takes a while to come back', () => {
+  it('a crate gives what it holds, then takes a while to come back', () => {
+    const track = trackOf(createRace());
+    track.combat!.crates.forEach((crate, index) => {
+      const s = arena([[crate.x - 0.5, crate.z]]);
+      const ev = run(s, 2);
+      expect(of(ev, 'crate')[0]).toMatchObject({ seat: 0, index, item: crate.item });
+      expect(itemOf(s.karts[0]!)).toBe(crate.item);
+      expect(s.karts[0]!.charges).toBe(ITEM_CHARGES[crate.item]);
+      expect(s.crateReady[index]!).toBeGreaterThan(s.tick + COMBAT.crateRespawnTicks - 5);
+    });
+    // every kind of thing is out there somewhere
+    expect(new Set(track.combat!.crates.map((c) => c.item)).size).toBe(5);
+  });
+
+  it('an empty crate gives nothing; a full slot of the same thing leaves it; anything else is swapped', () => {
     const track = trackOf(createRace());
     const crate = track.combat!.crates[0]!;
-    const s = arena([[crate.x - 0.5, crate.z]]);
-    const ev = run(s, 2);
-    expect(of(ev, 'crate')[0]).toMatchObject({ seat: 0, index: 0 });
-    expect(s.karts[0]!.mines).toBe(COMBAT.carry);
-    expect(s.crateReady[0]!).toBeGreaterThan(s.tick + COMBAT.crateRespawnTicks - 5);
-    // a second kart arriving now gets nothing
+    const other = track.combat!.crates.find((c) => c.item !== crate.item)!;
     const t = arena([[crate.x - 0.5, crate.z], [0, 0]]);
     t.crateReady[0] = t.tick + 100;
     run(t, 2);
-    expect(t.karts[0]!.mines).toBe(0);
-    // a kart that is already full leaves it for somebody else
+    expect(t.karts[0]!.charges).toBe(0);
+
     const u = arena([[crate.x - 0.5, crate.z]]);
-    u.karts[0]!.mines = COMBAT.carry;
+    u.karts[0]!.item = ITEM[crate.item];
+    u.karts[0]!.charges = ITEM_CHARGES[crate.item];
     expect(of(run(u, 2), 'crate').length).toBe(0);
     expect(u.crateReady[0]!).toBe(0);
+
+    const v = arena([[crate.x - 0.5, crate.z]]);
+    v.karts[0]!.item = ITEM[other.item];
+    v.karts[0]!.charges = ITEM_CHARGES[other.item];
+    expect(of(run(v, 2), 'crate').length).toBe(1);
+    expect(itemOf(v.karts[0]!)).toBe(crate.item);
   });
 
   it('the repair strip gives armour back once per pass, never past full', () => {
@@ -353,6 +373,138 @@ describe('wrecks', () => {
     run(s, 10, { 0: { fire: true }, 1: { fire: true } });
     expect(s.karts[1]!.armor).toBe(COMBAT.armor);
     expect(s.karts[0]!.armor).toBe(COMBAT.armor);
+  });
+});
+
+describe('what is in the crates', () => {
+  const give = (s: RaceState, seat: number, item: number, charges = 1): void => {
+    s.karts[seat]!.item = item;
+    s.karts[seat]!.charges = charges;
+  };
+
+  it('nothing in the slot works before the weapons are live, or from a wreck', () => {
+    const s = createRace({ karts: 2, combat: true });
+    give(s, 0, ITEM.shield);
+    run(s, RACE.countdownTicks + 30, (t) => ({ 0: { use: t % 2 === 0 } }));
+    expect(s.karts[0]!.charges).toBe(1);
+    const w = arena([[0, 30], [-60, -30]]);
+    give(w, 0, ITEM.shield);
+    w.karts[0]!.wreckTicks = 50;
+    run(w, 3, { 0: { use: true } });
+    expect(w.karts[0]!.charges).toBe(1);
+  });
+
+  it('a rocket flies ahead, finds whoever was in front, and hits hard', () => {
+    const s = arena([[0, 30], [26, 33.5], [-60, -30]]);
+    give(s, 0, ITEM.rocket, 2);
+    expect(rocketTarget(s, 0)).toBe(1);
+    const launch = run(s, 1, { 0: { use: true } });
+    expect(of(launch, 'rocket')[0]).toMatchObject({ seat: 0, target: 1 });
+    expect(s.rockets.length).toBe(1);
+    expect(s.karts[0]!.charges).toBe(1);
+    const ev = run(s, COMBAT.rocketLifeTicks);
+    const hit = of(ev, 'rocket_hit')[0]!;
+    expect(hit).toMatchObject({ seat: 1, owner: 0 }); // it was off to one side: the rocket leaned over to it
+    expect(s.karts[1]!.armor).toBe(COMBAT.armor - COMBAT.rocketDamage);
+    expect(s.karts[1]!.hitBy).toBe(0);
+    expect(s.rockets.length).toBe(0);
+    expect(s.karts[0]!.armor).toBe(COMBAT.armor);
+  });
+
+  it('a rocket with nobody ahead flies straight and burns out; and the big pot stops one', () => {
+    const s = arena([[0, 30], [-20, 30]]);
+    give(s, 0, ITEM.rocket);
+    expect(rocketTarget(s, 0)).toBe(-1);
+    run(s, 1, { 0: { use: true } });
+    const z = s.rockets[0]!.z;
+    run(s, 20);
+    expect(Math.abs(s.rockets[0]!.z - z)).toBeLessThan(0.01);
+    const ev = run(s, COMBAT.rocketLifeTicks);
+    expect(of(ev, 'rocket_hit')[0]).toMatchObject({ seat: -1 });
+    expect(s.karts[1]!.armor).toBe(COMBAT.armor);
+    expect(itemOf(s.karts[0]!)).toBe('');
+
+    const track = trackOf(createRace());
+    const pot = track.dressing.pot;
+    const p = arena([[pot.x - 14, pot.z, 0], [pot.x + 14, pot.z]]);
+    give(p, 0, ITEM.rocket);
+    p.karts[0]!.vx = 0;
+    const flown = run(p, COMBAT.rocketLifeTicks + 2, (t) => ({ 0: { use: t === 0, brake: true }, 1: { brake: true } }));
+    const stopped = of(flown, 'rocket_hit')[0]!;
+    expect(stopped.seat).toBe(-1);
+    expect(Math.hypot(stopped.x - pot.x, stopped.z - pot.z)).toBeLessThan(pot.r + 0.1);
+    expect(p.karts[1]!.armor).toBe(COMBAT.armor);
+  });
+
+  it('a shockwave hurts and bogs down everything close, and nothing further off', () => {
+    const s = arena([[0, 30], [5, 31], [-4, 28], [COMBAT.shockRadius + 6, 30]]);
+    give(s, 0, ITEM.shock);
+    const ev = run(s, 1, { 0: { use: true } });
+    expect(of(ev, 'shock')[0]).toMatchObject({ seat: 0, hits: 2 });
+    for (const j of [1, 2]) {
+      expect(s.karts[j]!.armor).toBe(COMBAT.armor - COMBAT.shockDamage);
+      expect(s.karts[j]!.stallTicks).toBeGreaterThan(COMBAT.shockStallTicks - 3);
+    }
+    expect(s.karts[3]!.armor).toBe(COMBAT.armor);
+    expect(s.karts[3]!.stallTicks).toBe(0);
+    expect(s.karts[0]!.armor).toBe(COMBAT.armor);
+    expect(itemOf(s.karts[0]!)).toBe('');
+  });
+
+  it('a shield stops everything for a few seconds, and says so', () => {
+    const s = arena([[0, 30], [10, 30]]);
+    give(s, 1, ITEM.shield);
+    const up = run(s, 1, { 1: { use: true } });
+    expect(of(up, 'shield_up')[0]).toMatchObject({ seat: 1 });
+    expect(s.karts[1]!.bubbleTicks).toBeGreaterThan(COMBAT.bubbleTicks - 3);
+    // bullets, a mine and a rocket
+    s.mines.push({ id: 3, owner: 0, x: s.karts[1]!.x + 1.5, z: 30, armTick: 0, dieTick: s.tick + 9999 });
+    give(s, 0, ITEM.rocket);
+    const ev = run(s, 60, (t) => ({ 0: { fire: true, use: t === 5 } }));
+    expect(s.karts[1]!.armor).toBe(COMBAT.armor);
+    expect(s.karts[1]!.stunTicks).toBe(0);
+    expect(of(ev, 'blocked').length).toBeGreaterThan(0);
+    expect(of(ev, 'blocked').length).toBeLessThan(12); // it does not shout about every round
+    expect(of(ev, 'mine_hit').length).toBe(1); // the mine still went off
+    expect(s.karts[1]!.wreckTicks).toBe(0);
+    // and then it is over
+    run(s, COMBAT.bubbleTicks);
+    expect(s.karts[1]!.bubbleTicks).toBe(0);
+    s.karts[0]!.ammo = COMBAT.magazine;
+    s.karts[0]!.x = s.karts[1]!.x - 9;
+    s.karts[0]!.z = s.karts[1]!.z;
+    s.karts[0]!.heading = 0;
+    s.karts[0]!.gunTicks = 0;
+    run(s, 1, { 0: { fire: true } });
+    expect(s.karts[1]!.armor).toBe(COMBAT.armor - COMBAT.damage);
+  });
+
+  it('overdrive is a long boost in which whatever you touch has been rammed, once', () => {
+    const s = arena([[0, 30], [1.3, 30], [-60, -30]]);
+    give(s, 0, ITEM.overdrive);
+    s.karts[0]!.vx = 9;
+    s.karts[1]!.vx = 6; // a nudge like this is nothing without it (see "a nudge is only a nudge")
+    const ev = run(s, 1, { 0: { use: true } });
+    expect(of(ev, 'overdrive')[0]).toMatchObject({ seat: 0 });
+    expect(s.karts[0]!.boostTicks).toBeGreaterThan(COMBAT.overdriveTicks - 3);
+    const more = run(s, 12);
+    const rams = [...of(ev, 'ram'), ...of(more, 'ram')];
+    expect(rams.length).toBe(1);
+    expect(rams[0]).toMatchObject({ seat: 1, by: 0, damage: COMBAT.overdriveRam });
+    expect(s.karts[1]!.armor).toBe(COMBAT.armor - COMBAT.overdriveRam);
+    expect(s.karts[0]!.armor).toBe(COMBAT.armor); // and it cost the rammer nothing
+    run(s, COMBAT.overdriveTicks);
+    expect(s.karts[0]!.overTicks).toBe(0);
+  });
+
+  it('a mine cannot be laid in mid-air, and trying does not waste it', () => {
+    const s = arena([[0, 30]]);
+    give(s, 0, ITEM.mine, 2);
+    s.karts[0]!.y = 1.2;
+    s.karts[0]!.vy = 3;
+    run(s, 1, { 0: { use: true } });
+    expect(s.mines.length).toBe(0);
+    expect(s.karts[0]!.charges).toBe(2);
   });
 });
 
@@ -542,8 +694,9 @@ describe('a whole combat race', () => {
         expect(k.armor).toBeLessThanOrEqual(COMBAT.armor);
         expect(k.ammo).toBeGreaterThanOrEqual(0);
         expect(k.ammo).toBeLessThanOrEqual(COMBAT.magazine);
-        expect(k.mines).toBeGreaterThanOrEqual(0);
-        expect(k.mines).toBeLessThanOrEqual(COMBAT.carry);
+        expect(k.charges).toBeGreaterThanOrEqual(0);
+        expect(k.charges).toBeLessThanOrEqual(2);
+        expect(k.charges === 0 || k.item !== ITEM.none).toBe(true);
         for (const v of [k.x, k.z, k.vx, k.vz, k.heading]) expect(Number.isFinite(v)).toBe(true);
       }
       expect(s.mines.length).toBeLessThanOrEqual(COMBAT.maxMines);
@@ -584,8 +737,9 @@ describe('a whole combat race', () => {
     expect(hashRace(botRace(13).s)).not.toBe(hashRace(a));
 
     const s = arena([[0, 30], [10, 30]]);
-    s.karts[0]!.mines = 2;
-    run(s, 3, { 0: { drop: true } });
+    s.karts[0]!.item = ITEM.mine;
+    s.karts[0]!.charges = 2;
+    run(s, 3, { 0: { use: true } });
     const copy = cloneRace(s);
     const before = hashRace(s);
     run(copy, 200, { 0: { fire: true } });

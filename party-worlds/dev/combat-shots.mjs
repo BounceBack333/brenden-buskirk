@@ -76,6 +76,55 @@ all = (await freezeOn('4-respawn', "e.type === 'respawn'")) && all;
 await page.evaluate(() => { window.__want = null; window.__pw.loop.start(); });
 await page.waitForTimeout(1500);
 await page.screenshot({ path: `${out}/5-after.png` });
+
+// ── what is in the crates: put everyone back on the straight, hand over one thing, use it ──
+const ITEMS = { mine: 1, rocket: 2, shock: 3, shield: 4, overdrive: 5 };
+async function stage(item) {
+  await page.evaluate((id) => {
+    const pw = window.__pw;
+    if (pw.loop.isRunning) pw.loop.stop();
+    const s = pw.race.state;
+    s.mines.length = 0;
+    s.rockets.length = 0;
+    const spots = [[-22, 30], [-11, 30.6], [-16, 28.6], [-6, 31.6]];
+    s.karts.forEach((k, i) => {
+      k.x = spots[i][0]; k.z = spots[i][1]; k.heading = 0; k.vx = 13; k.vz = 0; k.lap = 1;
+      // (the home straight runs along x, a sample a unit, the line at x = -5; keep the index on the lap)
+      const n = pw.track.samples.length;
+      k.idx = ((Math.round(k.x + 5) % n) + n) % n;
+      k.cpMask = 0;
+      k.armor = 100; k.wreckTicks = 0; k.out = false; k.blinkTicks = 0; k.stunTicks = 0; k.stallTicks = 0; k.lives = s.lives; k.bubbleTicks = 0; k.overTicks = 0;
+      k.item = 0; k.charges = 0;
+      k.prevUse = false; // (the last freeze may have stopped the clock with the button still down)
+    });
+    s.karts[0].item = id;
+    s.karts[0].charges = 1;
+  }, ITEMS[item]);
+}
+await stage('rocket');
+all = (await freezeOn('6-rocket-away', "e.type === 'rocket'", ['KeyE'])) && all;
+all = (await freezeOn('7-rocket-hits', "e.type === 'rocket_hit'")) && all;
+await stage('shock');
+all = (await freezeOn('8-shockwave', "e.type === 'shock'", ['KeyE'])) && all;
+await stage('shield');
+all = (await freezeOn('9-shield', "e.type === 'shield_up'", ['KeyE'])) && all;
+await stage('overdrive');
+all = (await freezeOn('10-ram', "e.type === 'ram'", ['KeyE'])) && all;
+// the crates themselves: park in front of the first one
+await page.evaluate(() => {
+  const pw = window.__pw;
+  if (pw.loop.isRunning) pw.loop.stop();
+  const s = pw.race.state;
+  const c = pw.track.combat.crates[0];
+  const k = s.karts[0];
+  k.x = c.x - 7; k.z = c.z - 0.6; k.heading = 0; k.vx = 0.01; k.vz = 0; k.item = 0; k.charges = 0;
+  s.karts.slice(1).forEach((o, i) => { o.x = -40 - i * 3; o.z = 30; });
+  window.__want = null;
+  pw.loop.timeScale = 0.02;
+  pw.loop.start();
+});
+await page.waitForTimeout(1600);
+await page.screenshot({ path: `${out}/11-crate.png` });
 await browser.close();
 console.log(`errors ${errors.length}`, errors.slice(0, 2));
 if (!all || errors.length) process.exit(1);

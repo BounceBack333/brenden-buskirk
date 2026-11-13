@@ -37,7 +37,12 @@ What a race gives you to be better at:
 The founder asked for "more like death race than Mario kart". Since then a race is armed unless you choose Clean, and there is a second thing to manage: **armour**.
 
 - **Guns.** Hold FIRE (or let them fire themselves) and whoever is straight ahead and in range loses armour. Aiming is steering. Twenty rounds, then a wait.
-- **Mines.** Two at most, from crates beside the racing line. Leave one where somebody has to drive: the chicane, the plank.
+- **The slot** (D-027). One thing at a time, from whichever crate you last drove through. Every crate always holds the same thing and shows it on its faces: where you drive decides what you carry.
+  - *Mines* (two): leave one where somebody has to drive, the chicane or the plank.
+  - *Rockets* (two): fast, and they lean toward whoever was ahead. For the long straight.
+  - *Shockwave*: everything close is hurt and bogged down. For the middle of the pack.
+  - *Shield*: five seconds in which nothing hurts.
+  - *Ram*: a long boost, and whatever you drive into takes the damage.
 - **Ramming.** A hard hit hurts the kart that takes it far more than the one that gives it.
 - **A wreck** costs about four seconds: stopped, then back on the road with full armour and a moment of shield.
 - **The repair strip** is on the long way round the flowerbed. The plank is quicker and skips it. Battered, which way do you go?

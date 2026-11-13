@@ -2,6 +2,22 @@
 
 Newest first. Each entry: what was decided, why, what it costs, and what would change it.
 
+## D-027 · Things in the crates (2026-11-13)
+The founder played the build to the death and said: "I like it. We're improving." Then, asked what felt off: "It felt good. Vehicles are weak, more power ups would be cool. Different weapons and such." (No word on the device or on how long was played.)
+**Read as:** the karts do not hit hard enough. The guns take three magazines to wreck anybody and the only other thing to pick up was mines. If "weak" meant "die too easily", the remedy is the armour figure instead; that has been asked.
+**What changed.** A kart now has one slot, filled by whatever crate it last drove through and emptied by one button. Each crate always holds the same thing and shows it on every face, so what you carry is a matter of where you drove, never of luck.
+- **Rockets** (two): fly ahead at more than twice a kart's speed and lean toward whoever was in front when they left. 45 armour and a spin. The big pot and the tennis ball stop them.
+- **Shockwave** (one): everything within nine units loses 22 armour and bogs down for most of a second. For the middle of the pack.
+- **Shield** (one): nothing hurts for five seconds. A mine or a rocket still goes off against it.
+- **Ram** (one; "overdrive" in the code): a four-second boost in which whatever you touch takes 40 and you take nothing.
+- **Mines** (two): as before.
+Where they are on the backyard circuit is part of the design: rockets at the start of the long straight, mines before the chicane, the shield on the long way round the flowerbed (one more reason not to take the plank), the ram on the run to the sweeper, the shockwave where the pack bunches round the pot.
+**Controls:** the MINE button became the slot's button and shows what is in it (same key, same place).
+**Rivals** use all five the way they are meant to be used and go looking for a crate when their slot is empty.
+**Numbers** from `dev/combatprobe.ts`, thirty races a level, two lives: 2.6 / 4.0 / 4.3 wrecks a race across four karts at Gentle / Keen / Fierce; 0.5 / 0.9 / 0.9 karts put out per race; about four rockets a race with two or three hitting, one or two shockwaves, one or two shields and rams. Simulated.
+**The plain race** is still the plain race: its nine fingerprints have not moved.
+**Not done.** No change to armour or to the guns themselves. If the reading above is wrong, that is the next thing to change.
+
 ## D-026 · To the death (2026-11-13)
 The founder was asked which way to push the armed race (harsher wrecks, more weapons, a meaner track) and said to continue. So: further in all three directions, as far as could be done without guessing at new content.
 **What changed.**
