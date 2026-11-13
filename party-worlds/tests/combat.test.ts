@@ -3,7 +3,7 @@ import { cloneRace, createRace, hashRace, noDrive, stepRace, trackOf } from '../
 import type { DriveInput, RaceEvent, RaceState } from '../src/attractions/dash/sim';
 import { COMBAT, ITEM, ITEM_CHARGES, canBeHit, gunTarget, itemOf, rocketTarget, weaponsHot } from '../src/attractions/dash/combat';
 import { Rival } from '../src/attractions/dash/bot';
-import { KART, RACE, TRACK_IDS, trackById } from '../src/attractions/dash/track';
+import { KART, RACE, TRACK_IDS, backyard, trackById } from '../src/attractions/dash/track';
 
 /**
  * The combat layer: guns, mines, armour, wrecks. Karts are placed by hand on the home straight
@@ -116,7 +116,7 @@ describe('guns', () => {
   });
 
   it('cannot shoot through the big pot', () => {
-    const track = trackOf(createRace());
+    const track = backyard();
     const pot = track.dressing.pot;
     const s = arena([[pot.x - 11, pot.z, 0], [pot.x + 11, pot.z]]);
     expect(gunTarget(s, track, 0)).toBe(-1);
@@ -301,7 +301,7 @@ describe('ramming and walls', () => {
   });
 
   it('a wall hit hard enough to spin the kart costs armour', () => {
-    const track = trackOf(createRace());
+    const track = backyard();
     const pot = track.dressing.pot;
     const s = arena([[pot.x - pot.r - KART.radius - 0.3, pot.z, 0]]);
     s.karts[0]!.vx = 15;
@@ -424,7 +424,7 @@ describe('what is in the crates', () => {
     expect(s.karts[1]!.armor).toBe(COMBAT.armor);
     expect(itemOf(s.karts[0]!)).toBe('');
 
-    const track = trackOf(createRace());
+    const track = backyard();
     const pot = track.dressing.pot;
     const p = arena([[pot.x - 14, pot.z, 0], [pot.x + 14, pot.z]]);
     give(p, 0, ITEM.rocket);

@@ -610,3 +610,15 @@ input[type='range'] { accent-color: var(--coral); }
 .race-pane::before { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
 .race-pane.bubble::before { opacity: 1; box-shadow: inset 0 0 calc(var(--u) * 12) calc(var(--u) * 2) rgba(61, 184, 255, 0.6); }
 .race-pane.over::before { opacity: 1; box-shadow: inset 0 0 calc(var(--u) * 12) calc(var(--u) * 2) rgba(255, 190, 40, 0.6); }
+
+/* the play sheet has a track row as well now: the two big choices put their icon beside the
+   title instead of above it, and every row gives up a little, so it all still fits a phone */
+.sheet .choices.two .choice { min-height: 0; padding: calc(var(--u) * 1.8) calc(var(--u) * 3); display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: calc(var(--u) * 2); row-gap: calc(var(--u) * 0.6); }
+.sheet .choices.two .choice svg { width: calc(var(--u) * 6.4); height: calc(var(--u) * 6.4); }
+.sheet .choices.two .choice .d { grid-column: 1 / -1; }
+.sheet:has(.choices.two) { padding-top: calc(var(--u) * 3); padding-bottom: calc(var(--u) * 2.6); }
+.sheet:has(.choices.two) .pitch { margin-bottom: calc(var(--u) * 1.6); }
+.sheet:has(.choices.two) .rivals-row { margin-top: calc(var(--u) * 1.3); }
+.sheet:has(.choices.two) .rivals-row .seg button { min-height: calc(var(--u) * 7); }
+.sheet:has(.choices.two) .parked { margin-top: calc(var(--u) * 1.4); padding-top: calc(var(--u) * 1.1); }
+.rivals-row .seg button[data-track] { flex: 0 0 auto; padding: 0 calc(var(--u) * 2.6); white-space: nowrap; }

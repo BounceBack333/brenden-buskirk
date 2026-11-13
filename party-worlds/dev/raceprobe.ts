@@ -5,14 +5,15 @@ import { Rival } from '../src/attractions/dash/bot';
 
 const races = Number(process.argv[2] ?? 12);
 const skills = [0.95, 0.75, 0.55, 0.35];
-const track = trackOf(createRace());
+const TRACK = process.env.TRACK ?? 'backyard';
+const track = trackOf(createRace({ track: TRACK }));
 console.log(`track ${track.name}: length ${track.length.toFixed(0)}, ${track.samples.length} samples, spacing ${track.ds.toFixed(3)}`);
 const wins = [0, 0, 0, 0];
 const tot = { time: 0, laps: 0, lapTicks: 0, best: 1e9, resets: 0, bumps: 0, kartBumps: 0, boosts: 0, plankOpen: 0, jumps: 0, startBoost: 0, over: 0 };
 const per = skills.map(() => ({ time: 0, n: 0, grass: 0, soil: 0, boosts: 0, plank: 0, drift: 0 }));
 const t0 = performance.now();
 for (let r = 0; r < races; r++) {
-  const s = createRace({ karts: 4 });
+  const s = createRace({ track: TRACK, karts: 4 });
   // rotate grid slots so no skill always starts on pole
   const order = [0, 1, 2, 3].map((i) => (i + r) % 4);
   const bots = order.map((slot, i) => new Rival({ seed: 100 + r * 17 + i, skill: skills[slot]! }));

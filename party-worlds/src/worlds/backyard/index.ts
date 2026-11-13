@@ -8,64 +8,9 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import type { Track } from '../../attractions/dash/track';
+import type { BackyardDressing, Track } from '../../attractions/dash/track';
 import { Spring, mat } from '../../kit/materials';
-
-function rng(seed: number): () => number {
-  let s = seed >>> 0 || 1;
-  return () => {
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return s / 4294967296;
-  };
-}
-
-function canvasTex(w: number, h: number, draw: (ctx: CanvasRenderingContext2D) => void, repeat = true): THREE.CanvasTexture {
-  const c = document.createElement('canvas');
-  c.width = w;
-  c.height = h;
-  draw(c.getContext('2d')!);
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.anisotropy = 4;
-  return t;
-}
-
-function speckle(ctx: CanvasRenderingContext2D, w: number, h: number, n: number, colors: string[], r: () => number, size = 2): void {
-  for (let i = 0; i < n; i++) {
-    ctx.fillStyle = colors[Math.floor(r() * colors.length)]!;
-    ctx.globalAlpha = 0.25 + r() * 0.5;
-    ctx.fillRect(r() * w, r() * h, size * (0.5 + r()), size * (0.5 + r()));
-  }
-  ctx.globalAlpha = 1;
-}
-
-let glowTex: THREE.Texture | null = null;
-function glow(): THREE.Texture {
-  if (!glowTex) {
-    glowTex = canvasTex(64, 64, (ctx) => {
-      const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-      g.addColorStop(0, 'rgba(255,255,255,1)');
-      g.addColorStop(0.25, 'rgba(255,255,255,0.55)');
-      g.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, 64, 64);
-    }, false);
-  }
-  return glowTex;
-}
-
-/** A soft pool of light lying on the ground (additive). */
-function lightPool(x: number, z: number, r: number, color: string, strength = 0.5): THREE.Mesh {
-  const m = new THREE.Mesh(
-    new THREE.PlaneGeometry(r * 2, r * 2),
-    new THREE.MeshBasicMaterial({ map: glow(), color, transparent: true, opacity: strength, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false }),
-  );
-  m.rotation.x = -Math.PI / 2;
-  m.position.set(x, 0.05, z);
-  m.renderOrder = 2;
-  return m;
-}
+import { canvasTex, glow, lightPool, rng, speckle } from '../shared';
 
 export interface BackyardWorld {
   readonly root: THREE.Group;
@@ -80,6 +25,7 @@ export function buildBackyardWorld(track: Track): BackyardWorld {
   const root = new THREE.Group();
   root.name = 'backyard';
   const r = rng(77);
+  const dressing = track.dressing as BackyardDressing;
 
   // ── lawn ──
   const grassTex = canvasTex(256, 256, (ctx) => {
@@ -148,13 +94,14 @@ export function buildBackyardWorld(track: Track): BackyardWorld {
   roadGeo.setIndex(idx);
   roadGeo.computeVertexNormals();
   root.add(new THREE.Mesh(roadGeo, new THREE.MeshStandardMaterial({ map: slabTex, roughness: 0.92 })));
-  // edge lines so the road reads at speed, in the dark, on a small screen: glow tape, pink on the
-  // inside of the lap and blue on the outside, so you always know which way the corner goes
+  // edge lines so the road reads at speed, in the dark, on a small screen: glow tape, pink on
+  // your left and blue on your right, all the way round
+  // (drawn from both sides: the left strip is wound the other way and was culled until this was set)
   for (const [arr, color] of [[edgeL, '#ff5aa5'], [edgeR, '#5fe6ff']] as const) {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
     g.setIndex(idx);
-    root.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95, depthWrite: false, toneMapped: false, fog: false })));
+    root.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95, depthWrite: false, toneMapped: false, fog: false, side: THREE.DoubleSide })));
   }
   // finish line
   const s0 = S[0]!;
@@ -223,7 +170,7 @@ export function buildBackyardWorld(track: Track): BackyardWorld {
     }
   }
   // garden hose: the outside wall of the hairpin, running off toward the tap
-  const hz = track.dressing.hose;
+  const hz = dressing.hose;
   const hosePts: THREE.Vector3[] = [];
   // (the visible hose covers exactly the arc that is solid, then leaves the yard away from the road)
   for (let i = 0; i <= 24; i++) {
@@ -234,17 +181,17 @@ export function buildBackyardWorld(track: Track): BackyardWorld {
   put('metal', new THREE.CylinderGeometry(0.7, 0.45, 1.6, 10).rotateZ(Math.PI / 2), hosePts[0]!.x - 0.6, 0.55, hosePts[0]!.z, 0.2);
   statics.hose!.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(hosePts), 90, 0.55, 10).toNonIndexed());
   // bricks at the chicane
-  for (const b of track.dressing.bricks) {
+  for (const b of dressing.bricks) {
     const len = Math.hypot(b.x2 - b.x1, b.z2 - b.z1) + b.r * 2;
     put('brick', new RoundedBoxGeometry(len, 1.25, b.r * 2, 2, 0.12), (b.x1 + b.x2) / 2, 0.62, (b.z1 + b.z2) / 2, -Math.atan2(b.z2 - b.z1, b.x2 - b.x1));
   }
   // the big terracotta pot inside the sweeper
-  const pot = track.dressing.pot;
+  const pot = dressing.pot;
   const potG = new THREE.LatheGeometry([[5.2, 0], [5.6, 0.6], [6.9, 10.5], [7.3, 10.6], [7.3, 11.8], [6.6, 11.8], [6.3, 11.0]].map(([x, y]) => new THREE.Vector2(x!, y!)), 28);
   put('terracotta', potG, pot.x, 0, pot.z);
   for (let i = 0; i < 7; i++) put('leaf', new THREE.SphereGeometry(2.4, 7, 5).scale(1.5, 0.5, 1), pot.x + Math.cos(i) * 5, 13 + (i % 3), pot.z + Math.sin(i) * 5, i);
   // a tennis ball the dog lost, as big as a boulder down here
-  const tb = track.dressing.ball;
+  const tb = dressing.ball;
   const ballTex = canvasTex(256, 128, (ctx) => {
     ctx.fillStyle = '#c9e04a';
     ctx.fillRect(0, 0, 256, 128);
@@ -266,7 +213,7 @@ export function buildBackyardWorld(track: Track): BackyardWorld {
   ballMesh.rotation.set(0.5, 0.9, 0.3);
   root.add(ballMesh);
   // the aluminium ladder lying along the middle of the lawn (solid: see track.ts)
-  const ld = track.dressing.ladder;
+  const ld = dressing.ladder;
   const ladLen = ld.x1 - ld.x0;
   for (const z of [ld.z0, ld.z1]) put('metal', new RoundedBoxGeometry(ladLen + 1.2, 1.0, ld.rail * 2, 2, 0.14), (ld.x0 + ld.x1) / 2, 0.52, z);
   const rungs = Math.round(ladLen / 6.8);
@@ -275,14 +222,14 @@ export function buildBackyardWorld(track: Track): BackyardWorld {
     put('metal', new THREE.CylinderGeometry(0.36, 0.36, ld.z1 - ld.z0, 8).rotateX(Math.PI / 2), x, 0.56, (ld.z0 + ld.z1) / 2);
   }
   // garden chair legs straddling the straight
-  for (const l of track.dressing.chairLegs) {
+  for (const l of dressing.chairLegs) {
     put('white', new THREE.CylinderGeometry(l.r, l.r, 30, 12), l.x, 15, l.z);
     put('white', new THREE.CylinderGeometry(l.r + 0.25, l.r + 0.3, 0.5, 12), l.x, 0.25, l.z);
   }
   put('white', new THREE.BoxGeometry(34, 0.7, 0.7), -7.5, 16, 25.2);
   put('white', new THREE.BoxGeometry(34, 0.7, 0.7), -7.5, 16, 34.8);
   // work lamp on its tripod, flooding the hairpin
-  const wl = track.dressing.workLight;
+  const wl = dressing.workLight;
   put('metal', new THREE.CylinderGeometry(0.2, 0.2, 14, 6), wl.x, 7, wl.z);
   for (let i = 0; i < 3; i++) put('metal', new THREE.CylinderGeometry(0.14, 0.14, 7, 5), wl.x + Math.cos(i * 2.1) * 2, 2.6, wl.z + Math.sin(i * 2.1) * 2, 0, 0.5);
   put('metal', new THREE.BoxGeometry(1.2, 3, 4.6), wl.x - 0.4, 14.6, wl.z);

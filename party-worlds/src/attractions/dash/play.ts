@@ -632,7 +632,7 @@ export class RaceHud {
         hint = `${touch ? ITEM_LABEL[it] : `Press ${mineKey}`}: ${ITEM_DOES[it]}`;
       }
       else if (s.combat && k.armor < 55 && k.wreckTicks === 0 && !this.learned.repair) hint = 'The green strip on the long way round mends your armour';
-      else if (s.phase === 'racing' && !s.plankOpen && !this.learned.plank && k.lap >= 2) hint = 'Bump the glowing peg to drop the plank';
+      else if (s.phase === 'racing' && !s.plankOpen && !this.learned.plank && k.lap >= 2) hint = `Bump the glowing ${this.track?.words.prop ?? 'peg'} to drop the ${this.track?.words.shortcut ?? 'plank'}`;
       if (p.hint.dataset.t !== hint) {
         p.hint.dataset.t = hint;
         if (hint) p.hint.innerHTML = hint;

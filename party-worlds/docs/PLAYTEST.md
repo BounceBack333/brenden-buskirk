@@ -20,6 +20,7 @@ Everything below is there to explain a yes or a no.
 6. Does seeing themselves or their pet in the kart matter to them?
 7. Does it read as a game for adults?
 8. Armed: is being wrecked funny or infuriating? Does shooting feel like something you did?
+9. Two tracks: which do they pick the second time, and why? On the Grease Pit: does anybody hide behind a tin or mine the gate on purpose, is the crossing a laugh or a muddle, and does anybody turn onto the wrong road there and think the game is broken?
 
 ## Sessions
 

@@ -1,6 +1,6 @@
 # Progress and acceptance record
 
-Last updated: 2026-11-13 (things in the crates, D-027).
+Last updated: 2026-11-13 (a second track, D-028).
 
 ## Status words
 
@@ -23,6 +23,25 @@ Quoted exactly; nothing here is inferred. The device and the length of play are 
 |---|---|---|
 | 2026-11-13 | To the death (`1e199f4`) | "I like it. We're improving." |
 | 2026-11-13 | Same | Asked what felt off: "It felt good. Vehicles are weak, more power ups would be cool. Different weapons and such." Asked for a track built for fighting: "Do it." |
+
+## Milestone: a second track, built for a fight (D-028)
+
+**Asked for:** a track designed for fighting, with a track picker. "Do it."
+
+| Area | Status | Evidence |
+|---|---|---|
+| The Grease Pit as a circuit: a figure of eight with a level crossing, a firing line with tins in it, a one-kart gate, a board across an oil spill | Implemented and tested | `tests/pit.test.ts` (10): the crossing is one place on the floor and two places on the lap, more than 80 samples apart both ways, and the roads meet square; driving straight through it on either road stays on that road; turning onto the other road is credited with nothing and ends with the kart stood back where it left; the tins are wholly on the road with the middle clear and no way round the back; a tin is cover from the guns; the gate is between three and six kart-radii wide; the drum, the strip light, the can and the tyres leave no gap a kart fits through; nothing solid on the grid, the line or the crossing. The registry tests in `tests/dash.sim.test.ts` and `tests/combat.test.ts` check and race it like any track |
+| Three gaps in the first layout | Found by those tests, fixed | Past the drum, round the inside of the gate, past the end of the strip light. All three before a browser was opened |
+| Rivals can race it | Implemented and tested (they can); Simulated (how well) | `TRACK=pit npx tsx dev/raceprobe.ts`: 12 of 12 races finished by all four, 0.9 wall hits a race, no resets, lap 22.0 s, race 64.6 s |
+| How violent it is | Simulated | `TRACK=pit LIVES=2 npx tsx dev/combatprobe.ts 30`: 3.7 / 4.3 / 4.2 wrecks and 1.0 / 1.0 / 1.1 karts put out per race at Gentle / Keen / Fierce; the backyard, same command, 2.6 / 4.0 / 4.3 and 0.5 / 0.9 / 0.9 |
+| How hard it is beside the backyard | Simulated | `TRACK=pit LEVEL=0 npx tsx dev/humanish.ts`: the steady first-timer stand-in finishes 3.6 s behind the Gentle winner (backyard 1.2 s) and wins 1 race in 12 (backyard 3). A little harder; not corrected |
+| The backyard is unchanged | Implemented and tested | All 27 of its fingerprints identical; 54 now recorded. The backyard stand-in figures reproduce to the decimal after the stand-in was taught to read any track's zones |
+| Track picker on the play sheet; the choice is saved | Implemented, automation only | `tests/profile.test.ts` (a saved track is a plain id or the default). `npm run smoke` picks the last track in the list and starts a race on it. The sheet measured with no scrolling at 1280×720, 844×390 and 667×375 |
+| What it looks like | Implemented, **seen by me only** | 1280×720 frames at eight places round the lap, the lobby and the sheet: concrete lane through sawdust, the yellow box at the crossing, chains and chevrons round both hairpins, the gate, the tins, the drum alight, the strip light, the oil, the pegboard wall and its sign |
+| The left-hand edge tape, on both tracks | Fixed, **seen by me only** | It had never been drawn (its strip faced the floor). Nobody, the founder included, has seen the backyard with both edges until this build |
+| Scripted play-throughs on this build | Not yet run | — |
+
+**Total:** 181 of 181 tests pass (32 race and track, 45 combat, 10 Grease Pit, 6 medals and series, 10 character kit, 17 purity, 7 saved data, 9 game loop, 26 Courier, 19 room server); 54 fingerprints match; build 978 KB JS + 200 KB CSS (281 KB + 121 KB gzipped), inside the budget; `npm run smoke` passes, with a new step for the second track.
 
 ## Milestone: things in the crates (D-027)
 
@@ -317,7 +336,7 @@ Five runs, zero page errors. They were run on the build that includes every fix 
 | Stage | Status |
 |---|---|
 | A — first exceptional interaction | Rebuilt as a race (Backyard Dash) after review of the first attempt; **awaiting human play** |
-| B — meaningful variety | Not started. A second track, or online racing, depending on what the first races show |
+| B — meaningful variety | Started at the founder's direction: weapons (D-025 to D-027) and a second track (D-028). Online racing is not started |
 | C — one coherent session (several races, standings, rematch) | Rematch exists; standings across races do not |
 | D — personalisation from photos | Blocked on: processor choice, consent flow, budget (see `DEPENDENCIES.md`) |
 | E — observe real groups | Plan written (`PLAYTEST.md`); blocked on people |

@@ -17,7 +17,8 @@ const COMBAT_ON = process.env.COMBAT !== '0';
 /** LIVES=3 is "to the death"; LIVES=0 means a wreck always comes back */
 const LIVES = Number(process.env.LIVES ?? 3);
 const races = Number(process.argv[2] ?? 20);
-const track = trackOf(createRace());
+const TRACK = process.env.TRACK ?? 'backyard';
+const track = trackOf(createRace({ track: TRACK }));
 const S = track.samples;
 const N = S.length;
 
@@ -99,7 +100,7 @@ const used = { rocket: 0, rocketHits: 0, shock: 0, shockHits: 0, shield: 0, over
 const sum = { time: 0, finished: 0, place: 0, wins: 0, myWrecks: 0, myKills: 0, wrecks: 0, shots: 0, hits: 0, mineHits: 0, ownMine: 0, drops: 0, crates: 0, repairs: 0, rams: 0, ramDamage: 0, walls: 0, rivalTime: 0, rivalN: 0, armorAtEnd: 0 };
 const worst = { wrecks: 0 };
 for (let r = 0; r < races; r++) {
-  const s = createRace({ karts: 4, required: [0], pace: [1, ...LEVEL.pace], combat: COMBAT_ON, lives: LIVES });
+  const s = createRace({ track: TRACK, karts: 4, required: [0], pace: [1, ...LEVEL.pace], combat: COMBAT_ON, lives: LIVES });
   const me = new Standin(true);
   const bots = LEVEL.skills.map((skill, i) => new Rival({ seed: 900 + r * 17 + i * 5, skill }));
   const inputs: DriveInput[] = [noDrive(), noDrive(), noDrive(), noDrive()];

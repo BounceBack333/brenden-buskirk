@@ -81,11 +81,12 @@ The rule that shapes the code: **each simulation is a pure, deterministic functi
 
 A track is data plus a kit to draw it; nothing else names a track.
 
-1. In `src/attractions/dash/track.ts`, write a builder like `buildBackyard` (centre line, solid circles and capsules, start grid, one gated shortcut with its `fork` and `opener` zones, medal times, menu parking spots) and add it to `BUILDERS`.
-2. In `src/worlds/`, write a kit that returns a `RaceWorld` for it and add it to `KITS` in `src/worlds/index.ts`. Until you do, the new track is drawn with the backyard's kit so it can be driven straight away.
-3. `npm run check`. The registry tests check and race every registered track.
+1. In `src/attractions/dash/track.ts`, write a builder like `buildBackyard` or `buildPit` (centre line, solid circles and capsules, start grid, one gated shortcut with its `fork` and `opener` zones, medal times, menu parking spots, what it calls its shortcut, crates and a repair strip, and its own `dressing` for the kit) and add it to `BUILDERS`. `npx tsx dev/trackmap.ts <id>` draws it from that data, before anything else exists.
+2. In `src/worlds/`, write a kit that returns a `RaceWorld` for it (and, if it should be lit differently, a `mood`) and add it to `KITS` in `src/worlds/index.ts`.
+3. `npm run fingerprint -- --update` records its races beside the others (the existing lines must not move), then `npm run check`. The registry tests check and race every registered track; write the tests for whatever is true of this one only, as `tests/pit.test.ts` does.
+4. `TRACK=<id>` works with `dev/raceprobe.ts`, `dev/humanish.ts` and `dev/combatprobe.ts`; set the medal times from what they say. `node dev/raceplay.mjs … --track=<id>` drives it through the real UI.
 
-Choosing between tracks in the menu is not built: `main.ts` uses `DEFAULT_TRACK` in one place.
+It appears on the play sheet by itself. Two things a new layout can do that the first one did not: cross itself on the level (see D-028 for why that needs no special case, and what happens to a kart that turns onto the other road), and stand solid things in the road (`pillars`; rivals steer round them).
 
 ## Automated checks you can run
 

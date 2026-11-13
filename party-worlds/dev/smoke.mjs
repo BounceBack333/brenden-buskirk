@@ -135,6 +135,24 @@ try {
       });
       return `tick ${await page.evaluate(() => window.__pw.race.state.tick)}`;
     });
+    await step('every track can be chosen, and a race starts on it', async (page) => {
+      const ids = await page.evaluate(() => window.__pw.api.tracks().map((t) => t.id));
+      if (ids.length < 2) throw new Error(`only ${ids.length} track`);
+      const last = ids[ids.length - 1];
+      await page.click('[data-act="play"]');
+      await page.click(`[data-track="${last}"]`);
+      await page.click('[data-race="solo"]');
+      await page.waitForFunction((id) => {
+        const s = window.__pw.race?.state;
+        return !!s && s.trackId === id && s.phase === 'racing';
+      }, last);
+      const from = await page.evaluate(() => window.__pw.race.state.karts.map((k) => [k.x, k.z]));
+      await page.waitForFunction(
+        (start) => window.__pw.race.state.karts.every((k, i) => Math.hypot(k.x - start[i][0], k.z - start[i][1]) > 3),
+        from,
+      );
+      return ids.join(', ');
+    });
     await step('a clean race has no weapons', async (page) => {
       await page.click('[data-act="play"]');
       await page.click('[data-rules="clean"]');

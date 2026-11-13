@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Automated race in a real browser with real keyboard (or touch) input.
- *   node dev/raceplay.mjs [url] [mode=solo|split] [outDir] [--touch] [--portrait] [--plank] [--rematch] [--size=WxH] [--slow=0.25] [--pad]
+ *   node dev/raceplay.mjs [url] [mode=solo|split] [outDir] [--touch] [--portrait] [--plank] [--rematch] [--size=WxH] [--slow=0.25] [--pad] [--track=pit]
  * A small pursuit driver in this script reads the kart's position from the page and presses the
  * same keys (or drags the same on-screen stick) a person would. It takes screenshots through the
  * race and fails on any page error.
@@ -68,6 +68,10 @@ await shot('play-sheet');
 // --clean: the plain race, no weapons. --armed: weapons, and a wreck always comes back.
 // Otherwise to the death. (The setting is remembered, so say which every time.)
 await click(`[data-rules="${flags.has('--clean') ? 'clean' : flags.has('--armed') ? 'armed' : 'death'}"]`);
+// --track=<id>: which circuit (the backyard when not given; this is remembered too)
+const trackFlag = [...flags].find((f) => f.startsWith('--track='));
+await click(`[data-track="${trackFlag ? trackFlag.slice(8) : 'backyard'}"]`);
+await page.waitForTimeout(250);
 await click(`[data-race="${mode}"]`);
 await page.waitForTimeout(250);
 
@@ -80,7 +84,7 @@ if (slow !== 1) await page.evaluate((v) => { window.__pw.loop.timeScale = v; }, 
 
 const track = await page.evaluate(() => {
   const t = window.__pw.track;
-  return { samples: t.samples.map((p) => [p.x, p.z, p.tx, p.tz, p.hw, p.k]), plank: t.plank };
+  return { id: t.id, samples: t.samples.map((p) => [p.x, p.z, p.tx, p.tz, p.hw, p.k]), plank: t.plank, pillars: t.pillars ?? [] };
 });
 const S = track.samples;
 const N = S.length;
@@ -141,8 +145,10 @@ function decide(st, view) {
   const speed = Math.hypot(k.vx, k.vz);
   let tx; let tz; let curve = 0;
   const pl = track.plank;
-  const nearFork = k.x < 16 && k.x > pl.bx - 2 && k.z < 6 && k.z > -6;
-  const openIt = flags.has('--plank') && view === 0 && !st.plankOpen && k.lap >= 1 && k.x < 20 && k.x > 2 && k.z > -5 && k.z < 8;
+  // (the zones are the track's own: where a driver lines up for the shortcut, and where one turns for the prop)
+  const inZone = (zn) => k.x > zn.x0 && k.x < zn.x1 && k.z > zn.z0 && k.z < zn.z1;
+  const nearFork = inZone(pl.fork);
+  const openIt = flags.has('--plank') && view === 0 && !st.plankOpen && k.lap >= 1 && inZone(pl.opener);
   if (openIt) {
     tx = pl.prop.x; tz = pl.prop.z;
   } else if (flags.has('--plank') && view === 0 && st.plankOpen && nearFork && k.surface !== 2) {
@@ -154,6 +160,21 @@ function decide(st, view) {
     tx = p[0]; tz = p[1];
   }
   const fx = Math.cos(k.h); const fz = Math.sin(k.h);
+  // something solid stood in the road: round it, on the side with more road
+  if (!openIt) {
+    for (const c of track.pillars) {
+      const mx = c.x - k.x; const mz = c.z - k.z;
+      const along = mx * fx + mz * fz;
+      if (along < 0.5 || along > 24) continue;
+      const clear = c.r + 0.62 + 1.1;
+      if (Math.abs(fx * mz - fz * mx) > clear) continue;
+      const q = S[(k.idx + Math.round(along)) % N];
+      const lat = (c.x - q[0]) * -q[3] + (c.z - q[1]) * q[2];
+      const lane = lat - (lat >= 0 ? 1 : -1) * (clear + 0.5);
+      tx = q[0] - q[3] * lane + q[2] * 3; tz = q[1] + q[2] * lane + q[3] * 3;
+      break;
+    }
+  }
   const dx = tx - k.x; const dz = tz - k.z;
   const err = Math.atan2(fx * dz - fz * dx, fx * dx + fz * dz);
   let steer = Math.max(-1, Math.min(1, err * 2.6));

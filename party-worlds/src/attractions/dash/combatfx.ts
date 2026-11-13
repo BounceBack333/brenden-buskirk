@@ -381,12 +381,13 @@ export class CombatFx {
   }
 
   /**
-   * Arena dressing, all of it where no kart can go (behind the hairpin's wall and inside the
-   * ladder on the lawn), so nothing here needs to be solid: fires burning in old tin cans, and
-   * chevron boards round the outside of the hairpin.
+   * Arena dressing, all of it where no kart can go (the track says where), so nothing here
+   * needs to be solid: fires burning in old tin cans, and chevron boards round the outside of
+   * the hairpins.
    */
   private dress(track: Track): void {
-    const d = track.dressing;
+    const kit = track.combat;
+    if (!kit) return;
     const tin = new THREE.MeshStandardMaterial({ color: '#4a3528', roughness: 0.85, metalness: 0.45 });
     const band = new THREE.MeshStandardMaterial({ map: this.hazard, roughness: 0.7, metalness: 0.2 });
     const ember = new THREE.MeshBasicMaterial({ color: '#ffb14a', toneMapped: false });
@@ -397,12 +398,17 @@ export class CombatFx {
     const emberGeo = new THREE.CircleGeometry(0.86, 14).rotateX(-Math.PI / 2).translate(0, 1.7, 0);
     const flameGeo = new THREE.ConeGeometry(0.62, 2.2, 7).translate(0, 1.1, 0);
     const coreGeo = new THREE.ConeGeometry(0.36, 1.5, 6).translate(0, 0.75, 0);
-    const fire = (x: number, z: number): void => {
+    const fire = (x: number, z: number, y = 0, size = 1): void => {
       const g = new THREE.Group();
-      g.position.set(x, 0, z);
-      const can = new THREE.Mesh(canGeo, tin);
-      can.material.side = THREE.DoubleSide;
-      g.add(can, new THREE.Mesh(bandGeo, band), new THREE.Mesh(emberGeo, ember));
+      g.position.set(x, y, z);
+      g.scale.setScalar(size);
+      if (y === 0) {
+        const can = new THREE.Mesh(canGeo, tin);
+        can.material.side = THREE.DoubleSide;
+        g.add(can, new THREE.Mesh(bandGeo, band));
+      }
+      // (a raised fire burns in something the world kit has already drawn: only the embers and flames)
+      g.add(new THREE.Mesh(emberGeo, ember));
       const flames: THREE.Mesh[] = [];
       for (const [fx, fz, mat, geo] of [[0, 0, flameMat, flameGeo], [0.28, 0.15, flameMat, flameGeo], [-0.2, -0.22, coreMat, coreGeo]] as const) {
         const f = new THREE.Mesh(geo, mat);
@@ -414,35 +420,21 @@ export class CombatFx {
         new THREE.PlaneGeometry(15, 15).rotateX(-Math.PI / 2),
         new THREE.MeshBasicMaterial({ map: this.glow, color: '#ff7a2e', transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false }),
       );
-      pool.position.y = 0.06;
+      pool.position.y = (0.06 - y) / size; // on the floor, however high the fire is
       pool.renderOrder = 2;
       g.add(pool);
       this.arena.add(g);
       this.fires.push({ flames, pool, seed: x * 0.37 + z * 0.61 });
     };
-    // inside the ladder, down the middle of the lawn: seen from both straights, reached from neither
-    const lad = d.ladder;
-    const midZ = (lad.z0 + lad.z1) / 2;
-    for (let n = 0; n < 4; n++) fire(lad.x0 + 9 + ((lad.x1 - lad.x0 - 18) * n) / 3, midZ + (n % 2 ? 1.6 : -1.6));
-    // behind the hairpin's wall, with the chevron boards between them
-    const h = d.hose;
+    for (const f of kit.fires ?? []) fire(f.x, f.z, f.y ?? 0, f.size ?? 1);
     const boardGeo = new THREE.PlaneGeometry(6.4, 2.4);
     const boardMat = new THREE.MeshBasicMaterial({ map: this.chev, toneMapped: false });
     const postGeo = new THREE.CylinderGeometry(0.1, 0.1, 2.4, 6).translate(0, 1.2, 0);
     const postMat = new THREE.MeshStandardMaterial({ color: '#2a2c36', roughness: 0.6, metalness: 0.6 });
-    const steps = 6;
-    for (let n = 0; n <= steps; n++) {
-      const a = h.a0 + ((h.a1 - h.a0) * (n + 0.5)) / (steps + 1);
-      const r = h.r + 2.6;
-      const x = h.cx + Math.cos(a) * r;
-      const z = h.cz + Math.sin(a) * r;
-      if (n % 3 === 1) {
-        fire(h.cx + Math.cos(a) * (r + 1.6), h.cz + Math.sin(a) * (r + 1.6));
-        continue;
-      }
+    for (const b of kit.boards ?? []) {
       const board = new THREE.Group();
-      board.position.set(x, 0, z);
-      board.lookAt(h.cx, 0, h.cz);
+      board.position.set(b.x, 0, b.z);
+      board.lookAt(b.fx, 0, b.fz);
       const face = new THREE.Mesh(boardGeo, boardMat);
       face.position.y = 2.9;
       const p1 = new THREE.Mesh(postGeo, postMat);

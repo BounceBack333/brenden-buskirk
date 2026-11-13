@@ -45,7 +45,8 @@ const SKILLS = process.env.SKILLS ? process.env.SKILLS.split(',').map(Number) : 
 const PACE = process.env.PACE ? process.env.PACE.split(',').map(Number) : [...LEVEL.pace];
 const ONLY = process.env.ONLY ? process.env.ONLY.split(',').map(Number) : null;
 const races = Number(process.argv[2] ?? 12);
-const track = trackOf(createRace());
+const TRACK = process.env.TRACK ?? 'backyard';
+const track = trackOf(createRace({ track: TRACK }));
 const S = track.samples;
 const N = S.length;
 
@@ -78,12 +79,26 @@ class Humanish {
       curve /= 14;
       let ax = a.x; let az = a.z;
       const pl = track.plank;
-      if (this.v.plank) {
-        const nearFork = p.x < 16 && p.x > pl.bx - 2 && p.z < 6 && p.z > -6;
-        if (!p.open && p.lap >= 1 && p.x < 20 && p.x > 2 && p.z > -5 && p.z < 8) { ax = pl.prop.x; az = pl.prop.z; curve = 0; }
-        else if (p.open && nearFork && p.surface !== 2) { ax = Math.max(pl.bx - 6, p.x - (5 + p.v * 0.3)); az = pl.az; curve = 0; }
-      }
       const fx = Math.cos(p.h); const fz = Math.sin(p.h);
+      // a person sees a tin stood in the road and goes round it, on the side with more road
+      for (const c of track.pillars ?? []) {
+        const mx = c.x - p.x; const mz = c.z - p.z;
+        const along = mx * fx + mz * fz;
+        if (along < 0.5 || along > 24) continue;
+        const clear = c.r + 0.62 + 1.1;
+        if (Math.abs(fx * mz - fz * mx) > clear) continue;
+        const q = S[(p.idx + Math.round(along)) % N]!;
+        const lat = (c.x - q.x) * -q.tz + (c.z - q.z) * q.tx;
+        const lane = lat - (lat >= 0 ? 1 : -1) * (clear + 0.5);
+        ax = q.x - q.tz * lane + q.tx * 3; az = q.z + q.tx * lane + q.tz * 3;
+        break;
+      }
+      if (this.v.plank) {
+        // (the zones are the track's own: where a driver lines up for the shortcut, and where one turns for the prop)
+        const inZone = (zn: { x0: number; x1: number; z0: number; z1: number }): boolean => p.x > zn.x0 && p.x < zn.x1 && p.z > zn.z0 && p.z < zn.z1;
+        if (!p.open && p.lap >= 1 && inZone(pl.opener)) { ax = pl.prop.x; az = pl.prop.z; curve = 0; }
+        else if (p.open && inZone(pl.fork) && p.surface !== 2) { ax = Math.max(pl.bx - 6, p.x - (5 + p.v * 0.3)); az = pl.az; curve = 0; }
+      }
       const dx = ax - p.x; const dz = az - p.z;
       const err = Math.atan2(fx * dz - fz * dx, fx * dx + fz * dz);
       let want = Math.max(-1, Math.min(1, err * (this.v.gain ?? 2.4)));
@@ -115,7 +130,7 @@ for (const [vi, v] of VARIANTS.entries()) {
   let soil = 0; let onPlank = 0; let jumps = 0;
   let place = 0; let time = 0; let finished = 0; let best = 1e9; let grass = 0; let boosts = 0; let bumps = 0; let wins = 0; let lead = 0; let resets = 0;
   for (let r = 0; r < races; r++) {
-    const s = createRace({ karts: 4, required: [0], pace: [1, ...PACE] });
+    const s = createRace({ track: TRACK, karts: 4, required: [0], pace: [1, ...PACE] });
     const me = new Humanish(v);
     const bots = SKILLS.map((skill, i) => new Rival({ seed: 500 + r * 13 + i * 7, skill }));
     const inputs: DriveInput[] = [noDrive(), noDrive(), noDrive(), noDrive()];

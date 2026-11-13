@@ -142,6 +142,27 @@ export class Rival {
         break;
       }
     }
+    // something solid stood in the road: go round it on the side with more road
+    if (track.pillars && !wantOpen) {
+      for (const c of track.pillars) {
+        const mx = c.x - k.x;
+        const mz = c.z - k.z;
+        const along = mx * fx + mz * fz;
+        if (along < 0.5 || along > 24) continue;
+        const clear = c.r + KART.radius + 1.1;
+        if (Math.abs(fx * mz - fz * mx) > clear) continue;
+        // where it stands across the road, measured at the road beside it
+        const p = S[(k.idx + Math.round(along / track.ds)) % N]!;
+        const lat = (c.x - p.x) * -p.tz + (c.z - p.z) * p.tx;
+        const lane = lat - (lat >= 0 ? 1 : -1) * (clear + 0.5);
+        tx = p.x - p.tz * lane;
+        tz = p.z + p.tx * lane;
+        // aim past it rather than at the gap's mouth, so the nose is straight going through
+        tx += p.tx * 3;
+        tz += p.tz * 3;
+        break;
+      }
+    }
     const dx = tx - k.x;
     const dz = tz - k.z;
     const err = Math.atan2(fx * dz - fz * dx, fx * dx + fz * dz);

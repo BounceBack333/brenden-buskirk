@@ -1,6 +1,7 @@
 #!/bin/sh
 # Runs the automated race play-throughs one after another and collects one summary line each.
-# Five races to the death (keyboard, touch), one armed without lives (controllers), one with weapons off.
+# On the backyard: five races to the death (keyboard, touch), one armed without lives (controllers),
+# one with weapons off. On the Grease Pit: three laps to the death, a split-screen lap, and a touch lap.
 #   sh dev/race-evidence.sh [baseUrl] [outDir]
 # Needs a preview of the production build at baseUrl: npm run build && npx vite preview --host 127.0.0.1 --port 4173
 # (not the dev server: saving a source file reloads the page and ruins the run).
@@ -24,4 +25,8 @@ run split-touch-1lap     "${base}?laps=1"    split "$out/race-split-touch" --tou
 run split-pads-1lap      "${base}?laps=1"    split "$out/race-pad"         --pad --slow=0.25 --rematch --armed
 # and the plain race, weapons off, which must still play as it always did
 run solo-keys-clean      "${base}?hq&laps=1" solo  "$out/race-clean"       --slow=0.25 --clean
+# and the second track
+run pit-solo-keys-3laps  "${base}?hq"        solo  "$out/race-pit"         --slow=0.25 --plank --track=pit
+run pit-split-keys-1lap  "${base}?hq&laps=1" split "$out/race-pit-split"   --slow=0.25 --track=pit
+run pit-touch-landscape  "${base}?laps=1"    solo  "$out/race-pit-touch"   --touch --slow=0.2 --track=pit
 cat "$sum"

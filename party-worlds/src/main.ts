@@ -23,7 +23,7 @@ import { RaceControls, RaceHud, RaceSession } from './attractions/dash/play';
 import { RIVAL_LEVELS, rivalLevel } from './attractions/dash/rivals';
 import { medalFor, medalsOf, newSeries, nextMedal, scoreSeries, seriesLine, seriesWinner } from './attractions/dash/stakes';
 import type { RaceState } from './attractions/dash/sim';
-import { DEFAULT_TRACK, RACE, trackById } from './attractions/dash/track';
+import { RACE, TRACK_IDS, trackById } from './attractions/dash/track';
 import { RaceView } from './attractions/dash/view';
 import { FixedLoop } from './core/loop';
 import { Pointers } from './core/pointers';
@@ -102,8 +102,8 @@ function boot(): void {
   const grid = (): CharacterSpec[] => [cast[0], cast[1], ...rivals()];
 
   // ── views ──
-  // the circuit: one today, chosen in one place (see track.ts for how another is added)
-  const track = trackById(DEFAULT_TRACK);
+  // the circuit: the one last raced, chosen on the play sheet (see track.ts for how another is added)
+  let track = trackById(profile.settings.track);
   const raceView = new RaceView(stage.renderer, stage.scene.environment, audio, grid(), profile.settings, track);
   let courierView: CourierView | null = null;
   const studio = new PortraitStudio(stage);
@@ -285,7 +285,8 @@ function boot(): void {
       rows,
       headline,
       note: (() => {
-        const plank = opener ? `${opener} knocked the peg out and opened the plank for everyone.` : 'Nobody opened the plank shortcut this time.';
+        const w = track.words;
+        const plank = opener ? `${opener} knocked the ${w.prop} out and opened the ${w.shortcut} for everyone.` : `Nobody opened the ${w.shortcut} shortcut this time.`;
         if (!s.combat) return plank;
         const total = s.karts.reduce((n, k) => n + k.wrecks, 0);
         const gone = s.karts.filter((k) => k.out).length;
@@ -437,6 +438,17 @@ function boot(): void {
     portrait: (spec) => studio.face(spec),
     applySettings,
     showWeapons: () => raceView.showWeapons(),
+    tracks: () => TRACK_IDS.map((id) => {
+      const t = trackById(id);
+      return { id, name: t.name, tag: t.words.tag, blurb: t.words.blurb, place: t.words.place };
+    }),
+    track: () => ({ id: track.id, name: track.name, tag: track.words.tag, blurb: track.words.blurb, place: track.words.place }),
+    setTrack: (id) => {
+      track = trackById(id);
+      profile.settings.track = track.id;
+      saveProfile(profile);
+      raceView.setTrack(track);
+    },
     setSeatCharacter: (seat, spec) => {
       cast[seat] = spec;
       profile.seats[seat] = spec.id;
@@ -661,7 +673,7 @@ function boot(): void {
     get round() { return round; },
     get race() { return race; },
     get room() { return room; },
-    raceView, raceControls, loop, profile, viewport, stage, api, track, build: __BUILD__,
+    raceView, raceControls, loop, profile, viewport, stage, api, get track() { return track; }, build: __BUILD__,
   };
   requestAnimationFrame(() => requestAnimationFrame(() => {
     $('boot').classList.add('gone');

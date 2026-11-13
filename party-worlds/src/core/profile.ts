@@ -27,6 +27,8 @@ export interface Settings {
   autoFire: boolean;
   /** armed racing, "to the death": wrecks before a kart is out for good; 0 = a wreck always comes back */
   lives: number;
+  /** racing: which circuit (an id from track.ts; one that no longer exists races the default) */
+  track: string;
 }
 
 export interface Profile {
@@ -58,6 +60,7 @@ export function defaultSettings(): Settings {
     master: 0.9, sfx: 1, music: 0.6,
     reducedMotion: prefersReduced, aimAssist: false, umbrellaToggle: false, leftHanded: false, haptics: true, autoDrift: false, rivals: 0,
     weapons: true, autoFire: thumbs, lives: 2, // (COMBAT.lives: to the death is how a race starts out)
+    track: 'backyard',
   };
 }
 
@@ -101,6 +104,7 @@ export function sanitizeSettings(raw: unknown, base: Settings = defaultSettings(
     weapons: flag(o.weapons, base.weapons),
     autoFire: flag(o.autoFire, base.autoFire),
     lives: typeof o.lives === 'number' && Number.isFinite(o.lives) ? Math.min(9, Math.max(0, Math.floor(o.lives))) : base.lives,
+    track: typeof o.track === 'string' && /^[a-z0-9-]{1,24}$/.test(o.track) ? o.track : base.track,
   };
 }
 

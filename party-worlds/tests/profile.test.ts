@@ -71,6 +71,11 @@ describe('saved profile', () => {
     expect(sanitizeSettings({ lives: 2.8 }).lives).toBe(2);
     expect(sanitizeSettings({ lives: 500 }).lives).toBe(9);
     expect(sanitizeSettings({ lives: -3 }).lives).toBe(0);
+    // the track: a plain id, or the default (an id that no longer exists is trackById's problem, and it has an answer)
+    expect(sanitizeSettings({ track: 'pit' }).track).toBe('pit');
+    expect(sanitizeSettings({ track: 7 }).track).toBe(sanitizeSettings({}).track);
+    expect(sanitizeSettings({ track: '<img src=x onerror=alert(1)>' }).track).toBe(sanitizeSettings({}).track);
+    expect(sanitizeSettings({ track: 'x'.repeat(200) }).track).toBe(sanitizeSettings({}).track);
     expect(sanitizeSettings({ lives: 'many' }).lives).toBe(fresh.settings.lives);
     // JSON cannot carry Infinity or NaN: they arrive as null
     expect(parseProfile('{"settings":{"master":null},"roundsPlayed":null}').settings.master).toBe(fresh.settings.master);

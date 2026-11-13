@@ -1,5 +1,5 @@
 /**
- * Backyard Dash — tuning and the "Backyard After Dark" circuit.
+ * Backyard Dash — tuning and the circuits: "Backyard After Dark" and "The Grease Pit".
  *
  * Coordinates: x east, z south (toward the camera in the lobby), y up. 1 unit = one character
  * height. A heading of 0 faces +x; a positive steer turns right (heading increases).
@@ -75,9 +75,51 @@ export interface Capsule { x1: number; z1: number; x2: number; z2: number; r: nu
 /** an axis-aligned patch of ground */
 export interface Zone { x0: number; x1: number; z0: number; z1: number }
 
+/** What the yard-kit needs to draw the backyard: anchors only, the sim never reads them. */
+export interface BackyardDressing {
+  hose: { cx: number; cz: number; r: number; a0: number; a1: number };
+  pot: Circle;
+  ball: Circle;
+  /** the ladder on the lawn: outer rails at z0 and z1, from x0 to x1 */
+  ladder: { x0: number; x1: number; z0: number; z1: number; rail: number };
+  chairLegs: Circle[];
+  bricks: Capsule[];
+  workLight: { x: number; z: number };
+}
+
+/** The same for the garage floor. */
+export interface PitDressing {
+  /** heavy chain round the outside of each hairpin (solid): centre, radius, from angle to angle */
+  chains: { cx: number; cz: number; r: number; a0: number; a1: number }[];
+  /** paint tins stood in the road */
+  tins: Circle[];
+  /** the stack of tyres inside the east hairpin, the oil drum inside the west one */
+  tyres: Circle;
+  drum: Circle;
+  /** a jerry can inside the east loop */
+  can: Circle;
+  /** the fallen strip light that fences the infield (solid, and lit) */
+  tube: Capsule;
+  /** the two concrete blocks of the gate */
+  blocks: Capsule[];
+  /** where the track crosses itself */
+  crossing: { x: number; z: number; half: number };
+}
+
 export interface Track {
   id: string;
   name: string;
+  /** what this place calls its things, for the words on screen */
+  words: {
+    /** a few words for the track picker, and a sentence or two for the list of tracks */
+    tag: string;
+    blurb: string;
+    /** "Three laps of …" */
+    place: string;
+    /** the gated shortcut and the thing that holds it shut */
+    shortcut: string;
+    prop: string;
+  };
   samples: Sample[];
   length: number;
   /** spacing between samples */
@@ -110,6 +152,11 @@ export interface Track {
     look: { x: number; y: number; z: number };
   };
   /**
+   * Solid things standing in the road itself (they are in `circles` too). Rivals steer round
+   * them; anything big enough is cover from guns and rockets (COMBAT.coverRadius).
+   */
+  pillars?: Circle[];
+  /**
    * What the combat layer needs from a circuit (see combat.ts). Without it a combat race here
    * still has guns and ramming, but nothing to pick up and no repairs.
    */
@@ -118,21 +165,18 @@ export interface Track {
     crates: { x: number; z: number; item: 'mine' | 'rocket' | 'shock' | 'shield' | 'overdrive' }[];
     /** drive through for armour: put it on the long way round, so the shortcut costs something */
     repair: Zone;
+    /** arena dressing for an armed race, all of it where no kart can go: fires in tin cans (or, raised and bigger, in something taller)… */
+    fires?: { x: number; z: number; y?: number; size?: number }[];
+    /** …and chevron boards, each facing the point (fx, fz) */
+    boards?: { x: number; z: number; fx: number; fz: number }[];
   };
-  /** the flowerbed the plank crosses (ellipse): very slow going */
+  /** the slow patch the shortcut crosses (ellipse): a flowerbed, an oil spill */
   bed: { x: number; z: number; rx: number; rz: number };
-  /** set dressing anchors the view uses (the sim only uses circles/capsules) */
-  dressing: {
-    hose: { cx: number; cz: number; r: number; a0: number; a1: number };
-    pot: Circle;
-    ball: Circle;
-    /** the ladder on the lawn: outer rails at z0 and z1, from x0 to x1 */
-    ladder: { x0: number; x1: number; z0: number; z1: number; rail: number };
-    chairLegs: Circle[];
-    bricks: Capsule[];
-    workLight: { x: number; z: number };
-  };
+  /** set dressing anchors for this track's world kit (the sim only uses circles/capsules) */
+  dressing: object;
 }
+export type BackyardTrack = Track & { dressing: BackyardDressing };
+export type PitTrack = Track & { dressing: PitDressing };
 
 type P = [number, number];
 
@@ -212,7 +256,7 @@ function buildSamples(pts: P[], startNear: P, widths: (x: number, z: number) => 
   return { samples, length, ds };
 }
 
-function buildBackyard(): Track {
+function buildBackyard(): BackyardTrack {
   // South straight heads east; a hose-banked hairpin; a brick chicane; a long bend round the
   // flowerbed (the plank cuts straight across it); a sweeper round the big pot.
   const pts: P[] = [
@@ -279,6 +323,20 @@ function buildBackyard(): Track {
     beside(212, -2.1, 'overdrive' as const), beside(244, 2.2, 'shock' as const),
   ];
 
+  // Arena dressing for an armed race: fires in tin cans down the middle of the ladder (seen from
+  // both straights, reached from neither) and behind the hairpin's wall, with chevron boards
+  // between them.
+  const fires: { x: number; z: number }[] = [];
+  const boards: { x: number; z: number; fx: number; fz: number }[] = [];
+  const midZ = (ladder.z0 + ladder.z1) / 2;
+  for (let n = 0; n < 4; n++) fires.push({ x: ladder.x0 + 9 + ((ladder.x1 - ladder.x0 - 18) * n) / 3, z: midZ + (n % 2 ? 1.6 : -1.6) });
+  for (let n = 0; n <= 6; n++) {
+    const a = hose.a0 + ((hose.a1 - hose.a0) * (n + 0.5)) / 7;
+    const r = hose.r + 2.6;
+    if (n % 3 === 1) fires.push({ x: hose.cx + dcos(a) * (r + 1.6), z: hose.cz + dsin(a) * (r + 1.6) });
+    else boards.push({ x: hose.cx + dcos(a) * r, z: hose.cz + dsin(a) * r, fx: hose.cx, fz: hose.cz });
+  }
+
   const grid = [
     { x: -9.5, z: 28.5, heading: 0 }, { x: -12.2, z: 31.5, heading: 0 },
     { x: -14.9, z: 28.5, heading: 0 }, { x: -17.6, z: 31.5, heading: 0 },
@@ -286,6 +344,13 @@ function buildBackyard(): Track {
   return {
     id: 'backyard',
     name: 'Backyard After Dark',
+    words: {
+      tag: 'A patio at night. Tight, quick, close.',
+      blurb: 'A patio at night: a hose-banked hairpin, a brick chicane, a plank across the flowerbed. Tight, quick, close.',
+      place: 'the patio after dark',
+      shortcut: 'plank',
+      prop: 'peg',
+    },
     samples, length, ds, circles, capsules,
     bounds: { x0: -80, x1: 84, z0: -42, z1: 50 },
     grid,
@@ -308,9 +373,194 @@ function buildBackyard(): Track {
       look: { x: -8.3, y: 0.95, z: 30.2 },
     },
     // the repair strip is at the far side of the flowerbed bend: the plank skips it
-    combat: { crates, repair: { x0: -20, x1: -9, z0: -28, z1: -17 } },
+    combat: { crates, repair: { x0: -20, x1: -9, z0: -28, z1: -17 }, fires, boards },
     bed: { x: -14.5, z: -7, rx: 16.5, rz: 9.6 },
     dressing: { hose, pot, ball, ladder, chairLegs, bricks, workLight: { x: 70, z: 15 } },
+  };
+}
+
+/** Control points along an arc, from one angle (degrees) up to but not including the other. */
+function arcPts(cx: number, cz: number, r: number, fromDeg: number, toDeg: number, steps: number): P[] {
+  const out: P[] = [];
+  for (let i = 0; i < steps; i++) {
+    const a = (fromDeg + ((toDeg - fromDeg) * i) / steps) * DEG;
+    out.push([cx + dcos(a) * r, cz + dsin(a) * r]);
+  }
+  return out;
+}
+
+/**
+ * The Grease Pit: a figure of eight on a garage floor, laid out for a fight.
+ *
+ * A long, wide straight (the firing line) with paint tins stood in it for cover; a hairpin round
+ * a stack of tyres; a gate between two concrete blocks, one kart wide, with the mines handed out
+ * just before it; then the back leg crosses the firing line at right angles, so whoever is
+ * coming down the straight is in somebody's sights. The long way round the oil spill has the
+ * repair strip; the board across the spill skips it.
+ */
+function buildPit(): PitTrack {
+  const pts: P[] = [
+    // the firing line, heading east along z = 6
+    [-52, 6], [-36, 6], [-20, 6], [-4, 6], [12, 6], [28, 6],
+    // east hairpin (right-hand) round the tyres
+    ...arcPts(46, 20.5, 14.5, -90, 90, 4),
+    // south straight, through the gate, heading west
+    [46, 35], [38, 35],
+    // right, to head north
+    ...arcPts(30, 22, 13, 90, 180, 2),
+    // the back leg: north across the firing line at (17, 6)
+    [17, 22], [17, 8], [17, -4],
+    // left, to head west
+    ...arcPts(4, -14, 13, 0, -90, 2),
+    [4, -27], [-5, -27],
+    // the long way round the oil spill (the board cuts straight across it)
+    [-11, -37], [-17, -47], [-25, -49.5], [-33, -47], [-39, -37], [-43, -27],
+    // west hairpin (left-hand) round the drum, back onto the firing line
+    ...arcPts(-52, -10.5, 16.5, -90, -270, 4),
+  ];
+  const gate = { x0: 35.5, x1: 40.5, z: 35, hw: 2.9 };
+  const widths = (x: number, z: number): number => {
+    if (z > 28 && x < 46) {
+      // the gate pinches the south straight to one kart and a bit; the road eases in and out of it
+      const mid = (gate.x0 + gate.x1) / 2;
+      const d = Math.abs(x - mid);
+      const t = d < 2.5 ? 0 : d > 7.5 ? 1 : (d - 2.5) / 5;
+      return gate.hw + (4.6 - gate.hw) * t;
+    }
+    if (z < -29) return 4.4; // round the spill, room for a long slide
+    if (z < -20) return 4.2;
+    if (x > 46 || x < -52) return 5; // the hairpins
+    if (z > 0 && z < 12) return 5.5; // the firing line (and the crossing)
+    return 4.4;
+  };
+  const { samples, length, ds } = buildSamples(pts, [-10, 6], widths);
+  // (the widths above change in steps: ease them, so the road has no notches in its edges)
+  for (let pass = 0; pass < 2; pass++) {
+    const was = samples.map((p) => p.hw);
+    const n = samples.length;
+    for (let i = 0; i < n; i++) samples[i]!.hw = (was[(i + n - 2) % n]! + was[(i + n - 1) % n]! + was[i]! + was[(i + 1) % n]! + was[(i + 2) % n]!) / 5;
+  }
+
+  const capsules: Capsule[] = [];
+  // a heavy chain round the outside of each hairpin
+  const chains = [
+    { cx: 46, cz: 20.5, r: 14.5 + 5 + 0.75, a0: -80 * DEG, a1: 80 * DEG },
+    { cx: -52, cz: -10.5, r: 16.5 + 5 + 0.75, a0: 100 * DEG, a1: 260 * DEG },
+  ];
+  for (const c of chains) {
+    const steps = 14;
+    for (let i = 0; i < steps; i++) {
+      const a = c.a0 + ((c.a1 - c.a0) * i) / steps;
+      const b = c.a0 + ((c.a1 - c.a0) * (i + 1)) / steps;
+      capsules.push({ x1: c.cx + dcos(a) * c.r, z1: c.cz + dsin(a) * c.r, x2: c.cx + dcos(b) * c.r, z2: c.cz + dsin(b) * c.r, r: 0.55 });
+    }
+  }
+  // the gate: two concrete blocks, either side of the south straight
+  const off = gate.hw + 1.9;
+  const blocks: Capsule[] = [
+    { x1: gate.x0 + 0.6, z1: gate.z - off, x2: gate.x1 - 0.6, z2: gate.z - off, r: 1.9 },
+    { x1: gate.x0 + 0.6, z1: gate.z + off, x2: gate.x1 - 0.6, z2: gate.z + off, r: 1.9 },
+  ];
+  capsules.push(...blocks);
+  // A strip light that came off its chains lies along the infield. Without it a straight line
+  // across the sawdust from the top straight to the firing line skips the west hairpin.
+  const tube: Capsule = { x1: -43.5, z1: -11, x2: 10.7, z2: -11, r: 1.1 };
+  capsules.push(tube);
+
+  // paint tins stood in the firing line: cover from guns and rockets, and something to hit
+  // (each stands to one side: the middle of the road is clear, the gap behind a tin is not a way through)
+  const tins: Circle[] = [{ x: -31, z: 2.9, r: 1.7 }, { x: 1, z: 9.2, r: 1.7 }, { x: 35, z: 2.9, r: 1.7 }];
+  const tyres: Circle = { x: 45.5, z: 20.5, r: 6.8 };
+  // (the can plugs the gap between the tyres and the gate's inside block: the gate is the only way through)
+  const can: Circle = { x: 41.5, z: 27.5, r: 2.6 };
+  // (big enough that the sawdust inside the hairpin is a tighter line, not a way to skip the corner)
+  const drum: Circle = { x: -52, z: -10.5, r: 7.2 };
+  const circles: Circle[] = [...tins, tyres, can, drum];
+
+  const beside = <T extends string>(index: number, lane: number, item: T): { x: number; z: number; item: T } => {
+    const p = samples[((index % samples.length) + samples.length) % samples.length]!;
+    return { x: p.x - p.tz * lane, z: p.z + p.tx * lane, item };
+  };
+  /** the sample nearest a point (for placing things by where they are, not by counting) */
+  const at = (x: number, z: number): number => {
+    let best = 0;
+    let bestD = Infinity;
+    for (let i = 0; i < samples.length; i++) {
+      const p = samples[i]!;
+      const d = (p.x - x) * (p.x - x) + (p.z - z) * (p.z - z);
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    }
+    return best;
+  };
+  // Seven crates, each where its contents are worth having: rockets at the head of the firing
+  // line and again before the crossing, an overdrive to carry through the junction, the
+  // shockwave in the hairpin where the pack bunches, mines before the gate and before the fork,
+  // the shield on the long way round.
+  const crates = [
+    beside(at(-40, 6), 2.6, 'rocket' as const),
+    beside(at(10, 6), -2.8, 'overdrive' as const),
+    beside(at(60.5, 20.5), 2.2, 'shock' as const),
+    beside(at(46, 35), -2.2, 'mine' as const),
+    beside(at(17, 19), 2.0, 'rocket' as const),
+    beside(at(10, -25), 2.0, 'mine' as const),
+    beside(at(-14, -43), 2.2, 'shield' as const),
+  ];
+
+  // the oil drum inside the west hairpin is alight; behind each chain, fires in tin cans with
+  // chevron boards between them
+  const fires: { x: number; z: number; y?: number; size?: number }[] = [{ x: drum.x, z: drum.z, y: 1.5, size: 4.2 }];
+  const boards: { x: number; z: number; fx: number; fz: number }[] = [];
+  for (const c of chains) {
+    for (let n = 0; n <= 6; n++) {
+      const a = c.a0 + ((c.a1 - c.a0) * (n + 0.5)) / 7;
+      const r = c.r + 2.6;
+      if (n % 3 === 1) fires.push({ x: c.cx + dcos(a) * (r + 1.6), z: c.cz + dsin(a) * (r + 1.6) });
+      else boards.push({ x: c.cx + dcos(a) * r, z: c.cz + dsin(a) * r, fx: c.cx, fz: c.cz });
+    }
+  }
+
+  const grid = [
+    { x: -14.5, z: 4.4, heading: 0 }, { x: -17.2, z: 7.6, heading: 0 },
+    { x: -19.9, z: 4.4, heading: 0 }, { x: -22.6, z: 7.6, heading: 0 },
+  ];
+  return {
+    id: 'pit',
+    name: 'The Grease Pit',
+    words: {
+      tag: 'A garage floor, a figure of eight. Built for a fight.',
+      blurb: 'A garage floor, a figure of eight: a long firing line with tins for cover, a one-kart gate, and a crossing where the track meets itself. Built for a fight.',
+      place: 'the garage floor',
+      shortcut: 'board',
+      prop: 'chock',
+    },
+    samples, length, ds, circles, capsules,
+    bounds: { x0: -84, x1: 78, z0: -64, z1: 50 },
+    grid,
+    pillars: tins,
+    plank: {
+      ax: -6, az: -28, bx: -40, bz: -28, hw: 1.35, rampFrom: 0.9,
+      blocker: { x1: -7.8, z1: -29.7, x2: -7.8, z2: -26.3, r: 0.4 },
+      prop: { x: -5.4, z: -24.7, r: 0.65 },
+      fork: { x0: -42, x1: 7, z0: -33, z1: -21 },
+      opener: { x0: -7, x1: 11, z0: -32, z1: -19 },
+    },
+    // from the same stand-in drivers as the backyard's (TRACK=pit dev/humanish.ts), not people:
+    // a steady first-timer lands near bronze, drifting well reaches silver, gold needs the board
+    medals: { gold: 67.5, silver: 71.5, bronze: 75 },
+    // armed, the stand-in takes four to five seconds longer here too (TRACK=pit dev/combatprobe.ts)
+    combatMedals: { gold: 71.5, silver: 76, bronze: 80 },
+    lobby: {
+      spots: [{ x: -12.4, z: 4.4, heading: 0.5 }, { x: -14.2, z: 7.9, heading: 0.25 }, { x: -21, z: 3.6, heading: 0 }, { x: -23.5, z: 7.6, heading: 0 }],
+      camera: { x: -5.9, y: 2.15, z: 12.3 },
+      look: { x: -13.3, y: 0.95, z: 6.2 },
+    },
+    // the repair strip is at the far side of the spill: the board skips it
+    combat: { crates, repair: { x0: -31, x1: -19, z0: -56, z1: -44 }, fires, boards },
+    bed: { x: -23.5, z: -34, rx: 16.5, rz: 9.6 },
+    dressing: { chains, tins, tyres, drum, can, tube, blocks, crossing: { x: 17, z: 6, half: 5.5 } },
   };
 }
 
@@ -320,6 +570,7 @@ function buildBackyard(): Track {
 // it (src/worlds), and one line here. Nothing else in the game names a track.
 const BUILDERS: Record<string, () => Track> = {
   backyard: buildBackyard,
+  pit: buildPit,
 };
 const built = new Map<string, Track>();
 
@@ -337,8 +588,8 @@ export function trackById(id: string): Track {
   return t;
 }
 
-export function backyard(): Track {
-  return trackById('backyard');
+export function backyard(): BackyardTrack {
+  return trackById('backyard') as BackyardTrack;
 }
 
 /** Squared distance from a point to a segment, with the closest point's parameter. */

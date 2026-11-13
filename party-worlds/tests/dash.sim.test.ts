@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { SURFACE, cloneRace, createRace, forwardSpeed, hashRace, headingOf, noDrive, stepRace, trackOf } from '../src/attractions/dash/sim';
 import type { DriveInput, RaceEvent, RaceState } from '../src/attractions/dash/sim';
 import { Rival } from '../src/attractions/dash/bot';
-import { DEFAULT_TRACK, KART, RACE, TRACK_IDS, trackById } from '../src/attractions/dash/track';
+import { DEFAULT_TRACK, KART, RACE, TRACK_IDS, backyard, trackById } from '../src/attractions/dash/track';
 import { RIVAL_LEVELS, rivalLevel } from '../src/attractions/dash/rivals';
 import { Rng } from '../src/core/dmath';
 
@@ -207,7 +207,7 @@ describe('contact', () => {
     expect(b.vx).toBeGreaterThan(3);
   });
   it('nothing drives through the big pot, even flat out', () => {
-    const t = trackOf(createRace());
+    const t = backyard();
     const pot = t.dressing.pot;
     for (let i = 0; i < 20; i++) {
       const s = createRace({ karts: 1 });
@@ -219,7 +219,7 @@ describe('contact', () => {
     }
   });
   it('the lost tennis ball in the hairpin infield is solid too', () => {
-    const ball = trackOf(createRace()).dressing.ball;
+    const ball = backyard().dressing.ball;
     for (let i = 0; i < 9; i++) {
       const s = createRace({ karts: 1 });
       go(s);
@@ -233,7 +233,7 @@ describe('contact', () => {
 
 describe('no free laps', () => {
   it('the ladder on the lawn stops any straight line across the infield, from either side', () => {
-    const ld = trackOf(createRace()).dressing.ladder;
+    const ld = backyard().dressing.ladder;
     for (let x = ld.x0 + 1; x <= ld.x1 - 1; x += 5.5) {
       for (const dir of [-1, 1]) {
         const s = createRace({ karts: 1 });
@@ -251,7 +251,7 @@ describe('no free laps', () => {
     }
   });
   it('the pot, the ladder and the tennis ball leave no gap a kart fits through', () => {
-    const t = trackOf(createRace());
+    const t = backyard();
     const { pot, ball, ladder } = t.dressing;
     expect(ladder.x0 - (pot.x + pot.r)).toBeLessThan(KART.radius * 2);
     expect(ball.x - ball.r - ladder.x1).toBeLessThan(KART.radius * 2);

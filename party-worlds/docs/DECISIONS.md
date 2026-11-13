@@ -2,6 +2,36 @@
 
 Newest first. Each entry: what was decided, why, what it costs, and what would change it.
 
+## D-028 · A second track, built for a fight: The Grease Pit (2026-11-13)
+Asked whether to build a track designed for fighting, with a track picker, the founder said: "Do it."
+**What it is.** A figure of eight on a garage floor at night, 369 units round against the backyard's 305. The lane is swept concrete through sawdust; off it is slow, and the oil spill is slower.
+- **The firing line.** A straight a hundred units long and eleven wide, half as wide again as anything in the backyard: room to pull alongside, room to dodge. Three paint tins stand in it, each to one side. A tin stops bullets and rockets, and it also stops karts.
+- **The gate.** Two concrete blocks pinch the south straight to under six units, one kart and a bit. The mines are handed out just before it. The jerry can and the tyres close the inside, so the gate is the only way through.
+- **The crossing.** The back leg crosses the firing line at right angles, on the level, under a yellow box. Whoever is coming down the straight is in somebody's sights, and there is a rocket crate on the approach.
+- **The long way and the short way**, as in the backyard: a board across the oil spill, held shut by a wheel chock anybody can knock out, and the repair strip on the long way round.
+- **Seven crates** against the backyard's five: two of rockets, two of mines, a shockwave in the hairpin where the pack bunches, a ram to carry through the junction, a shield on the long way round.
+- **Armed**, the oil drum inside the west hairpin is alight and there are chevron boards behind both chains.
+**Choosing.** The play sheet has a Track row. The choice is saved with the other settings; times and medals were already kept per track.
+**How the crossing works without a bridge.** A kart's place on the lap is only ever searched for a little way ahead of where it last was, so the other road, which is 125 samples away round the lap, is never mistaken for this one. The consequence is deliberate: turn onto the other road at the junction and the game treats you as off the road (slow), credits nothing, and after two and a half seconds stands you back where you left. There is a test for exactly that.
+**What had to change to make room for it.**
+- A track's set dressing is now its own (`BackyardDressing`, `PitDressing`); a track says what it calls its shortcut and its prop, so the hints and banners read "chock" and "board" here; each world kit says how it is lit (`WorldMood`).
+- The fires and chevron boards of an armed race moved out of the effects code into track data.
+- `Track.pillars`: solid things standing in the road. Rivals steer round them on the side with more road. The backyard has none, so its rivals drive exactly as before.
+- The play sheet's two big choices put their icon beside the title, so the sheet with one more row still fits a phone on its side without scrolling (measured at 1280×720, 844×390 and 667×375).
+**Found on the way.**
+- *The left-hand edge tape had never been drawn, on the backyard either.* Its strip was wound the other way and was culled. Both edges show now: warm on your left, cold on your right. This is the first time anybody has seen the backyard with both.
+- The first layout had three gaps a kart fitted through (past the drum, round the inside of the gate, past the end of the strip light). The tests written for the track found all three before a browser was opened.
+**Numbers**, all simulated (`TRACK=pit` with `dev/raceprobe.ts`, `dev/humanish.ts`, `dev/combatprobe.ts`):
+- Rivals against each other: a lap in about 22 s, a race in about 65 s (backyard 18.6 and 55); under one wall hit a race across four karts, no resets.
+- To the death, thirty races a level: 3.7 / 4.3 / 4.2 wrecks a race at Gentle / Keen / Fierce (backyard 2.6 / 4.0 / 4.3) and 1.0 / 1.0 / 1.1 karts put out (backyard 0.5 / 0.9 / 0.9); five or six rockets a race against four, about six mines against four. More of everything except ramming: a wide road means fewer accidental hits (2.3 a race against 2.3 to 5.7).
+- The stand-in drivers finish two to three seconds further behind the same rivals here than in the backyard. Wide, simple corners suit a rival that never lifts. Not corrected: the fix would be a per-track throttle for rivals, and nobody has raced them here yet.
+- Medal times set the same way as the backyard's: 67.5 / 71.5 / 75 s, and 71.5 / 76 / 80 s armed.
+**The backyard** races exactly as it did: all 27 of its fingerprints are identical. 27 were recorded for the pit.
+**Kept.** One kart and one kit for everyone; cars against cars; nothing bought, unlocked or random. Every crate on the new track always holds the same thing, as on the old one.
+**Cost.** About 6 KB more script (281 KB gzipped of a 300 KB budget: the next world kit will need the budget looked at, or the kits loaded on demand). A longer race: about 75 s for a first-timer against 62.
+**Not done.** No change to armour or guns. Nothing on the new track is a new rule: it is the same race in a different place. Nobody but me has seen it.
+**What would change it.** Somebody playing both. Whether the crossing is funny or just confusing, whether anyone hides behind a tin on purpose, and whether 75 seconds is too long for one race are all unknown (`PLAYTEST.md`).
+
 ## D-027 · Things in the crates (2026-11-13)
 The founder played the build to the death and said: "I like it. We're improving." Then, asked what felt off: "It felt good. Vehicles are weak, more power ups would be cool. Different weapons and such." (No word on the device or on how long was played.)
 **Read as:** the karts do not hit hard enough. The guns take three magazines to wreck anybody and the only other thing to pick up was mines. If "weak" meant "die too easily", the remedy is the armour figure instead; that has been asked.

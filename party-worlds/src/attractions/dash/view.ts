@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { buildCharacter, kartColorOf } from '../../characters';
 import type { AudioKit, CharacterRig, CharacterSpec, MotionContext } from '../../kit/contracts';
 import type { Settings } from '../../core/profile';
-import { buildKart, buildNightSky, buildRaceWorld } from '../../worlds';
+import { DEFAULT_MOOD, buildKart, buildNightSky, buildRaceWorld } from '../../worlds';
 import type { KartModel, RaceWorld } from '../../worlds';
 import { COMBAT } from './combat';
 import { CombatFx } from './combatfx';
@@ -124,6 +124,8 @@ export class RaceView {
   private fx: CombatFx;
   private sky!: THREE.HemisphereLight;
   private neon!: THREE.DirectionalLight;
+  private lamp!: THREE.DirectionalLight;
+  private moon!: THREE.DirectionalLight;
   private armed = false;
   private smokeTurn = 0;
   /** karts that are out and whose burnt husk has already been cleared away */
@@ -169,9 +171,11 @@ export class RaceView {
     const lamp = new THREE.DirectionalLight('#ffe9c8', 1.55); // the work lamp, low from the east
     lamp.position.set(70, 34, 20);
     scene.add(lamp);
+    this.lamp = lamp;
     const moon = new THREE.DirectionalLight('#7fd0ff', 0.85);
     moon.position.set(-40, 60, -50);
     scene.add(moon);
+    this.moon = moon;
 
     this.world = buildRaceWorld(track);
     this.fx = new CombatFx(track);
@@ -243,6 +247,9 @@ export class RaceView {
     this.world = buildRaceWorld(track);
     this.scene.add(this.world.root);
     this.fx.setTrack(track);
+    this.fx.clearScorches();
+    this.world.resetPlank();
+    this.arm(this.armed); // each place has its own light
     if (this.lobby) this.placeLobby();
   }
 
@@ -250,13 +257,17 @@ export class RaceView {
   private arm(on: boolean): void {
     this.armed = on;
     this.fx.setArmed(on);
-    // armed, the yard is lit harder: the neon goes red, the sky cools and the haze closes in
-    this.neon.color.set(on ? '#ff3a2e' : '#ff4f9a');
-    this.neon.intensity = on ? 0.85 : 0.55;
-    this.sky.color.set(on ? '#7f8ae6' : '#8f9cff');
-    this.sky.intensity = on ? 0.95 : 1.05;
-    (this.scene.fog as THREE.FogExp2).color.set(on ? '#261a3a' : '#232a55');
-    (this.scene.fog as THREE.FogExp2).density = on ? 0.0098 : 0.0085;
+    // armed, a place is lit harder: the neon goes red, the sky cools and the haze closes in
+    const mood = this.world.mood ?? DEFAULT_MOOD;
+    const i = on ? 1 : 0;
+    this.neon.color.set(mood.neon[i]);
+    this.neon.intensity = mood.neonIntensity[i];
+    this.sky.color.set(mood.sky[i]);
+    this.sky.intensity = mood.skyIntensity[i];
+    this.lamp.color.set(mood.lamp);
+    this.moon.color.set(mood.moon);
+    (this.scene.fog as THREE.FogExp2).color.set(mood.fog[i]);
+    (this.scene.fog as THREE.FogExp2).density = mood.density[i];
     for (const kart of this.karts) {
       kart.setArmed(on);
       kart.setWrecked(false);
@@ -384,7 +395,7 @@ export class RaceView {
         a.play('plank');
         const pl = this.track.plank;
         this.burst(pl.ax - 2, 0.3, pl.az, 18, '#e8d2aa', 5, 0.45);
-        this.onBanner?.(-1, 'Shortcut open!', `${this.names[e.seat] ?? 'Someone'} knocked the peg out — the plank is down for everyone`);
+        this.onBanner?.(-1, 'Shortcut open!', `${this.names[e.seat] ?? 'Someone'} knocked the ${this.track.words.prop} out — the ${this.track.words.shortcut} is down for everyone`);
         break;
       }
       case 'jump':

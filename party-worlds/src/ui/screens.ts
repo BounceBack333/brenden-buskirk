@@ -61,6 +61,8 @@ export type RaceStakes =
   | { kind: 'series'; names: [string, string]; faces: [string, string]; colors: [string, string]; wins: [number, number]; target: number; line: string; over: boolean }
   | { kind: 'medal'; medal: 'gold' | 'silver' | 'bronze' | ''; title: string; line: string };
 
+export interface TrackInfo { id: string; name: string; tag: string; blurb: string; place: string }
+
 export interface AppApi {
   profile: Profile;
   audio: AudioKit;
@@ -79,6 +81,10 @@ export interface AppApi {
   applySettings(): void;
   /** the karts in the menu are shown armed or not, to match the weapons setting */
   showWeapons(): void;
+  /** every circuit there is, the one the next race is on, and choosing another */
+  tracks(): TrackInfo[];
+  track(): TrackInfo;
+  setTrack(id: string): void;
   buildLabel: string;
   online: OnlineApi;
 }
@@ -207,8 +213,8 @@ export class Screens {
     sheet.innerHTML = `
       <div class="sheet card" role="dialog" aria-label="Play together">
         <div class="sheet-head">
-          <div><h2>Backyard Dash</h2>
-          <p class="pitch">${Screens.pitch(Screens.rules(a.profile.settings))}</p></div>
+          <div><h2 class="track-name">${esc(a.track().name)}</h2>
+          <p class="pitch">${esc(Screens.pitch(Screens.rules(a.profile.settings), a.track().place))}</p></div>
           <button class="icon-btn" data-act="close" aria-label="Close">${ICON.close}</button>
         </div>
         <div class="choices two">
@@ -220,9 +226,14 @@ export class Screens {
             <span class="d">Two players, one screen: ${p0} left, ${p1} right, plus two bot rivals. Thumbs, one keyboard (A/D + W · ←/→ + ↑) or two controllers.</span></button>
         </div>
         <div class="rivals-row">
+          <span class="lbl">Track</span>
+          <div class="seg" role="group" aria-label="Track">${a.tracks().map((t) => `<button data-track="${esc(t.id)}" aria-pressed="${t.id === a.track().id}">${esc(t.name)}</button>`).join('')}</div>
+          <span class="muted blurb where">${esc(a.track().tag)}</span>
+        </div>
+        <div class="rivals-row">
           <span class="lbl">Rivals</span>
           <div class="seg" role="group" aria-label="Rival difficulty">${RIVAL_LEVELS.map((l, i) => `<button data-rivals="${i}" aria-pressed="${i === a.profile.settings.rivals}">${l.name}</button>`).join('')}</div>
-          <span class="muted blurb">${esc(rivalLevel(a.profile.settings.rivals).blurb)}</span>
+          <span class="muted blurb level">${esc(rivalLevel(a.profile.settings.rivals).blurb)}</span>
         </div>
         <div class="rivals-row">
           <span class="lbl">Weapons</span>
@@ -239,12 +250,20 @@ export class Screens {
     this.root.append(sheet);
     this.on('[data-act="close"]', () => { a.audio.play('ui_back'); sheet.remove(); }, sheet);
     sheet.addEventListener('click', (e) => { if (e.target === sheet) sheet.remove(); });
+    this.on('[data-track]', (el) => {
+      this.tap();
+      a.setTrack(el.dataset.track ?? '');
+      sheet.querySelectorAll('[data-track]').forEach((b) => b.setAttribute('aria-pressed', String(b === el)));
+      (sheet.querySelector('.where') as HTMLElement).textContent = a.track().tag;
+      (sheet.querySelector('.track-name') as HTMLElement).textContent = a.track().name;
+      (sheet.querySelector('.pitch') as HTMLElement).textContent = Screens.pitch(Screens.rules(a.profile.settings), a.track().place);
+    }, sheet);
     this.on('[data-rivals]', (el) => {
       this.tap();
       a.profile.settings.rivals = Number(el.dataset.rivals);
       a.save();
       sheet.querySelectorAll('[data-rivals]').forEach((b) => b.setAttribute('aria-pressed', String(b === el)));
-      (sheet.querySelector('.blurb') as HTMLElement).textContent = rivalLevel(a.profile.settings.rivals).blurb;
+      (sheet.querySelector('.blurb.level') as HTMLElement).textContent = rivalLevel(a.profile.settings.rivals).blurb;
     }, sheet);
     this.on('[data-rules]', (el) => {
       this.tap();
@@ -257,7 +276,7 @@ export class Screens {
       a.showWeapons();
       sheet.querySelectorAll('[data-rules]').forEach((b) => b.setAttribute('aria-pressed', String(b === el)));
       (sheet.querySelector('.arms') as HTMLElement).textContent = Screens.arms(rules);
-      (sheet.querySelector('.pitch') as HTMLElement).textContent = Screens.pitch(rules);
+      (sheet.querySelector('.pitch') as HTMLElement).textContent = Screens.pitch(rules, a.track().place);
     }, sheet);
     this.on('[data-race]', (el) => {
       a.audio.play('ui_confirm');
@@ -276,12 +295,12 @@ export class Screens {
     return !s.weapons ? 'clean' : s.lives > 0 ? 'death' : 'armed';
   }
 
-  private static pitch(rules: RaceRules): string {
+  private static pitch(rules: RaceRules, place: string): string {
     return rules === 'clean'
-      ? "Three laps of the patio after dark. Drift for boosts, sit in a rival's wake, and decide who pays to open the shortcut."
+      ? `Three laps of ${place}. Drift for boosts, sit in a rival's wake, and decide who pays to open the shortcut.`
       : rules === 'death'
-        ? 'Three laps of the patio after dark, armed, and not everybody finishes. Shoot what is in front of you, mine what is behind you, and be running at the end.'
-        : 'Three laps of the patio after dark, armed. Shoot what is in front of you, mine what is behind you, and get round before your armour runs out.';
+        ? `Three laps of ${place}, armed, and not everybody finishes. Shoot what is in front of you, mine what is behind you, and be running at the end.`
+        : `Three laps of ${place}, armed. Shoot what is in front of you, mine what is behind you, and get round before your armour runs out.`;
   }
 
   private static arms(rules: RaceRules): string {
@@ -585,8 +604,8 @@ export class Screens {
         <div class="sheet-head"><div><h2>Tracks</h2>
           <p>Each world is a real place at tiny scale, and it remembers what you do to it.</p></div>
           <button class="icon-btn" data-act="close" aria-label="Close">${ICON.close}</button></div>
-        <div class="row"><span class="lbl"><b>Backyard After Dark</b> <span class="tag">playable</span>
-          <small>A patio at night: a garden-hose hairpin, a brick chicane, a plank across the flowerbed. Race: Backyard Dash.</small></span></div>
+        ${this.api.tracks().map((t) => `<div class="row"><span class="lbl"><b>${esc(t.name)}</b> <span class="tag">playable</span>
+          <small>${esc(t.blurb)}</small></span></div>`).join('')}
         <div class="row"><span class="lbl"><b>The Birthday Continental</b> <span class="tag soft">parked</span>
           <small>A birthday table with a spoon catapult. Catapult Courier still plays, but racing is the focus now.</small></span></div>
         <div class="row"><span class="lbl"><b>The Place Between the Cushions</b> <span class="tag soft">drawing board</span>
