@@ -1,0 +1,54 @@
+backyard gentle seed 11: tick 4603 hash 270710366 plank 0 order 1234
+backyard gentle seed 202: tick 4448 hash 257795945 plank 0 order 1234
+backyard gentle seed 3003: tick 4440 hash 3216624108 plank 0 order 1234
+backyard keen seed 11: tick 3870 hash 600455714 plank 1 order 2134
+backyard keen seed 202: tick 3873 hash 4202761866 plank 0 order 1324
+backyard keen seed 3003: tick 3933 hash 2457981225 plank 3 order 2134
+backyard fierce seed 11: tick 3585 hash 1981207684 plank 2 order 4132
+backyard fierce seed 202: tick 3427 hash 2089674936 plank 0 order 2413
+backyard fierce seed 3003: tick 3488 hash 129180060 plank 0 order 1234
+backyard armed gentle seed 11: tick 4471 hash 345642330 plank 0 order 2134 wrecks 1000
+backyard armed gentle seed 202: tick 4202 hash 1962189185 plank 0 order 1234 wrecks 0110
+backyard armed gentle seed 3003: tick 4357 hash 2439366366 plank 3 order 3124 wrecks 2000
+backyard armed keen seed 11: tick 4143 hash 2033104932 plank 0 order 3142 wrecks 2020
+backyard armed keen seed 202: tick 4108 hash 2824195228 plank 0 order 1243 wrecks 0120
+backyard armed keen seed 3003: tick 4253 hash 2621066771 plank 0 order 1234 wrecks 0211
+backyard armed fierce seed 11: tick 4004 hash 682168664 plank 0 order 2134 wrecks 1121
+backyard armed fierce seed 202: tick 3957 hash 2025193935 plank 0 order 4123 wrecks 1121
+backyard armed fierce seed 3003: tick 3905 hash 212828592 plank 0 order 1234 wrecks 0211
+backyard death gentle seed 11: tick 4471 hash 3777631578 plank 0 order 2134 wrecks 1000 out ----
+backyard death gentle seed 202: tick 4202 hash 1089773953 plank 0 order 1234 wrecks 0110 out ----
+backyard death gentle seed 3003: tick 4357 hash 3731958582 plank 3 order 4123 wrecks 2000 out x---
+backyard death keen seed 11: tick 3990 hash 3658440870 plank 0 order 4132 wrecks 2020 out x-x-
+backyard death keen seed 202: tick 4066 hash 2652617289 plank 0 order 1243 wrecks 0120 out --x-
+backyard death keen seed 3003: tick 4120 hash 71031662 plank 0 order 1423 wrecks 0210 out -x--
+backyard death fierce seed 11: tick 3977 hash 1154635093 plank 0 order 2143 wrecks 1121 out --x-
+backyard death fierce seed 202: tick 3988 hash 3795522238 plank 0 order 3142 wrecks 1121 out --x-
+backyard death fierce seed 3003: tick 4125 hash 4044671371 plank 0 order 1432 wrecks 0211 out -x--
+pit gentle seed 11: tick 5252 hash 3807583475 plank 0 order 1234
+pit gentle seed 202: tick 5249 hash 739828604 plank 0 order 1234
+pit gentle seed 3003: tick 5225 hash 3320494649 plank 0 order 1234
+pit keen seed 11: tick 4533 hash 4244786657 plank 0 order 1234
+pit keen seed 202: tick 4722 hash 3237301175 plank 0 order 1234
+pit keen seed 3003: tick 4560 hash 4197541204 plank 0 order 1324
+pit fierce seed 11: tick 4177 hash 2362517724 plank 1 order 1234
+pit fierce seed 202: tick 4108 hash 2094762801 plank 0 order 1423
+pit fierce seed 3003: tick 4112 hash 1218927122 plank 1 order 2413
+pit armed gentle seed 11: tick 5501 hash 2904614763 plank 0 order 1324 wrecks 0211
+pit armed gentle seed 202: tick 5411 hash 553584496 plank 0 order 1234 wrecks 1111
+pit armed gentle seed 3003: tick 5335 hash 1788831718 plank 0 order 1234 wrecks 1110
+pit armed keen seed 11: tick 4935 hash 2899963523 plank 0 order 1324 wrecks 2201
+pit armed keen seed 202: tick 5002 hash 1876821002 plank 0 order 1342 wrecks 0320
+pit armed keen seed 3003: tick 4960 hash 340830932 plank 0 order 1243 wrecks 3231
+pit armed fierce seed 11: tick 4633 hash 1409167857 plank 1 order 2143 wrecks 2011
+pit armed fierce seed 202: tick 4898 hash 4253656231 plank 1 order 2341 wrecks 1221
+pit armed fierce seed 3003: tick 4794 hash 817152260 plank 0 order 4123 wrecks 3231
+pit death gentle seed 11: tick 5501 hash 518944780 plank 0 order 1423 wrecks 0211 out -x--
+pit death gentle seed 202: tick 5411 hash 163514224 plank 0 order 1234 wrecks 1111 out ----
+pit death gentle seed 3003: tick 5335 hash 2756667366 plank 0 order 1234 wrecks 1110 out ----
+pit death keen seed 11: tick 5046 hash 3651319002 plank 0 order 4123 wrecks 2111 out x---
+pit death keen seed 202: tick 4748 hash 879356679 plank 0 order 1432 wrecks 0220 out -xx-
+pit death keen seed 3003: tick 4893 hash 3294936905 plank - order 4132 wrecks 2121 out x-x-
+pit death fierce seed 11: tick 4633 hash 284932551 plank 1 order 4132 wrecks 2011 out x---
+pit death fierce seed 202: tick 4602 hash 3764592717 plank 1 order 2341 wrecks 1221 out -xx-
+pit death fierce seed 3003: tick 4605 hash 1661430315 plank 0 order 3412 wrecks 2211 out xx--
